@@ -4,3 +4,10 @@
   parameters:
     cmd: ./install_the_driver.sh
     timeout: 42
+- role: ['controller']
+  stage: post_deployment
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/site.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720
