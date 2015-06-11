@@ -1,7 +1,7 @@
 attributes:
-  fuel-plugin-vmware-dvs_text:
-    value: 'Set default value'
-    label: 'Text field'
-    description: 'Description for text field'
+  use_vmware_dvs:
+    value: true
+    label: 'use VMware dvs ML2 plugin for networking'
+    description: 'If selected, Neutron ML2 plugin vmware_dvs will be installed'
     weight: 25
-    type: "text"
+    type: "checkbox"
