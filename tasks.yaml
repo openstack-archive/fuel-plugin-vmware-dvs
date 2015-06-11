@@ -1,10 +1,10 @@
-- role: ['controller']
+- role: ['primary-controller','controller']
   stage: post_deployment
   type: shell
   parameters:
     cmd: ./install_the_driver.sh
     timeout: 42
-- role: ['controller']
+- role: ['primary-controller','controller']
   stage: post_deployment
   type: puppet
   parameters:
