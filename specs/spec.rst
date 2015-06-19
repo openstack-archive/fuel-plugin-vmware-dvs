@@ -1,26 +1,90 @@
-==========================================
+=============================================
 Fuel plugin for Neutron ML2 vmware_dvs driver
-==========================================
+=============================================
 
-There is Fuel plugin which provides an advanced networking for VMware-related
-MOS environments.
+There is the Fuel plugin which provides Neutron for networking on
+VMware-related MOS environments.
 
 Problem description
 ===================
 
-Fuel 6.1 doesn't provide neutron networking for VMware-related environments
-only nova-network. Nova-network has a lot of limitations and can not be used in
-production. Modern solution for networking is Neutron but vanilla Fuel 6.1 can
-not uses it.
+Modern facilities to networking in OpenStack is Neutron which replaces obsolete
+nova-networks. Unfortunately integration with VMware which realized in Fuel 6.1
+and below doesn't provide the possibilities to using Neutron. It leads that an
+environment which uses VMware hypervisors is greatly limited. When customers
+(especially huge customers) want to replicate rich enterprise network
+topologies:
 
-This project has aim teach the Neutron to works with the VMware.
+* Ability to create multi-tier networks (e.g., web tier, db tier, app tier).
+
+* Control over IP addressing.
+
+* Ability to insert an configure their own services (e.g., firewall, IPS)
+
+* VPN/Bridge to remote physical hosting or customer premises.
+
+Nova-networks can offer:
+
+* No way to control topology.
+
+* Cloud assigns IP prefixes and addresses.
+
+* No generic service insertion.
+
+Such we have the contradiction between customer needs and our solution.
 
 Proposed change
 ===============
 
-The Neutron has special method to use different backends in different cases.
-It is ML2 plugins. One of them is vmware_dvs which provides Neutron to manage
-VMware Distributed Virtual Switches. And it is exactly what we want.
+The Neutron has plugable architecture which provides using different backends
+(so-called ML2 plugins) in different cases. There is the vmware-dvs [0] plugin
+which provides using Neutron for networking in vmware-related environments. And
+it is exactly what we want.
+
+Accordingly the plugin architecture on controller have to launched additional
+neutron-server process for each vCenter on their control.
+
+::
+
+ +-------------------------------------------+                       +--------+
+ |Controller1                                |                       |        |
+ |                                           |                       |vCenter1|
+ | +---------------------------------------+ |                       |        |
+ | |Pacemaker                              | |                       |        |
+ | |                                       | |                       |        |
+ | | neutron+server --config-file vC1.ini +--------+-----------------+        |
+ | |                                       | |     |                 |        |
+ | |                                       | |     |                 |        |
+ | | neutron+server --config-file vC2.ini +---------------+          |        |
+ | |                                       | |     |      |          |        |
+ | +---------------------------------------+ |     |      |          +--------+
+ |                                           |     |      |
+ +-------------------------------------------+     |      |
+                                                   |      |
+ +-------------------------------------------+     |      |          +--------+
+ |Controller2                                |     |      |          |        |
+ |                                           |     |      |          |vCenter2|
+ | +---------------------------------------+ |     |      |          |        |
+ | |Pacemaker                              | |     |      |          |        |
+ | |                                       | |     |      +----------+        |
+ | | neutron+server --config-file vC1.ini +--------+      |          |        |
+ | |                                       | |            |          |        |
+ | |                                       | |            |          |        |
+ | | neutron+server --config-file vC2.ini +---------------+          |        |
+ | |                                       | |                       |        |
+ | +---------------------------------------+ |                       +--------+
+ |                                           |
+ +-------------------------------------------+
+
+We assume that:
+
+* the VMware environment is already configured by the customer
+  (the Cluster and the dvSwitch assigned to Cluster).
+
+* there is only a possibility to deploy one dvSwitch per one VMware vCenter
+  Cluster.
+
+* only VLAN segmentation and only vSphere 5.5 are supported.
 
 Alternatives
 ------------
@@ -30,7 +94,9 @@ Use nova-network or other solution for Neutron and VMware.
 Data model impact
 -----------------
 
-None
+There is the new checkbox "Use vmware_dvs plugin for VMware networking" will
+reveal on the Settings tab and near each cluster should be append an input field
+for setting a dvSwitch's name.
 
 REST API impact
 ---------------
@@ -40,12 +106,14 @@ None
 Upgrade impact
 --------------
 
-None
+This plugin has to have a special version for Fuel 7.0. For this reason after
+the Fuel's upgrades plugin also should be upgraded.
 
 Security impact
 ---------------
 
-None
+Neutron provides better isolation between tenantes. Using this plugin increases
+security.
 
 Notifications impact
 --------------------
@@ -55,7 +123,13 @@ None
 Other end user impact
 ---------------------
 
-Except limitations of nova-network.
+In the Fuel 6.1 if using vCenter was chosen on the wizard UI then possibilities
+of using Neutron for networking are locked. Unfortunately current plugin's
+architecture doesn't provide the way to pliable unlock it. Instead of it when
+the plugin is installed it just amend the Nailgun's database and cancel this
+lock. It will be never return again even the plugin will be remoted. So if user
+installs and remotes the plugin after that he can deploy environment with
+Neutron and VMware which will not work normally. User can care about that.
 
 Performance Impact
 ------------------
@@ -70,7 +144,14 @@ None
 Other deployer impact
 ---------------------
 
-None
+There are some changes should be done on controller for providing security
+groups:
+
+* upgrade the python suds library
+
+* apply special patch to nova/virt/vmwareapi/vif.py and vm_util.py
+
+* upgrade the oslo-messaging in version >= 1.6.0
 
 Developer impact
 ----------------
@@ -89,22 +170,31 @@ Implementation
 Assignee(s)
 -----------
 
-Who is leading the writing of the code? Or is this a blueprint where you're
-throwing it out there to see who picks it up?
+:Primary assignee: Igor Gajsin <igajsin>
 
-If more than one person is working on the implementation, please designate the
-primary author and contact.
+:QA: Olesia Tsvigun <otsvigun>
 
-Primary assignee:
-  igajsin
+:Mandatory design review: Vladimir Kuklin <vkuklin>, Bogdan Dobrelia
+                        <bogdando>, Sergii Golovatiuk <sgolovatiuk>,
+                        Andrzej Skupień <kendriu>
 
-QA team:
-  tsvigun
 
 Work Items
 ----------
 
-None
+* Create the development and testing environment. Make a repository on github
+  and job for CI on jenkins.
+
+* Add script for amend the nailgun database.
+
+* Add puppet manifests for install the driver, upgrade the python library and
+  patch a controller.
+
+* Add puppet manifests for configure neutron to use vmware_dvs ML2 plugin.
+
+* Add pacemaker/corosync scripts for additional neutron-server processes.
+
+* Add ostf-tests. Manual and auto acceptance testing.
 
 
 Dependencies
@@ -116,15 +206,59 @@ VMware_dvs Neutron ML2 plugin [1]
 Testing
 =======
 
-None
+The existent ostf tests for Neutron good enough however they doesn't have a
+support for VMware. This lack should be eliminate by writing new tests special
+for Neutron and VMware. After this new system tests for Jenkins will be
+written. There is the list of cases for cheking:
+
+#. Deploy testing:
+
+  1. Install Fuel plugin for Neutron ML2 vmware_dvs driver.
+
+  #. Uninstall Fuel plugin for Neutron ML2 vmware_dvs driver.
+
+  #. Deploy cluster with plugin and vmware datastore backend.
+
+  #. Deploy in HA cluster with plugin and Ceph RadosGW for objects.
+
+  #. Deploy cluster with plugin and both Ceph.
+
+  #. Deploy cluster with plugin on Fuel 6.1 and upgrade to Fuel 7.0.
+
+#. Functional testing:
+
+  #. Check connection between VM in one tenant.
+
+  #. Check connectivity between VMs in one tenant which works in different
+     availability zones: on KVM and on vCenter.
+
+  #. Check no connectivity between VMs in different tenants.
+
+  #. Check connectivity to public network.
+
+#.  GUI testing.
+
+#. Failover testing.
+
+  #. Verify that vmclusters should be migrate after remove controler.
+
+  #. Deploy cluster with plugin, addition and deletion of nodes.
 
 Documentation Impact
 ====================
 
-None
+* Deployment Guide (how to prepare an environment for installation, how to
+  install the plugin, how to deploy OpenStack an environment with the plugin).
+
+* User Guide (which features the plugin provides, how to use them in the
+  deployed OS environment).
+
+* Test Plan.
+
+* Test Report.
 
 
 References
 ==========
 
-* Repo of ML2 plugin https://github.com/Mirantis/vmware-dvs
+* Repository of ML2 plugin https://github.com/Mirantis/vmware-dvs
