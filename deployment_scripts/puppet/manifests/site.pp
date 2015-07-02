@@ -12,4 +12,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-#include vmware-dvs
+notice('MODULAR: fuel-plugin-vmware-dvs')
+
+$vc_hash = hiera('vcenter', {})
+$vsphere_hostname  = inline_template('<%= @vc_hash["computes"][0]["vc_host"] %>')
+$vsphere_login     = inline_template('<%= @vc_hash["computes"][0]["vc_user"] %>')
+$vsphere_password  = inline_template('<%= @vc_hash["computes"][0]["vc_password"] %>')
+
+class {'vmware-dvs':
+  vsphere_hostname => $vsphere_hostname,
+  vsphere_login    => $vsphere_login,
+  vsphere_password => $vsphere_password,
+  driver_name      => "vmware_dvs"
+}

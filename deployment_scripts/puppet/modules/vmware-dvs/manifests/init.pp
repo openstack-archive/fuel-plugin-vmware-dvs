@@ -12,4 +12,32 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-notice('MODULAR: fuel-plugin-vmware-dvs')
+
+class vmware-dvs(
+  $vsphere_hostname,
+  $vsphere_login,
+  $vsphere_password,
+  $driver_name,
+  $network_maps = "physnet2:dvSwitch",
+)
+{
+  neutron_config {
+    'DEFAULT/notification_driver': value => 'messagingv2';
+    'DEFAULT/notification_topics': value => 'vmware_dvs';
+  }
+
+  neutron_plugin_ml2 {
+    'ml2_vmware/vsphere_hostname': value => $vsphere_hostname;
+    'ml2_vmware/vsphere_login':    value => $vsphere_login;
+    'ml2_vmware/vsphere_password': value => $vsphere_password;
+    'ml2_vmware/network_maps':     value => 'physnet2:dvSwitch';
+  }
+
+  ini_subsetting {'vmware_dvs_driver':
+    path       => '/etc/neutron/plugin.ini',
+    section    => 'ml2',
+    setting    => 'mechanism_drivers',
+    subsetting => $driver_name,
+    subsetting_separator => ','
+  }
+}
