@@ -36,45 +36,58 @@ Such we have the contradiction between customer needs and our solution.
 Proposed change
 ===============
 
-The Neutron has plugable architecture which provides using different backends
-(so-called ML2 plugins) in different cases. There is the vmware-dvs [0] plugin
-which provides using Neutron for networking in vmware-related environments. And
-it is exactly what we want.
+The Neutron has pluggable architecture which provides using different backends
+in different cases simultaneously by using ML2 plugin [0]. There is the
+vmware_dvs driver [1] which provides using Neutron for networking in
+vmware-related environments. And it is exactly what we want.
 
-Accordingly the plugin architecture on controller have to launched additional
-neutron-server process for each vCenter on their control.
+This plugin automates installation and configuration the vmware_dvs driver and
+its dependencies (it carries all of them with it to be independent from public
+network). After driver installation it changes configuration files
+/etc/neutron/neutron.conf and /etc/neutron/plugin.ini whereby neutron-server
+can manage networking on vCenter.
 
 ::
 
- +-------------------------------------------+                       +--------+
- |Controller1                                |                       |        |
- |                                           |                       |vCenter1|
- | +---------------------------------------+ |                       |        |
- | |Pacemaker                              | |                       |        |
- | |                                       | |                       |        |
- | | neutron+server --config-file vC1.ini +--------+-----------------+        |
- | |                                       | |     |                 |        |
- | |                                       | |     |                 |        |
- | | neutron+server --config-file vC2.ini +---------------+          |        |
- | |                                       | |     |      |          |        |
- | +---------------------------------------+ |     |      |          +--------+
- |                                           |     |      |
- +-------------------------------------------+     |      |
-                                                   |      |
- +-------------------------------------------+     |      |          +--------+
- |Controller2                                |     |      |          |        |
- |                                           |     |      |          |vCenter2|
- | +---------------------------------------+ |     |      |          |        |
- | |Pacemaker                              | |     |      |          |        |
- | |                                       | |     |      +----------+        |
- | | neutron+server --config-file vC1.ini +--------+      |          |        |
- | |                                       | |            |          |        |
- | |                                       | |            |          |        |
- | | neutron+server --config-file vC2.ini +---------------+          |        |
- | |                                       | |                       |        |
- | +---------------------------------------+ |                       +--------+
- |                                           |
- +-------------------------------------------+
+                                              | Management   | Public
+                                              |              |
+                                              |              |
+                                              |              |
+    +-------------------------+               |              |
+    | Controller1             |               |              |
+    |  neutron-server         +---------------o--------------+
+    | +--------------------+  |               |              |
+    | |Pacemaker           |  |               |              |
+    | |  neutron-...-agent |  +---------------+              |        +-------------+
+    | +--------------------+  |               |              |        | vCenter     |
+    +-------------------------+               |              +--------+             |
+                                              |              |        |             |
+                                              |              |        |             |
+                                              |              |        +-------------+
+    +-------------------------+               |              |
+    | Controller2             |               |              |
+    |  neutron-server         +---------------o--------------+
+    | +--------------------+  |               |              |
+    | |Pacemaker           |  |               |              |
+    | |  neutron-...-agent |  +---------------+              |
+    | +--------------------+  |               |              |
+    +-------------------------+               |              |
+                                              |              |
+                                              |              |
+    +----------------------------+            |              |
+    |Compute1                    |            |              |
+    |                            +------------+              |
+    |  neutron-openvswitch-agent |            |              |
+    +----------------------------+            |              |
+                                              |              |
+                                              |              |
+    +----------------------------+            |              |
+    |Compute2                    |            |              |
+    |                            +------------+              |
+    |  neutron-openvswitch-agent |            |              |
+    +----------------------------+            |              |
+                                              |              |
+                                              |              |
 
 Assumptions:
 ------------
@@ -113,7 +126,6 @@ Limitations:
 
   #. Only vSphere 5.5 is supported
 
-
 Alternatives
 ------------
 
@@ -126,7 +138,7 @@ There are two changes will appears on the Settings tab:
 
   #. checkbox "Use vmware_dvs plugin for VMware networking".
 
-  #. input field for specification dvSwitch's name for clasters.
+  #. input field for specification dvSwitch's name for clusters.
 
 REST API impact
 ---------------
@@ -174,14 +186,24 @@ None
 Other deployer impact
 ---------------------
 
-There are some changes should be done on controller for providing security
-groups:
+With the vmware_dvs driver will be installed its dependencies(see in pip
+syntax):
 
-* upgrade the python suds library
+* pbr>=0.6,!=0.7,<1.0
 
-* apply special patch to nova/virt/vmwareapi/vif.py and vm_util.py
+* oslo.vmware>=0.6.0
 
-* upgrade the oslo-messaging in version >= 1.6.0
+* -e git://git.openstack.org/openstack/python-novaclient#egg=python-novaclient
+
+* -e git+git://github.com/yunesj/suds#egg=suds
+
+* oslo.log<=1.1.0
+
+* oslo.messaging>=1.6.0, <=1.8.3
+
+* oslo.config<=1.11.0
+
+* oslo.i18n<2.0.0
 
 Developer impact
 ----------------
@@ -192,7 +214,6 @@ Infrastructure impact
 ---------------------
 
 None
-
 
 Implementation
 ==============
@@ -231,7 +252,6 @@ Dependencies
 ============
 
 VMware_dvs Neutron ML2 plugin [1]
-
 
 Testing
 =======
@@ -307,8 +327,9 @@ Documentation Impact
 
 * Test Report.
 
-
 References
 ==========
 
-* Repository of ML2 plugin https://github.com/Mirantis/vmware-dvs
+* Neutron ML2 wiki page https://wiki.openstack.org/wiki/Neutron/ML2
+
+* Repository of ML2 driver https://github.com/Mirantis/vmware-dvs
