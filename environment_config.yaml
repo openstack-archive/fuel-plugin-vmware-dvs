@@ -5,3 +5,8 @@ attributes:
     description: 'If selected, Neutron ML2 plugin vmware_dvs will be installed'
     weight: 25
     type: "checkbox"
+  vmware_dvs_net_maps:
+    value: ""
+    label: "The mappings between physical networks and DVS"
+    weight: 26
+    type: "text"
