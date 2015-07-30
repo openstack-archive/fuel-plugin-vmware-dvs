@@ -1,11 +1,11 @@
 - role: ['primary-controller','controller']
-  stage: post_deployment
+  stage: post_deployment/7000
   type: shell
   parameters:
     cmd: ./install_the_driver.sh
-    timeout: 42
+    timeout: 720
 - role: ['primary-controller','controller']
-  stage: post_deployment
+  stage: post_deployment/7001
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp
