@@ -1,12 +1,6 @@
 attributes:
-  use_vmware_dvs:
-    value: true
-    label: 'use VMware dvs ML2 plugin for networking'
-    description: 'If selected, Neutron ML2 plugin vmware_dvs will be installed'
-    weight: 25
-    type: "checkbox"
   vmware_dvs_net_maps:
     value: ""
-    label: "The mappings between physical networks and DVS"
-    weight: 26
+    label: "Enter the dvSwitch's name or a list of values physnet1:dvswitch1,physnet2:dvswitch2 when its multiple."
+    weight: 25
     type: "text"
