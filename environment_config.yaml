@@ -1,6 +1,7 @@
 attributes:
   vmware_dvs_net_maps:
     value: ""
-    label: "Enter the dvSwitch's name or a list of values physnet1:dvswitch1,physnet2:dvswitch2 when its multiple."
+    label: "Enter the dvSwitch's name."
+    description: "Set the name of dvSwitch on vCenter or a list of values physnet1:dvswitch1,physnet2:dvswitch2 when its multiple."
     weight: 25
     type: "text"
