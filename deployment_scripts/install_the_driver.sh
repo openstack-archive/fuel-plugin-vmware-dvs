@@ -9,7 +9,7 @@ port=8080
 repo=simple
 
 function _nova_patch {
-    wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -p1 < nova.patch
+    wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -N -p1 < nova.patch
     for resource in $(crm_mon -1|awk '/nova_compute_vmware/ {print $1}'); do
         execute_node=$(crm resource status $resource | cut -f 6 -d\ )
         if [ "$execute_node"="$(hostname)" ];
