@@ -17,9 +17,12 @@ class vmware_dvs(
   $vsphere_login,
   $vsphere_password,
   $driver_name,
-  $network_maps = 'physnet2:dvSwitch',
+  $network_maps,
+  $neutron_physnet,
 )
 {
+  $true_network_maps = get_network_maps($network_maps, $neutron_physnet)
+
   neutron_config {
     'DEFAULT/notification_driver': value => 'messagingv2';
     'DEFAULT/notification_topics': value => 'vmware_dvs';
@@ -29,7 +32,7 @@ class vmware_dvs(
     'ml2_vmware/vsphere_hostname': value => $vsphere_hostname;
     'ml2_vmware/vsphere_login':    value => $vsphere_login;
     'ml2_vmware/vsphere_password': value => $vsphere_password;
-    'ml2_vmware/network_maps':     value => 'physnet2:dvSwitch';
+    'ml2_vmware/network_maps':     value => $true_network_maps;
   }
 
   ini_subsetting {'vmware_dvs_driver':
