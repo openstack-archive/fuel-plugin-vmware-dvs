@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.0
 ip=`hiera master_ip`
@@ -26,10 +24,6 @@ function _dirty_hack {
     mv suds suds.old
 }
 
-function _neutron_restart {
-    service neutron-server restart
-}
-
 function _core_install {
     easy_install pip
     apt-get -y install git-core python-dev
@@ -48,20 +42,8 @@ function _ln {
     ln -s /usr/lib/python2.7/dist-packages/oslo/rootwrap
 }
 
-function _config {
-    cd /etc/neutron
-    cp neutron.conf neutron.conf.old
-    sed -i  s/"#notification_driver.*"/notification_driver=messagingv2/ neutron.conf
-    sed -i  s/"#notification_topics.*"/notification_topics=vmware_dvs/ neutron.conf
-    cd /etc/neutron/plugins/ml2
-    mv ml2_conf.ini ml2_conf.ini.old
-    wget "http://$ip:$port/plugins/$plugin_name-$plugin_version/ml2_conf.ini"
-}
-
 _nova_patch
 _core_install
 _dirty_hack
 _driver_install
 _ln
-_config
-_neutron_restart
