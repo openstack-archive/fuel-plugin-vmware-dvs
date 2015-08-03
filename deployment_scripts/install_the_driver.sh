@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.0
 ip=`hiera master_ip`
