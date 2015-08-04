@@ -1,5 +1,5 @@
 #!/bin/bash
-#tessssssst``111`
+#tessssssst
 
 plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.0
