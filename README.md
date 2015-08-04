@@ -1,4 +1,5 @@
 fuel-plugin-vmware-dvs
 ============
 
-Plugin description
+There is the Fuel plugin which provides Neutron for networking on
+VMware-related MOS environments.
