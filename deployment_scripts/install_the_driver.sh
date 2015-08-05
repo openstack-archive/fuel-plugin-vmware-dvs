@@ -1,4 +1,5 @@
 #!/bin/bash
+#test
 
 plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.0
