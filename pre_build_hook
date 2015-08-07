@@ -1,3 +1,1 @@
-template=/usr/local/lib/python2.7/dist-packages/fuel_plugin_builder/templates/build/plugin_rpm.spec.mako
 
-grep post $template || sudo patch $template hack.diff
