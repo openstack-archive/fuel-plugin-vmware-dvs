@@ -12,13 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+# edit /etc/neutron/neturon.conf and /etc/neutron/plugin.ini
+# recreate net04 and net04_ext on primary-controller
+# restart the neutron-server
 class vmware_dvs(
   $vsphere_hostname,
   $vsphere_login,
   $vsphere_password,
-  $driver_name,
   $network_maps,
   $neutron_physnet,
+  $primary_controller,
+  $nets,
+  $keystone_admin_tenant,
+  $driver_name         = 'vmware_dvs',
 )
 {
   $true_network_maps = get_network_maps($network_maps, $neutron_physnet)
@@ -41,5 +47,25 @@ class vmware_dvs(
     setting              => 'mechanism_drivers',
     subsetting           => $driver_name,
     subsetting_separator => ','
+  }
+  if $primary_controller {
+
+    Service<| title == 'neutron-server' |> ->
+    Openstack::Network::Create_network <||>
+
+    Service<| title == 'neutron-server' |> ->
+    Openstack::Network::Create_router <||>
+
+    openstack::network::create_network{'net04':
+      netdata => $nets['net04']
+      } ->
+      openstack::network::create_network{'net04_ext':
+        netdata => $nets['net04_ext']
+        } ->
+        openstack::network::create_router{'router04':
+          internal_network => 'net04',
+          external_network => 'net04_ext',
+          tenant_name      => $keystone_admin_tenant
+        }
   }
 }

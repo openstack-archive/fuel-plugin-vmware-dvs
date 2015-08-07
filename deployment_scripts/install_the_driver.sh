@@ -4,7 +4,6 @@ plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.0
 ip=`hiera master_ip`
 port=8080
-repo=simple
 
 function _nova_patch {
     wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -N -p1 < nova.patch
@@ -42,6 +41,18 @@ function _ln {
     ln -s /usr/lib/python2.7/dist-packages/oslo/rootwrap
 }
 
+function _del_network {
+    . /root/openrc
+    router=router04
+    neutron router-gateway-clear $router
+    port=$(neutron router-port-list $router| grep  ip_a| cut -f 2 -d\ )
+    neutron router-interface-delete $router port=$port
+    neutron port-delete $port
+    neutron net-delete net04
+    neutron net-delete net04_ext
+}
+
+_del_network
 _nova_patch
 _core_install
 _dirty_hack
