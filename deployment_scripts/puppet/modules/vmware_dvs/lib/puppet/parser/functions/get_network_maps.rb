@@ -4,7 +4,7 @@ module Puppet::Parser::Functions
               Construct properly network_maps string
               EOS
              ) do |args|
-    raise(Puppet::ParseError, 'No name of dvSwitch provided!') if args.size < 1
+    raise(Puppet::ParseError, 'No name of dvSwitch provided!') if args.size < 1 or args[0] == ""
     maps = args[0]
     physnet = args[1]
     if maps.include? ':'
