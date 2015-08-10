@@ -11,3 +11,9 @@
     puppet_manifest: puppet/manifests/site.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
+- role: ['primary-controller','controller']
+  stage: post_deployment/7002
+  type: shell
+  parameters:
+    cmd: service neutron-server restart
+    timeout: 60
