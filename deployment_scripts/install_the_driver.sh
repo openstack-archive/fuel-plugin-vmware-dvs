@@ -45,11 +45,17 @@ function _del_network {
     . /root/openrc
     router=router04
     neutron router-gateway-clear $router
-    port=$(neutron router-port-list $router| grep  ip_a| cut -f 2 -d\ )
-    neutron router-interface-delete $router port=$port
-    neutron port-delete $port
-    neutron net-delete net04
-    neutron net-delete net04_ext
+    for port in $(neutron router-port-list $router| grep  ip_a| cut -f 2 -d\ ); do
+	neutron router-interface-delete $router port=$port
+	neutron port-delete $port
+    done
+    for net in $(neutron net-list|grep '/'|cut -f 4 -d\ ); do
+	neutron net-delete $net
+    done
+}
+
+function _neutron_restart {
+    service neutron-server restart
 }
 
 _del_network
@@ -58,3 +64,4 @@ _core_install
 _dirty_hack
 _driver_install
 _ln
+_neutron_restart
