@@ -18,6 +18,7 @@ $vc_hash               = hiera('vcenter', {})
 $dvs_hash              = hiera('fuel-plugin-vmware-dvs', {})
 $neutron_hash          = hiera('quantum_settings', {})
 $nets                  = $neutron_hash['predefined_networks']
+$public_ssl_hash       = hiera('public_ssl')
 $vsphere_hostname      = inline_template('<%= @vc_hash["computes"][0]["vc_host"] %>')
 $vsphere_login         = inline_template('<%= @vc_hash["computes"][0]["vc_user"] %>')
 $vsphere_password      = inline_template('<%= @vc_hash["computes"][0]["vc_password"] %>')
@@ -37,4 +38,6 @@ class {'vmware_dvs':
   nets                  => $nets,
   keystone_admin_tenant => $keystone_admin_tenant,
   driver_name           => 'vmware_dvs',
+  neutron_url_timeout   => '3600',
+  public_ssl            => $public_ssl_hash['services'],
 }
