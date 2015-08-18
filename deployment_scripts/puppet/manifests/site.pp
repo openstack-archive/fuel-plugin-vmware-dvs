@@ -37,4 +37,5 @@ class {'vmware_dvs':
   nets                  => $nets,
   keystone_admin_tenant => $keystone_admin_tenant,
   driver_name           => 'vmware_dvs',
+  neutron_url_timeout   => '3600',
 }

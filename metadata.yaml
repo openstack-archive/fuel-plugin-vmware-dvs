@@ -3,7 +3,7 @@ name: fuel-plugin-vmware-dvs
 # Human-readable name for your plugin
 title: use Neutron VMware DVS ML2 plugin
 # Plugin version
-version: '1.0.0'
+version: '1.0.2'
 # Description
 description: Enable to use plugin vmware_dvs for Neutron
 # Required fuel version

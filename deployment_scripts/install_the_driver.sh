@@ -7,6 +7,7 @@ port=8080
 
 function _nova_patch {
     wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -N -p1 < nova.patch
+    sed -i s/neutron_url_timeout=.*/neutron_url_timeout=3600/ /etc/nova/nova.conf
     for resource in $(crm_mon -1|awk '/nova_compute_vmware/ {print $1}'); do
         execute_node=$(crm resource status $resource | cut -f 6 -d\ )
         if [ "$execute_node"="$(hostname)" ];
@@ -14,6 +15,11 @@ function _nova_patch {
             crm resource restart $resource
         fi
     done
+}
+
+function _haproxy_config {
+    echo '  timeout server 1h' >> /etc/haproxy/conf.d/085-neutron.cfg
+    crm resource restart p_haproxy
 }
 
 function _dirty_hack {
@@ -41,24 +47,11 @@ function _ln {
     ln -s /usr/lib/python2.7/dist-packages/oslo/rootwrap
 }
 
-function _del_network {
-    . /root/openrc
-    router=router04
-    neutron router-gateway-clear $router
-    for port in $(neutron router-port-list $router| grep  ip_a| cut -f 2 -d\ ); do
-        neutron router-interface-delete $router port=$port
-        neutron port-delete $port
-    done
-    for net in $(neutron net-list|grep '/'|cut -f 4 -d\ ); do
-        neutron net-delete $net
-    done
-}
-
 function _neutron_restart {
     service neutron-server restart
 }
 
-_del_network
+_haproxy_config
 _nova_patch
 _core_install
 _dirty_hack

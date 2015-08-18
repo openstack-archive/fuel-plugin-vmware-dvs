@@ -12,9 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+# == Class: ::vmware_dvs
+#
 # edit /etc/neutron/neturon.conf and /etc/neutron/plugin.ini
 # recreate net04 and net04_ext on primary-controller
 # restart the neutron-server
+#
+# === Parameters
+#
+# [*vsphere_hostname*]
+#   (required) String. This is a name or ip of VMware vSphere server
+#
 class vmware_dvs(
   $vsphere_hostname,
   $vsphere_login,
@@ -25,6 +33,7 @@ class vmware_dvs(
   $nets,
   $keystone_admin_tenant,
   $driver_name         = 'vmware_dvs',
+  $neutron_url_timeout = '3600',
 )
 {
   $true_network_maps = get_network_maps($network_maps, $neutron_physnet)
@@ -47,7 +56,12 @@ class vmware_dvs(
     setting              => 'mechanism_drivers',
     subsetting           => $driver_name,
     subsetting_separator => ','
-  }
+    } ->
+    exec {'restart_neutron':
+      command => 'service neutron-server restart',
+      path    => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    }
+
   if $primary_controller {
 
     Service<| title == 'neutron-server' |> ->
