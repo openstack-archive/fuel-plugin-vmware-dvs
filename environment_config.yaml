@@ -5,3 +5,6 @@ attributes:
     description: "Set the name of dvSwitch on vCenter or a list of values physnet1:dvswitch1,physnet2:dvswitch2 when its multiple."
     weight: 25
     type: "text"
+    regex:
+      source: *non_empty_string
+      error: "Empty name of dvSwitch"
