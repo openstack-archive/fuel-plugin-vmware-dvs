@@ -29,7 +29,6 @@ class vmware_dvs(
   $vsphere_password,
   $network_maps,
   $neutron_physnet,
-  $primary_controller,
   $nets,
   $keystone_admin_tenant,
   $driver_name         = 'vmware_dvs',
@@ -62,8 +61,6 @@ class vmware_dvs(
       path    => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
     }
 
-  if $primary_controller {
-
     Service<| title == 'neutron-server' |> ->
     Openstack::Network::Create_network <||>
 
@@ -81,5 +78,4 @@ class vmware_dvs(
           external_network => 'net04_ext',
           tenant_name      => $keystone_admin_tenant
         }
-  }
 }
