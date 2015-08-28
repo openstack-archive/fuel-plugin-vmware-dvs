@@ -4,22 +4,32 @@ plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.0
 ip=`hiera master_ip`
 port=8080
+_hostname=$(hostname)
+
+function _restart_crm_resource {
+    res=$1
+    _where=$(crm resource show $res| awk '{print $6}')
+    if [ "$_where" = "$_hostname" ];
+    then
+	echo restart $res
+	crm resource restart $res
+    else
+	echo resource $res launched not here
+	echo does not restart
+    fi
+}
 
 function _nova_patch {
     wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -N -p1 < nova.patch
     sed -i s/neutron_url_timeout=.*/neutron_url_timeout=3600/ /etc/nova/nova.conf
     for resource in $(crm_mon -1|awk '/nova_compute_vmware/ {print $1}'); do
-        execute_node=$(crm resource status $resource | cut -f 6 -d\ )
-        if [ "$execute_node"="$(hostname)" ];
-        then
-            crm resource restart $resource
-        fi
-    done
+ 	    _restart_crm_resource $resource
+     done
 }
 
 function _haproxy_config {
     echo '  timeout server 1h' >> /etc/haproxy/conf.d/085-neutron.cfg
-    crm resource restart p_haproxy
+    _restart_crm_resource p_haproxy
 }
 
 function _dirty_hack {
