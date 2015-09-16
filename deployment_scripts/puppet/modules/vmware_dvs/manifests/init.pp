@@ -39,7 +39,7 @@ class vmware_dvs(
 
   neutron_config {
     'DEFAULT/notification_driver': value => 'messagingv2';
-    'DEFAULT/notification_topics': value => 'vmware_dvs';
+    'DEFAULT/notification_topics': value => 'notifications,vmware_dvs';
   }
 
   neutron_plugin_ml2 {
