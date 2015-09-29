@@ -5,6 +5,7 @@ plugin_version=1.0
 ip=`hiera master_ip`
 port=8080
 _hostname=$(hostname)
+haproxy_cfg="/etc/haproxy/conf.d/085-neutron.cfg"
 
 function _restart_crm_resource {
     res=$1
@@ -28,15 +29,14 @@ function _nova_patch {
 }
 
 function _haproxy_config {
-    echo '  timeout server 1h' >> /etc/haproxy/conf.d/085-neutron.cfg
+    if grep -q "timeout server" $haproxy_cfg;
+    then
+        echo "Timeout already set"
+    else
+        echo "Setting timeout"
+        echo '  timeout server 1h' >> $haproxy_cfg
+    fi
     _restart_crm_resource p_haproxy
-}
-
-function _dirty_hack {
-    cd /usr/lib/python2.7/dist-packages/oslo
-    mv messaging messaging.old
-    cd /usr/lib/python2.7/dist-packages/
-    mv suds suds.old
 }
 
 function _core_install {
@@ -57,14 +57,8 @@ function _ln {
     ln -s /usr/lib/python2.7/dist-packages/oslo/rootwrap
 }
 
-function _neutron_restart {
-    service neutron-server restart
-}
-
 _haproxy_config
 _nova_patch
 _core_install
-_dirty_hack
 _driver_install
 _ln
-_neutron_restart
