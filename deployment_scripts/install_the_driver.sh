@@ -33,8 +33,6 @@ function _haproxy_config {
 }
 
 function _dirty_hack {
-    cd /usr/lib/python2.7/dist-packages/oslo
-    mv messaging messaging.old
     cd /usr/lib/python2.7/dist-packages/
     mv suds suds.old
 }
@@ -47,14 +45,7 @@ function _core_install {
 function _driver_install {
     cd /usr/local/lib/python2.7/dist-packages/
     pip install -e git+git://github.com/yunesj/suds#egg=suds
-    pip install oslo.messaging==1.8.3
     pip install git+git://github.com/Mirantis/vmware-dvs.git@mos-6.1
-}
-
-function _ln {
-    cd /usr/local/lib/python2.7/dist-packages/oslo
-    ln -s /usr/lib/python2.7/dist-packages/oslo/db
-    ln -s /usr/lib/python2.7/dist-packages/oslo/rootwrap
 }
 
 function _neutron_restart {
@@ -66,5 +57,4 @@ _nova_patch
 _core_install
 _dirty_hack
 _driver_install
-_ln
 _neutron_restart
