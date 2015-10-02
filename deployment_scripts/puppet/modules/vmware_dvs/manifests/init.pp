@@ -44,7 +44,7 @@ class vmware_dvs(
     ensure => present,
   } ->
   exec {'install-suds':
-    command => 'pip install -q -I github.com/yunesj/suds@8dc6ae334272930a548c45665117ecded54c5f60#egg=suds',
+    command => 'pip install -q -I git+git://github.com/yunesj/suds@8dc6ae334272930a548c45665117ecded54c5f60#egg=suds',
   } ->
     exec {'install-dvs':
     command => 'pip install -q git+git://github.com/Mirantis/vmware-dvs.git@stable/kilo#egg=mech-vmware-dvs',
