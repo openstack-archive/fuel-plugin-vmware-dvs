@@ -3,6 +3,7 @@
 plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.1
 ip=`hiera master_ip`
+role=`hiera role`
 port=8080
 _hostname=$(hostname)
 
@@ -22,9 +23,19 @@ function _restart_crm_resource {
 function _nova_patch {
     wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -N -p1 < nova.patch
     sed -i s/neutron_url_timeout=.*/neutron_url_timeout=3600/ /etc/nova/nova.conf
+
+}
+
+function _restart_nova {
     for resource in $(crm_mon -1|awk '/nova_compute_vmware/ {print $1}'); do
         _restart_crm_resource $resource
-     done
+    done
 }
 
 _nova_patch
+if [ "$role" = "primary-controller" ] || [ "$role" = "controller" ];
+then
+    _restart_nova
+else
+    service nova-compute restart
+fi
