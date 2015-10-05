@@ -3,7 +3,7 @@ name: fuel-plugin-vmware-dvs
 # Human-readable name for your plugin
 title: use Neutron VMware DVS ML2 plugin
 # Plugin version
-version: '1.0.2'
+version: '1.0.3'
 # Description
 description: Enable to use plugin vmware_dvs for Neutron
 # Required fuel version
@@ -32,4 +32,4 @@ releases:
     repository_path: repositories/centos
 
 # Version of plugin package
-package_version: '2.0.0'
+package_version: '3.0.0'

@@ -1,0 +1,25 @@
+- id: delete-predefined-networks
+  role: ['primary-controller']
+  required_for: [post_deployment_end]
+  requires: [post_deploymend_start]
+  type: shell
+  parameters:
+    cmd: ./del_predefined_networks.sh 2>&1 | tee -a /tmp/dep_pre_nets.log
+    timeout: 120
+- id: install-the-driver
+  role: ['primary-controller','controller']
+  required_for: [post_deployment_end]
+  requires: ['delete-predefined-networks']
+  type: shell
+  parameters:
+    cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
+    timeout: 720
+- id: setup-neutron-plugin
+  role: ['primary-controller','controller']
+  required_for: [post_deployment_end]
+  requires: ['install-the-driver']
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/site.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720

@@ -1,6 +1,0 @@
-38a39,43
-> %%post
-> /usr/bin/dockerctl copy /var/www/nailgun/plugins/${ name }/deployment_scripts/strike.py nailgun:/root
-> /usr/bin/dockerctl shell nailgun python /root/strike.py
-> 
-> 
