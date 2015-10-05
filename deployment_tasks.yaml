@@ -14,6 +14,16 @@
   parameters:
     cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
     timeout: 720
+- id: install-the-driver-compute
+  type: shell
+  role: [compute-vmware]
+  required_for: [post_deployment_end]
+  requires: ['delete-predefined-networks']
+  condition: "settings:common.use_vcenter.value == true"
+  type: shell
+  parameters:
+    cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
+    timeout: 720
 - id: setup-neutron-plugin
   role: ['primary-controller','controller']
   required_for: [post_deployment_end]
