@@ -92,7 +92,7 @@ class vmware_dvs(
         fallback_segment_id => $fallback[1]
       }
     }
-  } 
+  }
 
   if $primary_controller and $nets and !empty($nets) {
 
