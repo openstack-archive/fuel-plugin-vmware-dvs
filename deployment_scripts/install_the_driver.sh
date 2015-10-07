@@ -27,34 +27,4 @@ function _nova_patch {
      done
 }
 
-function _haproxy_config {
-    echo '  timeout server 1h' >> /etc/haproxy/conf.d/085-neutron.cfg
-    _restart_crm_resource p_haproxy
-}
-
-function _dirty_hack {
-    cd /usr/lib/python2.7/dist-packages/
-    mv suds suds.old
-}
-
-function _core_install {
-    easy_install pip
-    apt-get -y install git-core python-dev
-}
-
-function _driver_install {
-    cd /usr/local/lib/python2.7/dist-packages/
-    pip install -e git+git://github.com/yunesj/suds#egg=suds
-    pip install git+git://github.com/Mirantis/vmware-dvs.git@mos-6.1
-}
-
-function _neutron_restart {
-    service neutron-server restart
-}
-
-_haproxy_config
 _nova_patch
-_core_install
-_dirty_hack
-_driver_install
-_neutron_restart
