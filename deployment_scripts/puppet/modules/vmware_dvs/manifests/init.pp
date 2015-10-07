@@ -40,14 +40,8 @@ class vmware_dvs(
 
   Exec { path => '/usr/bin:/usr/sbin:/bin:/sbin' }
 
-  package {['python-pip','python-dev','git-core']:
+  package {['python-suds','python-mech-vmware-dvs']:
     ensure => present,
-  } ->
-  exec {'install-suds':
-    command => 'pip install -q -I git+git://github.com/yunesj/suds@8dc6ae334272930a548c45665117ecded54c5f60#egg=suds',
-  } ->
-    exec {'install-dvs':
-    command => 'pip install -q git+git://github.com/Mirantis/vmware-dvs.git@stable/kilo#egg=mech-vmware-dvs',
   }
 
   neutron_config {
@@ -79,7 +73,7 @@ class vmware_dvs(
   service { 'neutron-server':
     ensure      => running,
     enable      => true,
-    subscribe   => [Exec['install-dvs'],Ini_Subsetting['vmware_dvs_driver']],
+    subscribe   => [[Package['python-suds','python-mech-vmware-dvs']],Ini_Subsetting['vmware_dvs_driver']],
   }
 
   service {'haproxy':
