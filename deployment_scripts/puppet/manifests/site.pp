@@ -26,6 +26,7 @@ $neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks
 $access_hash           = hiera('access', {})
 $pnets                 = $neutron_hash['L2']['phys_nets']
 $keystone_admin_tenant = $access_hash[tenant]
+$pnets                 = $neutron_hash['L2']['phys_nets']
 
 class {'vmware_dvs':
   vsphere_hostname      => $vsphere_hostname,

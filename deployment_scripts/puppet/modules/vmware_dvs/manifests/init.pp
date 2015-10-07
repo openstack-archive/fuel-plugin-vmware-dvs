@@ -63,6 +63,16 @@ class vmware_dvs(
     'ml2_vmware/network_maps':     value => $true_network_maps;
   } ->
 
+  if $pnets['physnet2'] {
+    if $pnets['physnet2']['vlan_range'] {
+      $fallback = split($pnets['physnet2']['vlan_range'], ':')
+      Openstack::Network::Create_network {
+        tenant_name         => $keystone_admin_tenant,
+        fallback_segment_id => $fallback[1]
+      }
+    }
+  } 
+
   ini_subsetting {'vmware_dvs_driver':
     path                 => '/etc/neutron/plugin.ini',
     section              => 'ml2',
