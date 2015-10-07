@@ -24,6 +24,7 @@ $vsphere_password      = inline_template('<%= @vc_hash["computes"][0]["vc_passwo
 $dvs_network_maps      = inline_template('<%= @dvs_hash["vmware_dvs_net_maps"] %>')
 $neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks"]["net04"]["L2"]["physnet"] %>')
 $access_hash           = hiera('access', {})
+$pnets                 = $neutron_hash['L2']['phys_nets']
 $keystone_admin_tenant = $access_hash[tenant]
 
 class {'vmware_dvs':
@@ -33,6 +34,7 @@ class {'vmware_dvs':
   network_maps          => $dvs_network_maps,
   neutron_physnet       => $neutron_physnet,
   nets                  => $nets,
+  pnets                 => $pnets,
   keystone_admin_tenant => $keystone_admin_tenant,
   driver_name           => 'vmware_dvs',
   neutron_url_timeout   => '3600',

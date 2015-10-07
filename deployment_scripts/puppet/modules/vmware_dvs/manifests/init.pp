@@ -30,6 +30,7 @@ class vmware_dvs(
   $network_maps,
   $neutron_physnet,
   $nets,
+  $pnets,
   $keystone_admin_tenant,
   $driver_name         = 'vmware_dvs',
   $neutron_url_timeout = '3600',
@@ -88,6 +89,16 @@ class vmware_dvs(
     restart    => '/sbin/ip netns exec haproxy service haproxy reload',
     subscribe  => File_Line['neutron_timeout'],
   }
+
+  if $pnets['physnet2'] {
+    if $pnets['physnet2']['vlan_range'] {
+      $fallback = split($pnets['physnet2']['vlan_range'], ':')
+      Openstack::Network::Create_network {
+        tenant_name         => $keystone_admin_tenant,
+        fallback_segment_id => $fallback[1]
+      }
+    }
+  } 
 
   if $primary_controller and $nets and !empty($nets) {
 
