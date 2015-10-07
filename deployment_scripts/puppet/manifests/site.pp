@@ -25,6 +25,7 @@ $dvs_network_maps      = inline_template('<%= @dvs_hash["vmware_dvs_net_maps"] %
 $neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks"]["net04"]["L2"]["physnet"] %>')
 $access_hash           = hiera('access', {})
 $keystone_admin_tenant = $access_hash[tenant]
+$pnets                 = $neutron_hash['L2']['phys_nets']
 
 class {'vmware_dvs':
   vsphere_hostname      => $vsphere_hostname,
@@ -33,6 +34,7 @@ class {'vmware_dvs':
   network_maps          => $dvs_network_maps,
   neutron_physnet       => $neutron_physnet,
   nets                  => $nets,
+  pnets                 => $pnets,
   keystone_admin_tenant => $keystone_admin_tenant,
   driver_name           => 'vmware_dvs',
   neutron_url_timeout   => '3600',
