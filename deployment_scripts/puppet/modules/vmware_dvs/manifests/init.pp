@@ -65,10 +65,10 @@ class vmware_dvs(
   $keystone_admin_tenant,
   $driver_name         = 'vmware_dvs',
   $neutron_url_timeout = '3600',
-  $primary_controller  = hiera('primary_controller')
 )
 {
-  $true_network_maps = get_network_maps($network_maps, $neutron_physnet)
+  $true_network_maps  = get_network_maps($network_maps, $neutron_physnet)
+  $primary_controller = inline_template("<% if File.exist?('/etc/primary-controller.yaml') -%>true<% end -%>")
 
   package { 'yunesj-suds':
     ensure => present,
