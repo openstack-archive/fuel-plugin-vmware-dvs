@@ -92,15 +92,9 @@ can manage networking on vCenter.
 Assumptions:
 ------------
 
-  #. DVS switches must be provisioned by using vCenter firstly and manually
+  #. A DVS must be provisioned by using vCenter firstly and manually
 
-  #. There must be a mapping between physical network and DVS switch:
-
-    #. different physnet to different DVS switches (i.e. physnet1:dvswitch1,
-       physnet2:dvswitch2)
-
-    #. different physnet to the same DVS switch (i.e. physnet1:dvswitch1,
-       physnet2:dvswitch1)
+  #. There must be a mapping between physical network and DVS
 
   3. VLANs will be used as a tenant network separation by KVM’s OVS and ESXi’s
      DVS (must be the same for tenant network regardless which switch type OVS
@@ -186,24 +180,14 @@ None
 Other deployer impact
 ---------------------
 
-With the vmware_dvs driver will be installed its dependencies(see in pip
-syntax):
+With the vmware_dvs driver will be installed its dependencies:
 
-* pbr>=0.6,!=0.7,<1.0
+* python-oslo.context 0.2.0
 
-* oslo.vmware>=0.6.0
+* python-oslo.log 1.0.0
 
-* -e git://git.openstack.org/openstack/python-novaclient#egg=python-novaclient
+* python-suds 0.4.1
 
-* -e git+git://github.com/yunesj/suds#egg=suds
-
-* oslo.log<=1.1.0
-
-* oslo.messaging>=1.6.0, <=1.8.3
-
-* oslo.config<=1.11.0
-
-* oslo.i18n<2.0.0
 
 Developer impact
 ----------------
