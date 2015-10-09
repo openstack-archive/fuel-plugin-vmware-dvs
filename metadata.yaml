@@ -1,7 +1,7 @@
 # Plugin name
 name: fuel-plugin-vmware-dvs
 # Human-readable name for your plugin
-title: use Neutron VMware DVS ML2 plugin
+title: Neutron VMware DVS ML2 plugin
 # Plugin version
 version: '1.0.2'
 # Description
@@ -25,11 +25,6 @@ releases:
     mode: ['ha', 'multinode']
     deployment_scripts_path: deployment_scripts/
     repository_path: repositories/ubuntu
-  - os: centos
-    version: 2014.2-6.1
-    mode: ['ha', 'multinode']
-    deployment_scripts_path: deployment_scripts/
-    repository_path: repositories/centos
 
 # Version of plugin package
 package_version: '2.0.0'
