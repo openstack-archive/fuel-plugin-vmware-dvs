@@ -96,12 +96,6 @@ Assumptions:
 
   #. There must be a mapping between physical network and DVS switch:
 
-    #. different physnet to different DVS switches (i.e. physnet1:dvswitch1,
-       physnet2:dvswitch2)
-
-    #. different physnet to the same DVS switch (i.e. physnet1:dvswitch1,
-       physnet2:dvswitch1)
-
   3. VLANs will be used as a tenant network separation by KVM’s OVS and ESXi’s
      DVS (must be the same for tenant network regardless which switch type OVS
      or DVS)
@@ -136,7 +130,7 @@ Data model impact
 
 There are two changes will appears on the Settings tab:
 
-  #. checkbox "Use vmware_dvs plugin for VMware networking".
+  #. checkbox "Neutron VMware DVS ML2 plugin".
 
   #. input field for specification dvSwitch's name for clusters.
 
@@ -148,8 +142,7 @@ None
 Upgrade impact
 --------------
 
-This plugin has to have a special version for Fuel 7.0. For this reason after
-the Fuel's upgrades plugin also should be upgraded.
+This plugin has to have a special version for an each Fuel's version. For this reason after the Fuel's upgrades plugin also should be upgraded.
 
 Security impact
 ---------------
@@ -186,24 +179,9 @@ None
 Other deployer impact
 ---------------------
 
-With the vmware_dvs driver will be installed its dependencies(see in pip
-syntax):
+With the vmware_dvs driver will be installed its dependencies:
 
-* pbr>=0.6,!=0.7,<1.0
-
-* oslo.vmware>=0.6.0
-
-* -e git://git.openstack.org/openstack/python-novaclient#egg=python-novaclient
-
-* -e git+git://github.com/yunesj/suds#egg=suds
-
-* oslo.log<=1.1.0
-
-* oslo.messaging>=1.6.0, <=1.8.3
-
-* oslo.config<=1.11.0
-
-* oslo.i18n<2.0.0
+* python-suds 0.4.1
 
 Developer impact
 ----------------
