@@ -1,5 +1,5 @@
 *****************************************************
-Guide to the VMware DVS plugin version 1.0.1 for Fuel
+Guide to the VMware DVS plugin version 1.1.0 for Fuel
 *****************************************************
 
 .. raw:: pdf
@@ -11,7 +11,7 @@ Document purpose
 ----------------
 
 The purpose of this document is to describe how to install, configure
-and use the VMware DVS plugin 1.0.1 for Fuel 6.1.
+and use the VMware DVS plugin 1.1.0 for Fuel 7.0.
 
 Key terms, acronyms and abbreviation
 -------------------------------------
@@ -71,7 +71,7 @@ The plugin has the following requirements for software:
 
 ================  ===========
 **Requirement**   **Version**
- Fuel             6.1
+ Fuel             7.0
  vCenter          5.5
 ================  ===========
 
@@ -92,12 +92,12 @@ Installing the VMware DVS plugin
 Make sure that:
 
 * you have the installed the
-  `Fuel Master node <https://docs.mirantis.com/openstack/fuel/fuel-6.1/user-guide.html>`__
+  `Fuel Master node <https://docs.mirantis.com/openstack/fuel/fuel-7.0/user-guide.html>`__
 
 * all the nodes of your future environment are discovered and functional.
 
 * there is a connectivity to correctly configured vCenter with dvSwitch and clusters created. Please,
-  see the `Mirantis OpenStack Planning Guide <https://docs.mirantis.com/openstack/fuel/fuel-6.1/planning-guide.html#vcenter-plan>`_, `User Guide <https://docs.mirantis.com/openstack/fuel/fuel-6.1/user-guide.html#vmware-integration-notes>`_ and `this plugin's specification <https://github.com/openstack/fuel-plugin-vmware-dvs/blob/master/specs/fuel-plugin-vmware-dvs.rst>`_ for information on configuring vCenter.
+  see the `Mirantis OpenStack Planning Guide <https://docs.mirantis.com/openstack/fuel/fuel-7.0/planning-guide.html#vcenter-plan>`_, `User Guide <https://docs.mirantis.com/openstack/fuel/fuel-7.0/user-guide.html#vmware-integration-notes>`_ and `this plugin's specification <https://github.com/openstack/fuel-plugin-vmware-dvs/blob/master/specs/fuel-plugin-vmware-dvs.rst>`_ for information on configuring vCenter.
 
 #. Download the plugin from the
    `Fuel Plugin Catalog <https://www.mirantis.com/products/openstack-drivers-and-plugins/fuel-plugins/>`__.
@@ -105,14 +105,14 @@ Make sure that:
 #. Copy the plugin into Fuel Master node:
    ::
 
-      $ scp fuel-plugin-vmware-dvs-1.0-1.0.1-1.noarch.rpm <Fuel Master node ip>:/tmp
+      $ scp fuel-plugin-vmware-dvs-1.1-1.1.0-1.noarch.rpm <Fuel Master node ip>:/tmp
 
 #. Log into the Fuel Master node and install the plugin:
    ::
 
       $ ssh root@<Fuel Master node ip>
       [root@nailgun ~]# fuel plugins --install /
-      /tmp/fuel-plugin-vmware-dvs-1.01.0.11.noarch.rpm
+      /tmp/fuel-plugin-vmware-dvs-1.1-1.1.0-1.noarch.rpm
       [root@nailgun  ]# fuel plugins
       DEPRECATION WARNING: /etc/fuel/client/config.yaml exists and will
       be used as the source for settings. This behavior is deprecated.
@@ -122,7 +122,7 @@ Make sure that:
       +------+--------------------------+-----------+--------------------+
       | id   | name                     | version   | package\_version   |
       +------+--------------------------+-----------+--------------------+
-      | 2    | fuel-plugin-vmware-dvs   | 1.0.1     | 2.0.0              |
+      | 2    | fuel-plugin-vmware-dvs   | 1.1.0     | 3.0.0              |
       +------+--------------------------+-----------+--------------------+
 
 Removing the VMware DVS plugin
@@ -135,7 +135,7 @@ To uninstall VMware DVS plugin, follow these steps:
 #. Uninstall the plugin:
    ::
 
-      # fuel plugins --remove fuel-plugin-vmware-dvs--1.0.1
+      # fuel plugins --remove fuel-plugin-vmware-dvs--1.1.0
 
 #. Check if the plugin was uninstalled successfully:
    ::
@@ -153,7 +153,7 @@ Configuring VMware DVS plugin
 -----------------------------
 
 #. `Create a new OpenStack
-   environment <https://docs.mirantis.com/openstack/fuel/fuel-6.1/user-guide.html#create-a-new-openstack-environment>`_
+   environment <https://docs.mirantis.com/openstack/fuel/fuel-7.0/user-guide.html#create-a-new-openstack-environment>`_
    with Fuel UI wizard.
 
    .. image:: pics/create.png
@@ -168,11 +168,11 @@ Configuring VMware DVS plugin
    .. image:: pics/net.png
 
 #. Finish environment creation following
-   `documentation <https://docs.mirantis.com/openstack/fuel/fuel-6.1/user-guide.html#create-a-new-openstack-environment>`_.
+   `documentation <https://docs.mirantis.com/openstack/fuel/fuel-7.0/user-guide.html#create-a-new-openstack-environment>`_.
 
 #. `Add
-   <https://docs.mirantis.com/openstack/fuel/fuel-6.1/user-guide.html#configure-your-environment>`__
-   at least 1 Controller and 1 Compute node to the environment.
+   <https://docs.mirantis.com/openstack/fuel/fuel-7.0/user-guide.html#configure-your-environment>`__
+   at least 1 Controller and 1 Compute node to the environment. You can add 1 dedicated Compute VMware node.
 
 #. Open the *Settings* tab of the Fuel Web UI and scroll down the page. Select the
    *use Neutron VMware DVS ML2 plugin* checkbox and specify correct name of dvSwitch:
@@ -183,8 +183,12 @@ Configuring VMware DVS plugin
 
    .. image:: pics/vmware.png
 
+   If the dedicated Compute VMware node selected:
+
+   .. image:: pics/vmware2.png
+
 #. The rest of configuration is up to you.
-   See `Mirantis OpenStack User Guide <https://docs.mirantis.com/openstack/fuel/fuel-6.1/user-guide.html>`__
+   See `Mirantis OpenStack User Guide <https://docs.mirantis.com/openstack/fuel/fuel-7.0/user-guide.html>`__
    for instructions.
 
 #. Click *Deploy changes* button to finish.
