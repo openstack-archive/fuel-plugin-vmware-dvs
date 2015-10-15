@@ -6,6 +6,14 @@
   parameters:
     cmd: ./del_predefined_networks.sh 2>&1 | tee -a /tmp/dep_pre_nets.log
     timeout: 120
+- id: property-hypervisor_type
+  role: ['primary-controller']
+  required_for: [post_deployment_end]
+  requires: [post_deployment_start]
+  type: shell
+  parameters:
+    cmd: ./add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
+    timeout: 120
 - id: install-the-driver
   role: ['primary-controller','controller']
   required_for: [post_deployment_end]
