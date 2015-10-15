@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ -f /etc/primary-controller.yaml ]; then
+    ln -sf /etc/primary-controller.yaml /etc/astute.yaml
+elif [ -f /etc/controller.yaml ]; then
+    ln -sf /etc/controller.yaml /etc/astute.yaml
+fi
+
 plugin_name=fuel-plugin-vmware-dvs
 plugin_version=1.1
 ip=`hiera master_ip`
@@ -32,10 +38,16 @@ function _restart_nova {
     done
 }
 
-_nova_patch
-if [ "$role" = "primary-controller" ] || [ "$role" = "controller" ];
-then
-    _restart_nova
-else
-    service nova-compute restart
-fi
+case $role in
+controller|primary-controller)
+     _nova_patch
+     _restart_nova
+     ;;
+compute-vmware)
+     _nova_patch
+     service nova-compute restart
+     ;;
+*)
+     echo "Not a vmware compute node"
+     ;;
+esac
