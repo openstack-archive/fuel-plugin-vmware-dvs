@@ -4,21 +4,27 @@
   parameters:
     cmd: ./del_predefined_networks.sh 2>&1 | tee -a /tmp/dep_pre_nets.log
     timeout: 120
-- role: ['primary-controller','controller']
+- role: ['primary-controller']
   stage: post_deployment/7001
+  type: shell
+  parameters:
+    cmd: ./add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
+    timeout: 120
+- role: ['primary-controller','controller']
+  stage: post_deployment/7002
   type: shell
   parameters:
     cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
     timeout: 720
 - role: ['primary-controller','controller']
-  stage: post_deployment/7002
+  stage: post_deployment/7003
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
 - role: ['primary-controller','controller']
-  stage: post_deployment/7003
+  stage: post_deployment/7004
   type: shell
   parameters:
     cmd: service neutron-server restart
