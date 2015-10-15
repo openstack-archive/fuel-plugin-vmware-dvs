@@ -32,10 +32,20 @@ function _restart_nova {
     done
 }
 
-_nova_patch
-if [ "$role" = "primary-controller" ] || [ "$role" = "controller" ];
-then
-    _restart_nova
-else
-    service nova-compute restart
-fi
+case $role in
+primary-controller)
+     _nova_patch
+     _restart_nova
+     ;;
+controller)
+     _nova_patch
+     _restart_nova
+     ;;
+compute-vmware)
+     _nova_patch
+     service nova-compute restart
+     ;;
+*)
+     echo "Not a vmware compute node"
+     ;;
+esac
