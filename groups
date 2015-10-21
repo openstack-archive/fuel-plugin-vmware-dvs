@@ -1,3 +1,6 @@
+# UUID                                  	Group Name
+#
 86af70d0ffdabd4b553078c7615ccde3e66d0046	fuel-plugin-vmware-dvs-core
-b10feaaedb48597d58599350478cbbc6913b5857	fuel-plugin-vmware-dvs-release
 87fd32797f81799ad4ee167d7194d3987af3c29b	fuel-ci
+b10feaaedb48597d58599350478cbbc6913b5857	fuel-plugin-vmware-dvs-release
+user:fuel-tpi-ci                        	user/Fuel TPI CI (fuel-tpi-ci)
