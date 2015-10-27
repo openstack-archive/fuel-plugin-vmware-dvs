@@ -28,7 +28,7 @@ function _restart_crm_resource {
 
 function _nova_patch {
     wget -O /usr/lib/python2.7/dist-packages/nova.patch "http://$ip:$port/plugins/$plugin_name-$plugin_version/nova.patch" && cd /usr/lib/python2.7/dist-packages/ ; patch -N -p1 < nova.patch
-    sed -i s/neutron_url_timeout=.*/neutron_url_timeout=3600/ /etc/nova/nova.conf
+    sed -i s/url_timeout=.*/url_timeout=3600/ /etc/nova/nova.conf
 
 }
 
