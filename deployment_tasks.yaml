@@ -1,41 +1,27 @@
-- id: delete-predefined-networks
+- id: vmware-dvs-property-hypervisor_type
   role: ['primary-controller']
   required_for: [post_deployment_end]
-  requires: [post_deployment_start]
-  type: shell
-  parameters:
-    cmd: ./del_predefined_networks.sh 2>&1 | tee -a /tmp/dep_pre_nets.log
-    timeout: 120
-- id: property-hypervisor_type
-  role: ['primary-controller']
-  required_for: [post_deployment_end]
-  requires: [upload_cirros]
+  requires: [disable_keystone_service_token]
   type: shell
   parameters:
     cmd: ./add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
     timeout: 120
-- id: install-the-driver
-  role: ['primary-controller','controller']
-  required_for: [post_deployment_end]
-  requires: ['delete-predefined-networks']
-  type: shell
-  parameters:
-    cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
-    timeout: 720
-- id: install-the-driver-compute
-  type: shell
-  role: [compute-vmware]
-  required_for: [post_deployment_end]
-  requires: ['openstack-network-vmware-compute']
-  condition: "settings:common.use_vcenter.value == true"
-  parameters:
-    cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
-    timeout: 720
-- id: openstack-network-vmware-compute
+
+- id: vmware-dvs-override-hiera
+  groups: ['primary-controller','controller', 'compute-vmware']
+  required_for: [openstack-network-plugins-l2]
+  requires: [openstack-network-server-config]
   type: puppet
-  role: [compute-vmware]
-  required_for: ['install-the-driver-compute']
-  requires: ['delete-predefined-networks']
+  parameters:
+    puppet_manifest: puppet/manifests/override_hiera.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720
+
+- id: vmware-dvs-openstack-network-vmware-compute
+  type: puppet
+  groups: ['compute-vmware']
+  required_for: [post_deployment_end]
+  requires: [vmware-dvs-override-hiera]
   condition: "settings:common.use_vcenter.value == true"
   parameters:
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute.pp
@@ -45,10 +31,11 @@
     cmd: ruby /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute_pre.rb
   test_post:
     cmd: ruby /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute_post.rb
-- id: setup-neutron-plugin
-  role: ['primary-controller','controller']
-  required_for: [post_deployment_end]
-  requires: ['install-the-driver']
+
+- id: vmware-dvs-setup-neutron-plugin
+  groups: ['primary-controller','controller']
+  required_for: [openstack-network-plugins-l2]
+  requires: [vmware-dvs-override-hiera]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp

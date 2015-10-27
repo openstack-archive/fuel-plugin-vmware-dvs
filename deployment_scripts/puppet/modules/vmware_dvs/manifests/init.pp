@@ -15,29 +15,43 @@
 # == Class: ::vmware_dvs
 #
 # edit /etc/neutron/neturon.conf and /etc/neutron/plugin.ini
-# recreate net04 and net04_ext on primary-controller
-# restart the neutron-server
 #
 # === Parameters
 #
 # [*vsphere_hostname*]
-#   (required) String. This is a name or ip of VMware vSphere server
+#   (required) String. This is the name or ip of VMware vSphere server
 #
+# [*vsphere_login*]
+#   (required) String. This is the name of VMware vSphere user
+#
+# [*vsphere_password*]
+#   (required) String. This is the password of VMware vSphere user
+#
+# [*network_maps*]
+#   (required) String. This is a name of distributed vSwitch
+#
+# [*neutron_physnet*]
+#   (required) String. This is a name of physnet of neutron.
+#
+# [*driver_name*]
+#   (optional) String. This is the name of installed driver.
+#
+# [*neutron_url_timeout*]
+#   (optional) String. This is the timeout for neutron
+
+
 class vmware_dvs(
   $vsphere_hostname,
   $vsphere_login,
   $vsphere_password,
   $network_maps,
   $neutron_physnet,
-  $nets,
-  $pnets,
-  $keystone_admin_tenant,
   $driver_name         = 'vmware_dvs',
   $neutron_url_timeout = '3600',
 )
 {
   $true_network_maps  = get_network_maps($network_maps, $neutron_physnet)
-  $primary_controller = inline_template("<% if File.exist?('/etc/primary-controller.yaml') -%>true<% end -%>")
+
 
   Exec { path => '/usr/bin:/usr/sbin:/bin:/sbin' }
 
@@ -57,14 +71,6 @@ class vmware_dvs(
     'ml2_vmware/network_maps':     value => $true_network_maps;
   } ->
 
-  ini_subsetting {'vmware_dvs_driver':
-    path                 => '/etc/neutron/plugin.ini',
-    section              => 'ml2',
-    setting              => 'mechanism_drivers',
-    subsetting           => $driver_name,
-    subsetting_separator => ','
-    }
-
   file_line { 'neutron_timeout':
     path  => '/etc/haproxy/conf.d/085-neutron.cfg',
     line  => '  timeout server 1h',
@@ -72,9 +78,9 @@ class vmware_dvs(
   }
 
   service { 'neutron-server':
-    ensure      => running,
-    enable      => true,
-    subscribe   => [[Package['python-suds','python-mech-vmware-dvs']],Ini_Subsetting['vmware_dvs_driver']],
+    ensure    => running,
+    enable    => true,
+    subscribe => [[Package['python-suds','python-mech-vmware-dvs']]],
   }
 
   service {'haproxy':
@@ -84,32 +90,22 @@ class vmware_dvs(
     subscribe  => File_Line['neutron_timeout'],
   }
 
-  if $pnets['physnet2'] {
-    if $pnets['physnet2']['vlan_range'] {
-      $fallback = split($pnets['physnet2']['vlan_range'], ':')
-      Openstack::Network::Create_network {
-        tenant_name         => $keystone_admin_tenant,
-        fallback_segment_id => $fallback[1]
-      }
-    }
+  # some changes for nova
+
+  nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
+
+
+  file {'/usr/lib/python2.7/dist-packages/nova/virt/vmwareapi/vif.py':
+    owner  => 'root',
+    group  => 'root',
+    mode   => '0644',
+    source => 'puppet:///modules/vmware_dvs/vif.py'
   }
 
-  if $primary_controller and $nets and !empty($nets) {
-
-    openstack::network::create_network{'net04':
-      netdata           => $nets['net04'],
-      segmentation_type => 'vlan',
-      require           => Service['neutron-server'],
-    } ->
-    openstack::network::create_network{'net04_ext':
-      netdata           => $nets['net04_ext'],
-      segmentation_type => 'local',
-    } ->
-    openstack::network::create_router{'router04':
-      internal_network => 'net04',
-      external_network => 'net04_ext',
-      tenant_name      => $keystone_admin_tenant
-    }
+  file {'/usr/lib/python2.7/dist-packages/nova/virt/vmwareapi/vm_util.py':
+    owner  => 'root',
+    group  => 'root',
+    mode   => '0644',
+    source => 'puppet:///modules/vmware_dvs/vm_util.py'
   }
-
 }

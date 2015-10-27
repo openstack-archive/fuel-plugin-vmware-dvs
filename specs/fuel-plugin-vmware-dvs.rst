@@ -118,7 +118,7 @@ Limitations:
   #. Only VLANs are supported for tenant network separation (VxLAN support can
      be added later, if project will be continued).
 
-  #. Only vSphere 5.5 is supported
+  #. Only vSphere 5.5 or 6.0 is supported
 
 Alternatives
 ------------
