@@ -225,7 +225,10 @@ User Guide
    support stateful firewall properties and ICMP types. DVS Plugin realises emulation logic
    to support the similar behavior. It installs reverse traffic rule for each SG rule.
    VMWare DVS plugin state emulation logic uses ephemeral port range filter to rise security
-   of reverse rules implementation.
+   of reverse rules implementation. 
+
+   Does not recommended to use Remote Security Group in your rules. SG engine for DVS ignores
+   those rules.
 
    Just add only those rules if you want to correctly launch EC2 compatible image with
    matadata request and DNS access:
