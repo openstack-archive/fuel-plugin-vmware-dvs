@@ -85,6 +85,8 @@ Limitations
 
 -  Only vSphere 5.5 is supported.
 
+-  Only Ubuntu as target OS for Environment suppurted.
+
 
 Installing the VMware DVS plugin
 --------------------------------
@@ -122,7 +124,7 @@ Make sure that:
       +------+--------------------------+-----------+--------------------+
       | id   | name                     | version   | package\_version   |
       +------+--------------------------+-----------+--------------------+
-      | 2    | fuel-plugin-vmware-dvs   | 1.0.1     | 2.0.0              |
+      | 2    | fuel-plugin-vmware-dvs   | 1.0.2     | 2.0.0              |
       +------+--------------------------+-----------+--------------------+
 
 Removing the VMware DVS plugin
