@@ -26,7 +26,7 @@
   type: shell
   role: [compute-vmware]
   required_for: [post_deployment_end]
-  requires: ['delete-predefined-networks']
+  requires: ['openstack-network-vmware-compute']
   condition: "settings:common.use_vcenter.value == true"
   parameters:
     cmd: ./install_the_driver.sh 2>&1 | tee -a /tmp/ins_the_drivers.log
@@ -34,8 +34,8 @@
 - id: openstack-network-vmware-compute
   type: puppet
   role: [compute-vmware]
-  required_for: [post_deployment_end]
-  requires: ['install-the-driver-compute']
+  required_for: ['install-the-driver-compute']
+  requires: ['delete-predefined-networks']
   condition: "settings:common.use_vcenter.value == true"
   parameters:
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute.pp
