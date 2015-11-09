@@ -24,6 +24,19 @@ export ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT=${ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT:-tr
 
 # Export settings
 
+# this is a must for granular deploy
+export SYNC_DEPL_TASKS=true
+if [ -z $ADMIN_NODE_MEMORY ]; then export ADMIN_NODE_MEMORY=4096; fi
+if [ -z $ADMIN_NODE_CPU ]; then export ADMIN_NODE_CPU=4; fi
+if [ -z $SLAVE_NODE_MEMORY ]; then export SLAVE_NODE_MEMORY=4096; fi
+if [ -z $SLAVE_NODE_CPU ]; then export SLAVE_NODE_CPU=4; fi
+
+[ -z $VIRTUAL_ENV ] && { echo "Please activate python venv before running this script(e.g. with 'source /home/jenkins/venv-nailgun-tests/bin/activate')"; exit 1; }
+if [ -z $OPENSTACK_RELEASE ]; then export OPENSTACK_RELEASE='CentOS'; fi
+if [ -z $NODES_COUNT ]; then export NODES_COUNT=6; fi
+#if [ -z $JOB_NAME ]; then export JOB_NAME='manual_systest'; fi
+#if [ -z $ENV_NAME ]; then export ENV_NAME=${ENV_PREFIX}${VERSION_STRING}_${OPENSTACK_RELEASE}_${TEST_GROUP}; fi
+
 ShowHelp() {
 cat << EOF
 System Tests Script
@@ -351,7 +364,6 @@ CdWorkSpace() {
 
 RunTest() {
     # Run test selected by task name
-
     # check if iso file exists
     if [ ! -f "${ISO_PATH}" ]; then
         if [ -z "${ISO_URL}" -a "${DRY_RUN}" != "yes" ]; then
@@ -423,7 +435,6 @@ RunTest() {
     if [ -n "${TEST_OPTIONS}" ]; then
         OPTS="${OPTS} ${TEST_OPTIONS}"
     fi
-
     # run python test set to create environments, deploy and test product
     if [ "${DRY_RUN}" = "yes" ]; then
         echo export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
@@ -431,16 +442,53 @@ RunTest() {
     else
         export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
         echo ${PYTHONPATH}
-        python run_tests.py -q --nologcapture --with-xunit ${OPTS}
+        python run_tests.py -q --nologcapture --with-xunit ${OPTS} &
 
     fi
-    ec=$?
+    #ec=$?
+    SYSTEST_PID=$!
+
+    if ! ps -p $SYSTEST_PID > /dev/null
+    then
+      echo System tests exited prematurely, aborting
+      exit 1
+    fi
+
+    #Wait before environment is created
+    while [ $(virsh net-list |grep $ENV_NAME |wc -l) -ne 5 ];do sleep 10
+      if ! ps -p $SYSTEST_PID > /dev/null
+      then
+        echo System tests exited prematurely, aborting
+        exit 1
+      fi
+    done
+    sleep 10
+    set_vcenter
+
+    setup_net $ENV_NAME $ENV_TYPE
+
+    clean_iptables
+
+    revert_ws "$EXT_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+
+    #fixme should use only one clean_iptables call
+    clean_iptables
+
+    echo waiting for system tests to finish
+    wait $SYSTEST_PID
+
+    export RES=$?
+    echo ENVIRONMENT NAME is $ENV_NAME
+    #dos.py net-list $ENV_NAME
+    virsh net-dumpxml ${ENV_NAME}_admin | grep -P "(\d+\.){3}" -o | awk '{print "Fuel master node IP: "$0"2"}'
+
+    echo Result is $RES
 
     # Extract logs using fuel_logs utility
     if [ "${FUELLOGS_TOOL}" != "no" ]; then
       for logfile in $(find "${LOGS_DIR}" -name "fail*.tar.xz" -type f);
       do
-         ./utils/jenkins/fuel_logs.py "${logfile}" > "${logfile}.filtered.log"
+         .fuel-qa/utils/jenkins/fuel_logs.py "${logfile}" > "${logfile}.filtered.log"
       done
     fi
 
@@ -453,7 +501,7 @@ RunTest() {
       fi
     fi
 
-    exit "${ec}"
+    exit "${RES}"
 }
 
 RouteTasks() {
@@ -474,6 +522,113 @@ RouteTasks() {
     ;;
   esac
   exit 0
+}
+
+#Define functions for VCenter configuration
+add_interface_to_bridge() {
+  env=$1
+  net_name=$2
+  nic=$3
+  ip=$4
+
+  for net in $(virsh net-list |grep ${env}_${net_name} |awk '{print $1}');do
+    bridge=`virsh net-info $net |grep -i bridge |awk '{print $2}'`
+    setup_bridge $bridge $nic $ip && echo $net_name bridge $bridge ready
+  done
+}
+
+setup_bridge() {
+  bridge=$1
+  nic=$2
+  ip=$3
+
+  sudo /sbin/brctl stp $bridge off
+  sudo /sbin/brctl addif $bridge $nic
+  #set if with existing ip down
+  for itf in `sudo ip -o addr show to $ip |cut -d' ' -f2`; do
+      echo deleting $ip from $itf
+      sudo ip addr del dev $itf $ip
+  done
+  echo "adding $ip to $bridge"
+  sudo /sbin/ip addr add $ip dev $bridge
+  echo "$nic added to $bridge"
+  sudo /sbin/ip link set dev $bridge up
+  if sudo /sbin/iptables-save |grep $bridge | grep -i reject| grep -q FORWARD;then
+    sudo /sbin/iptables -D FORWARD -o $bridge -j REJECT --reject-with icmp-port-unreachable
+    sudo /sbin/iptables -D FORWARD -i $bridge -j REJECT --reject-with icmp-port-unreachable
+  fi
+}
+
+set_vcenter() {
+  export VCENTER_USE="true"
+  export VCENTER_IP="172.16.0.254"
+  export VCENTER_USERNAME="administrator@vsphere.local"
+  export VCENTER_PASSWORD="Qwer!1234"
+  export VC_DATACENTER="Datacenter"
+  export VC_DATASTORE="nfs"
+  export VC_IMAGE_DIR="/openstack_glance"
+  export JOB_NAME="vcenter_system_test"
+  export ENV_TYPE="vcenter"
+  export EXT_NODES="esxi1 esxi2 esxi3 vcenter trusty"
+  export EXT_IFS="vmnet1 vmnet2"
+
+  if [ $TEST_GROUP = "*multiple_cluster*" ]
+  then
+    export VCENTER_CLUSTERS="Cluster1,Cluster2"
+    [ -z $EXT_SNAPSHOT ] && export EXT_SNAPSHOT="vcenterclusters"
+  else
+    export VCENTER_CLUSTERS="Cluster1"
+    [ -z $EXT_SNAPSHOT ] && export EXT_SNAPSHOT="vcenterha"
+  fi
+}
+
+clean_old_bridges() {
+  for intf in $EXT_IFS; do
+    for br in `/sbin/brctl show | grep -v "bridge name" | cut -f1 -d'	'`; do
+      /sbin/brctl show $br| grep -q $intf && sudo /sbin/brctl delif $br $intf \
+        && sudo /sbin/ip link set dev $br down && echo $intf deleted from $br
+    done
+  done
+}
+
+clean_iptables() {
+  sudo /sbin/iptables -F
+  sudo /sbin/iptables -t nat -F
+  sudo /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+}
+
+revert_ws() {
+  SET_X=`case "$-" in *x*) echo "set -x" ;; esac`
+  set +x
+
+  passfile=/btsync/vmpass
+  if [ -f $passfile ]; then
+    ls -ld $passfile | grep -q ^-......r && echo "Password file is readable by all, please change permissions with 'chmod o-rwx $passfile'" && return 1
+    password=$(cat $passfile)
+  else
+    echo "Note: you can place password in file $passfile to avoid this prompt"
+    echo -n "[vmrun] password for vmware: "
+    stty -echo
+    read password
+    stty echo
+    echo
+  fi
+
+  for i in $1
+  do
+    vmrun -T ws-shared -h https://localhost:443/sdk -u vmware -p $password listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
+    echo "vmrun: reverting $i to $EXT_SNAPSHOT"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u vmware -p $password revertToSnapshot "[standard] $i/$i.vmx" $EXT_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    echo "vmrun: starting $i"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u vmware -p $password start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+  done
+  $SET_X
+}
+
+setup_net() {
+  env=$1
+  add_interface_to_bridge $env private vmnet2 10.0.0.1/24
+  add_interface_to_bridge $env public vmnet1 172.16.0.1/24
 }
 
 # MAIN
