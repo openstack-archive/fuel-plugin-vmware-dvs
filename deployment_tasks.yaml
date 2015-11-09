@@ -9,7 +9,7 @@
 - id: property-hypervisor_type
   role: ['primary-controller']
   required_for: [post_deployment_end]
-  requires: [post_deployment_start]
+  requires: [upload_cirros]
   type: shell
   parameters:
     cmd: ./add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
