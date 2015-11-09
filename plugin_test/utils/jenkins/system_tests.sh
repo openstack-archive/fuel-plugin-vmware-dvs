@@ -16,6 +16,18 @@ SYMLINKISO_ERR=109
 CDWORKSPACE_ERR=110
 ISODOWNLOAD_ERR=111
 INVALIDTASK_ERR=112
+NOVCENTER_USE=113
+NOVCENTER_IP=114
+NOVCENTER_USERNAME=115
+NOVCENTER_PASSWORD=116
+NOVC_DATACENTER=117
+NOVC_DATASTORE=118
+NOEXT_NODES=120
+NOEXT_IFS=121
+NOVCENTER_CLUSTERS=122
+NOEXT_SNAPSHOT=123
+NOWSLOGIN=124
+NOWSPASS=125
 
 # Defaults
 
@@ -153,7 +165,7 @@ GetoptsVariables() {
         TASK_NAME="${OPTARG}"
         ;;
       o)
-        TEST_OPTIONS="${TEST_OPTIONS} ${OPTARG}"
+        TEST_OPTIONS="${f} ${OPTARG}"
         ;;
       a)
         NOSE_ATTR="${OPTARG}"
@@ -235,6 +247,55 @@ CheckVariables() {
   if [ -z "${WORKSPACE}" ]; then
     echo "Error! WORKSPACE is not set!"
     exit $NOWORKSPACE_ERR
+  fi
+  #Vcenter variables
+  if [ -z "${VCENTER_USE}" ]; then
+    echo "Error! VCENTER_USE is not set!"
+    exit $NOVCENTER_USE_ERR
+  fi
+  if [ -z "${VCENTER_IP}" ]; then
+    echo "Error! VCENTER_USE is not set!"
+    exit $NOVCENTER_IP
+  fi
+  if [ -z "${VCENTER_USERNAME}" ]; then
+    echo "Error! VCENTER_USERNAME is not set!"
+    exit $NOVCENTER_USERNAME
+  fi
+  if [ -z "${VCENTER_PASSWORD}" ]; then
+    echo "Error! VCENTER_PASSWORD is not set!"
+    exit $NOVCENTER_PASSWORD
+  fi
+  if [ -z "${VC_DATACENTER}" ]; then
+    echo "Error! VC_DATACENTER is not set!"
+    exit $NOVC_DATACENTER
+  fi
+  if [ -z "${VC_DATASTORE}" ]; then
+    echo "Error! VC_DATASTORE is not set!"
+    exit $NOVC_DATASTORE
+  fi
+  if [ -z "${EXT_NODES}" ]; then
+    echo "Error! EXT_NODES is not set!"
+    exit $NOEXT_NODES
+  fi
+  if [ -z "${EXT_IFS}" ]; then
+    echo "Error! EXT_IFS is not set!"
+    exit $NOEXT_IFS
+  fi
+  if [ -z "${VCENTER_CLUSTERS}" ]; then
+    echo "Error! VCENTER_CLUSTERS is not set!"
+    exit $NOVCENTER_CLUSTERS
+  fi
+  if [ -z "${EXT_SNAPSHOT}" ]; then
+    echo "Error! EXT_SNAPSHOT is not set!"
+    exit $NOVEXT_SNAPSHOT
+  fi
+  if [ -z "${WSLOGIN}" ]; then
+    echo "Error! WSLOGIN is not set!"
+    exit $NOWSLOGIN
+  fi
+  if [ -z "${WSPASS}" ]; then
+    echo "Error! WSPASS is not set!"
+    exit $NOWSPASS
   fi
 }
 
@@ -351,7 +412,6 @@ CdWorkSpace() {
 
 RunTest() {
     # Run test selected by task name
-
     # check if iso file exists
     if [ ! -f "${ISO_PATH}" ]; then
         if [ -z "${ISO_URL}" -a "${DRY_RUN}" != "yes" ]; then
@@ -431,16 +491,49 @@ RunTest() {
     else
         export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
         echo ${PYTHONPATH}
-        python run_tests.py -q --nologcapture --with-xunit ${OPTS}
+        python run_tests.py -q --nologcapture --with-xunit ${OPTS} &
 
     fi
-    ec=$?
+    #ec=$?
+    SYSTEST_PID=$!
+
+    if ! ps -p $SYSTEST_PID > /dev/null
+    then
+      echo System tests exited prematurely, aborting
+      exit 1
+    fi
+
+    #Wait before environment is created
+    while [ $(virsh net-list |grep $ENV_NAME |wc -l) -ne 5 ];do sleep 10
+      if ! ps -p $SYSTEST_PID > /dev/null
+      then
+        echo System tests exited prematurely, aborting
+        exit 1
+      fi
+    done
+    sleep 10
+    # Configre vcenter nodes and interfaces
+    setup_net $ENV_NAME
+    clean_iptables
+    revert_ws "$EXT_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+    #fixme should use only one clean_iptables call
+    clean_iptables
+
+    echo waiting for system tests to finish
+    wait $SYSTEST_PID
+
+    export RES=$?
+    echo ENVIRONMENT NAME is $ENV_NAME
+    #dos.py net-list $ENV_NAME
+    virsh net-dumpxml ${ENV_NAME}_admin | grep -P "(\d+\.){3}" -o | awk '{print "Fuel master node IP: "$0"2"}'
+
+    echo Result is $RES
 
     # Extract logs using fuel_logs utility
     if [ "${FUELLOGS_TOOL}" != "no" ]; then
       for logfile in $(find "${LOGS_DIR}" -name "fail*.tar.xz" -type f);
       do
-         ./utils/jenkins/fuel_logs.py "${logfile}" > "${logfile}.filtered.log"
+         .fuel-qa/utils/jenkins/fuel_logs.py "${logfile}" > "${logfile}.filtered.log"
       done
     fi
 
@@ -453,7 +546,7 @@ RunTest() {
       fi
     fi
 
-    exit "${ec}"
+    exit "${RES}"
 }
 
 RouteTasks() {
@@ -474,6 +567,77 @@ RouteTasks() {
     ;;
   esac
   exit 0
+}
+
+#Define functions for VCenter configuration
+add_interface_to_bridge() {
+  env=$1
+  net_name=$2
+  nic=$3
+  ip=$4
+
+  for net in $(virsh net-list |grep ${env}_${net_name} |awk '{print $1}');do
+    bridge=`virsh net-info $net |grep -i bridge |awk '{print $2}'`
+    setup_bridge $bridge $nic $ip && echo $net_name bridge $bridge ready
+  done
+}
+
+setup_bridge() {
+  bridge=$1
+  nic=$2
+  ip=$3
+
+  sudo /sbin/brctl stp $bridge off
+  sudo /sbin/brctl addif $bridge $nic
+  #set if with existing ip down
+  for itf in `sudo ip -o addr show to $ip |cut -d' ' -f2`; do
+      echo deleting $ip from $itf
+      sudo ip addr del dev $itf $ip
+  done
+  echo "adding $ip to $bridge"
+  sudo /sbin/ip addr add $ip dev $bridge
+  echo "$nic added to $bridge"
+  sudo /sbin/ip link set dev $bridge up
+  if sudo /sbin/iptables-save |grep $bridge | grep -i reject| grep -q FORWARD;then
+    sudo /sbin/iptables -D FORWARD -o $bridge -j REJECT --reject-with icmp-port-unreachable
+    sudo /sbin/iptables -D FORWARD -i $bridge -j REJECT --reject-with icmp-port-unreachable
+  fi
+}
+
+clean_old_bridges() {
+  for intf in $EXT_IFS; do
+    for br in `/sbin/brctl show | grep -v "bridge name" | cut -f1 -d'	'`; do
+      /sbin/brctl show $br| grep -q $intf && sudo /sbin/brctl delif $br $intf \
+        && sudo /sbin/ip link set dev $br down && echo $intf deleted from $br
+    done
+  done
+}
+
+clean_iptables() {
+  sudo /sbin/iptables -F
+  sudo /sbin/iptables -t nat -F
+  sudo /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+}
+
+revert_ws() {
+  #SET_X=`case "$-" in *x*) echo "set -x" ;; esac`
+  #set +x
+
+  for i in $1
+  do
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
+    echo "vmrun: reverting $i to $EXT_SNAPSHOT"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS revertToSnapshot "[standard] $i/$i.vmx" $EXT_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    echo "vmrun: starting $i"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+  done
+  #$SET_X
+}
+
+setup_net() {
+  env=$1
+  add_interface_to_bridge $env private vmnet2 10.0.0.1/24
+  add_interface_to_bridge $env public vmnet1 172.16.0.1/24
 }
 
 # MAIN
