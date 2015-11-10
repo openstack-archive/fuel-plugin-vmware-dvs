@@ -16,18 +16,10 @@ SYMLINKISO_ERR=109
 CDWORKSPACE_ERR=110
 ISODOWNLOAD_ERR=111
 INVALIDTASK_ERR=112
-NOVCENTER_USE=113
-NOVCENTER_IP=114
-NOVCENTER_USERNAME=115
-NOVCENTER_PASSWORD=116
-NOVC_DATACENTER=117
-NOVC_DATASTORE=118
-NOEXT_NODES=120
-NOEXT_IFS=121
-NOVCENTER_CLUSTERS=122
-NOEXT_SNAPSHOT=123
-NOWSLOGIN=124
-NOWSPASS=125
+NOVCENTER_USERNAME=113
+NOVCENTER_PASSWORD=114
+NOWSLOGIN=115
+NOWSPASS=116
 
 # Defaults
 
@@ -250,12 +242,10 @@ CheckVariables() {
   fi
   #Vcenter variables
   if [ -z "${VCENTER_USE}" ]; then
-    echo "Error! VCENTER_USE is not set!"
-    exit $NOVCENTER_USE_ERR
+    export VCENTER_USE="true"
   fi
   if [ -z "${VCENTER_IP}" ]; then
-    echo "Error! VCENTER_USE is not set!"
-    exit $NOVCENTER_IP
+    export VCENTER_IP="172.16.0.254"
   fi
   if [ -z "${VCENTER_USERNAME}" ]; then
     echo "Error! VCENTER_USERNAME is not set!"
@@ -266,28 +256,22 @@ CheckVariables() {
     exit $NOVCENTER_PASSWORD
   fi
   if [ -z "${VC_DATACENTER}" ]; then
-    echo "Error! VC_DATACENTER is not set!"
-    exit $NOVC_DATACENTER
+    export VC_DATACENTER="Datacenter"
   fi
   if [ -z "${VC_DATASTORE}" ]; then
-    echo "Error! VC_DATASTORE is not set!"
-    exit $NOVC_DATASTORE
+    export VC_DATASTORE="nfs"
   fi
-  if [ -z "${EXT_NODES}" ]; then
-    echo "Error! EXT_NODES is not set!"
-    exit $NOEXT_NODES
+  if [ -z "${WS_NODES}" ]; then
+    export WS_NODES="esxi1 esxi2 esxi3 vcenter trusty"
   fi
-  if [ -z "${EXT_IFS}" ]; then
-    echo "Error! EXT_IFS is not set!"
-    exit $NOEXT_IFS
+  if [ -z "${WS_IFS}" ]; then
+    export WS_IFS="vmnet1 vmnet2"
   fi
   if [ -z "${VCENTER_CLUSTERS}" ]; then
-    echo "Error! VCENTER_CLUSTERS is not set!"
-    exit $NOVCENTER_CLUSTERS
+    export VCENTER_CLUSTERS="Cluster1,Cluster2"
   fi
-  if [ -z "${EXT_SNAPSHOT}" ]; then
-    echo "Error! EXT_SNAPSHOT is not set!"
-    exit $NOVEXT_SNAPSHOT
+  if [ -z "${WS_SNAPSHOT}" ]; then
+    export WS_SNAPSHOT="vcenterha"
   fi
   if [ -z "${WSLOGIN}" ]; then
     echo "Error! WSLOGIN is not set!"
@@ -484,6 +468,8 @@ RunTest() {
         OPTS="${OPTS} ${TEST_OPTIONS}"
     fi
 
+    clean_old_bridges
+
     # run python test set to create environments, deploy and test product
     if [ "${DRY_RUN}" = "yes" ]; then
         echo export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
@@ -515,7 +501,7 @@ RunTest() {
     # Configre vcenter nodes and interfaces
     setup_net $ENV_NAME
     clean_iptables
-    revert_ws "$EXT_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+    revert_ws "$WS_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
     #fixme should use only one clean_iptables call
     clean_iptables
 
@@ -605,8 +591,9 @@ setup_bridge() {
 }
 
 clean_old_bridges() {
-  for intf in $EXT_IFS; do
+  for intf in $WS_IFS; do
     for br in `/sbin/brctl show | grep -v "bridge name" | cut -f1 -d'	'`; do
+      echo 'clean old bridge $br'
       /sbin/brctl show $br| grep -q $intf && sudo /sbin/brctl delif $br $intf \
         && sudo /sbin/ip link set dev $br down && echo $intf deleted from $br
     done
@@ -620,18 +607,14 @@ clean_iptables() {
 }
 
 revert_ws() {
-  #SET_X=`case "$-" in *x*) echo "set -x" ;; esac`
-  #set +x
-
   for i in $1
   do
     vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
-    echo "vmrun: reverting $i to $EXT_SNAPSHOT"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS revertToSnapshot "[standard] $i/$i.vmx" $EXT_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    echo "vmrun: reverting $i to $WS_SNAPSHOT"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS revertToSnapshot "[standard] $i/$i.vmx" $WS_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
     echo "vmrun: starting $i"
     vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
   done
-  #$SET_X
 }
 
 setup_net() {
