@@ -26,8 +26,8 @@ NOEXT_NODES=120
 NOEXT_IFS=121
 NOVCENTER_CLUSTERS=122
 NOEXT_SNAPSHOT=123
-NOWSLOGIN=124
-NOWSPASS=125
+NOWS_USERNAME=124
+NOWS_PASSSWORD=125
 
 # Defaults
 
@@ -289,13 +289,13 @@ CheckVariables() {
     echo "Error! EXT_SNAPSHOT is not set!"
     exit $NOVEXT_SNAPSHOT
   fi
-  if [ -z "${WSLOGIN}" ]; then
-    echo "Error! WSLOGIN is not set!"
-    exit $NOWSLOGIN
+  if [ -z "${WS_USERNAME}" ]; then
+    echo "Error! WS_USERNAME is not set!"
+    exit $NOWS_USERNAME
   fi
-  if [ -z "${WSPASS}" ]; then
-    echo "Error! WSPASS is not set!"
-    exit $NOWSPASS
+  if [ -z "${WS_PASSSWORD}" ]; then
+    echo "Error! WS_PASSSWORD is not set!"
+    exit $NOWS_PASSSWORD
   fi
 }
 
@@ -625,11 +625,11 @@ revert_ws() {
 
   for i in $1
   do
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WS_USERNAME -p $WS_PASSSWORD listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
     echo "vmrun: reverting $i to $EXT_SNAPSHOT"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS revertToSnapshot "[standard] $i/$i.vmx" $EXT_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WS_USERNAME -p $WS_PASSSWORD revertToSnapshot "[standard] $i/$i.vmx" $EXT_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
     echo "vmrun: starting $i"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WS_USERNAME -p $WS_PASSSWORD start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
   done
   #$SET_X
 }
