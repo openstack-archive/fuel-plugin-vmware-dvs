@@ -16,17 +16,12 @@ SYMLINKISO_ERR=109
 CDWORKSPACE_ERR=110
 ISODOWNLOAD_ERR=111
 INVALIDTASK_ERR=112
-NOVCENTER_USERNAME=113
-NOVCENTER_PASSWORD=114
-NOWSLOGIN=115
-NOWSPASS=116
 
 # Defaults
 
 export REBOOT_TIMEOUT=${REBOOT_TIMEOUT:-5000}
 export ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT=${ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT:-true}
 
-# Export settings
 
 ShowHelp() {
 cat << EOF
@@ -249,11 +244,9 @@ CheckVariables() {
   fi
   if [ -z "${VCENTER_USERNAME}" ]; then
     echo "Error! VCENTER_USERNAME is not set!"
-    exit $NOVCENTER_USERNAME
   fi
   if [ -z "${VCENTER_PASSWORD}" ]; then
     echo "Error! VCENTER_PASSWORD is not set!"
-    exit $NOVCENTER_PASSWORD
   fi
   if [ -z "${VC_DATACENTER}" ]; then
     export VC_DATACENTER="Datacenter"
@@ -261,25 +254,36 @@ CheckVariables() {
   if [ -z "${VC_DATASTORE}" ]; then
     export VC_DATASTORE="nfs"
   fi
-  if [ -z "${WS_NODES}" ]; then
-    export WS_NODES="esxi1 esxi2 esxi3 vcenter trusty"
+  if [ -z "${WORKSTATION_NODES}" ]; then
+    export WORKSTATION_NODES="esxi1 esxi2 esxi3 vcenter trusty"
   fi
-  if [ -z "${WS_IFS}" ]; then
-    export WS_IFS="vmnet1 vmnet2"
+  if [ -z "${WORKSTATION_IFS}" ]; then
+    export WORKSTATION_IFS="vmnet1 vmnet2"
   fi
   if [ -z "${VCENTER_CLUSTERS}" ]; then
     export VCENTER_CLUSTERS="Cluster1,Cluster2"
   fi
-  if [ -z "${WS_SNAPSHOT}" ]; then
-    export WS_SNAPSHOT="vcenterha"
+  if [ -z "${WORKSTATION_SNAPSHOT}" ]; then
+    export WORKSTATION_SNAPSHOT="vcenterha"
   fi
-  if [ -z "${WSLOGIN}" ]; then
-    echo "Error! WSLOGIN is not set!"
-    exit $NOWSLOGIN
+  if [ -z "${WORKSTATION_USERNAME}" ]; then
+    echo "Error! WORKSTATION_USERNAME is not set!"
   fi
-  if [ -z "${WSPASS}" ]; then
-    echo "Error! WSPASS is not set!"
-    exit $NOWSPASS
+  if [ -z "${WORKSTATION_PASSWORD}" ]; then
+    echo "Error! WORKSTATION_PASSWORD is not set!"
+  fi
+  # Export settings
+  if [ -z "${ADMIN_NODE_MEMORY}" ]; then
+    export ADMIN_NODE_MEMORY=4096
+  fi
+  if [ -z "${ADMIN_NODE_CPU}" ]; then
+    export ADMIN_NODE_CPU=4
+  fi
+  if [ -z "${SLAVE_NODE_MEMORY}" ]; then
+    export SLAVE_NODE_MEMORY=4096
+  fi
+  if [ -z "${SLAVE_NODE_CPU}" ]; then
+    export SLAVE_NODE_CPU=4
   fi
 }
 
@@ -499,7 +503,7 @@ RunTest() {
     # Configre vcenter nodes and interfaces
     setup_net $ENV_NAME
     clean_iptables
-    revert_ws "$WS_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+    revert_ws "$WORKSTATION_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
     #fixme should use only one clean_iptables call
     clean_iptables
 
@@ -589,7 +593,7 @@ setup_bridge() {
 }
 
 clean_old_bridges() {
-  for intf in $WS_IFS; do
+  for intf in $WORKSTATION_IFS; do
     for br in `/sbin/brctl show | grep -v "bridge name" | cut -f1 -d'	'`; do
       /sbin/brctl show $br| grep -q $intf && sudo /sbin/brctl delif $br $intf \
         && sudo /sbin/ip link set dev $br down && echo $intf deleted from $br
@@ -606,11 +610,11 @@ clean_iptables() {
 revert_ws() {
   for i in $1
   do
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
-    echo "vmrun: reverting $i to $WS_SNAPSHOT"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS revertToSnapshot "[standard] $i/$i.vmx" $WS_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
+    echo "vmrun: reverting $i to $WORKSTATION_SNAPSHOT"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD revertToSnapshot "[standard] $i/$i.vmx" $WORKSTATION_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
     echo "vmrun: starting $i"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
   done
 }
 
