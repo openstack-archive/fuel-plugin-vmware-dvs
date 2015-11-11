@@ -18,15 +18,14 @@ ISODOWNLOAD_ERR=111
 INVALIDTASK_ERR=112
 NOVCENTER_USERNAME=113
 NOVCENTER_PASSWORD=114
-NOWSLOGIN=115
-NOWSPASS=116
+NOWS_USERNAME=115
+NOWS_PASSWORD=116
 
 # Defaults
 
 export REBOOT_TIMEOUT=${REBOOT_TIMEOUT:-5000}
 export ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT=${ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT:-true}
 
-# Export settings
 
 ShowHelp() {
 cat << EOF
@@ -273,13 +272,26 @@ CheckVariables() {
   if [ -z "${WS_SNAPSHOT}" ]; then
     export WS_SNAPSHOT="vcenterha"
   fi
-  if [ -z "${WSLOGIN}" ]; then
-    echo "Error! WSLOGIN is not set!"
-    exit $NOWSLOGIN
+  if [ -z "${WS_USERNAME}" ]; then
+    echo "Error! WS_USERNAME is not set!"
+    exit $NOWS_USERNAME
   fi
-  if [ -z "${WSPASS}" ]; then
-    echo "Error! WSPASS is not set!"
-    exit $NOWSPASS
+  if [ -z "${WS_PASSWORD}" ]; then
+    echo "Error! WS_PASSWORD is not set!"
+    exit $NOWS_PASSWORD
+  fi
+  # Export settings
+  if [ -z "${ADMIN_NODE_MEMORY}" ]; then
+    export ADMIN_NODE_MEMORY=4096
+  fi
+  if [ -z "${ADMIN_NODE_CPU}" ]; then
+    export ADMIN_NODE_CPU=4
+  fi
+  if [ -z "${SLAVE_NODE_MEMORY}" ]; then
+    export SLAVE_NODE_MEMORY=4096
+  fi
+  if [ -z "${SLAVE_NODE_CPU}" ]; then
+    export SLAVE_NODE_CPU=4
   fi
 }
 
@@ -606,11 +618,11 @@ clean_iptables() {
 revert_ws() {
   for i in $1
   do
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WS_USERNAME -p $WS_PASSWORD listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
     echo "vmrun: reverting $i to $WS_SNAPSHOT"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS revertToSnapshot "[standard] $i/$i.vmx" $WS_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WS_USERNAME -p $WS_PASSWORD revertToSnapshot "[standard] $i/$i.vmx" $WS_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
     echo "vmrun: starting $i"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WSLOGIN -p $WSPASS start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WS_USERNAME -p $WS_PASSWORD start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
   done
 }
 
