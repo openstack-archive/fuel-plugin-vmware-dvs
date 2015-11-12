@@ -13,3 +13,4 @@ of the fuel plugin builder.
 
 Just do
 $ cd /path/to/fuel-plugin-vmware-dvs; sudo patch /path/to/plugin_rpm.spec.mako hack.diff
+blah!
