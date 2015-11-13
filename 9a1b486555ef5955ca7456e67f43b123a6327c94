@@ -1,0 +1,8 @@
+Verified+2: Jenkins
+Code-Review+2: Slava Tabolin <vtabolin@mirantis.com>
+Workflow+1: Slava Tabolin <vtabolin@mirantis.com>
+Submitted-by: Jenkins
+Submitted-at: Fri, 13 Nov 2015 09:32:17 +0000
+Reviewed-on: https://review.openstack.org/244555
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/master
