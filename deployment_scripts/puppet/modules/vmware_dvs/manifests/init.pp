@@ -52,7 +52,6 @@ class vmware_dvs(
 {
   $true_network_maps  = get_network_maps($network_maps, $neutron_physnet)
 
-
   Exec { path => '/usr/bin:/usr/sbin:/bin:/sbin' }
 
   package {['python-suds','python-mech-vmware-dvs']:
@@ -90,22 +89,15 @@ class vmware_dvs(
     subscribe  => File_Line['neutron_timeout'],
   }
 
-  # some changes for nova
-
   nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
 
-
-  file {'/usr/lib/python2.7/dist-packages/nova/virt/vmwareapi/vif.py':
-    owner  => 'root',
-    group  => 'root',
-    mode   => '0644',
-    source => 'puppet:///modules/vmware_dvs/vif.py'
+  file {'/usr/lib/python2.7/dist-packages/nova.patch':
+    source => 'puppet:///modules/vmware_dvs/nova.patch',
+    notify => Exec['apply-nova-patch'],
   }
-
-  file {'/usr/lib/python2.7/dist-packages/nova/virt/vmwareapi/vm_util.py':
-    owner  => 'root',
-    group  => 'root',
-    mode   => '0644',
-    source => 'puppet:///modules/vmware_dvs/vm_util.py'
+  exec {'apply-nova-patch':
+    command     => 'patch -d /usr/lib/python2.7/dist-packages -N -p1
+    < /usr/lib/python2.7/dist-packages/nova.patch',
+    refreshonly => true,
   }
 }

@@ -8,7 +8,7 @@
     timeout: 120
 
 - id: vmware-dvs-override-hiera
-  groups: ['primary-controller','controller', 'compute-vmware']
+  groups: ['primary-controller','controller']
   required_for: [openstack-network-plugins-l2]
   requires: [openstack-network-server-config]
   type: puppet
@@ -16,21 +16,6 @@
     puppet_manifest: puppet/manifests/override_hiera.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
-
-- id: vmware-dvs-openstack-network-vmware-compute
-  type: puppet
-  groups: ['compute-vmware']
-  required_for: [post_deployment_end]
-  requires: [vmware-dvs-override-hiera]
-  condition: "settings:common.use_vcenter.value == true"
-  parameters:
-    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute.pp
-    puppet_modules: /etc/puppet/modules
-    timeout: 3600
-  test_pre:
-    cmd: ruby /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute_pre.rb
-  test_post:
-    cmd: ruby /etc/puppet/modules/osnailyfacter/modular/openstack-network/openstack-network-compute_post.rb
 
 - id: vmware-dvs-setup-neutron-plugin
   groups: ['primary-controller','controller']
