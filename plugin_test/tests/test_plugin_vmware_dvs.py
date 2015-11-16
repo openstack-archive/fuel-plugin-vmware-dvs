@@ -227,7 +227,7 @@ class TestDVSPlugin(TestBasic):
         """
 
         ext_net = [net for net
-                   in self.neutron.list_networks()["networks"]
+                   in os_conn.neutron.list_networks()["networks"]
                    if net['name'] == ext_net_name][0]
 
         gateway = {"network_id": ext_net["id"],
@@ -368,8 +368,7 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.update_nodes(
             cluster_id,
             {'slave-01': ['controller'],
-             'slave-02': ['compute'],
-             'slave-03': ['compute-vmware'], }
+             'slave-02': ['compute'], }
         )
 
         # Configure VMWare vCenter settings
@@ -392,8 +391,9 @@ class TestDVSPlugin(TestBasic):
             3. Create cluster with vcenter.
             4. Add 1 node with controller role.
             5. Add 1 node with compute role.
-            6. Deploy the cluster.
-            7. Run OSTF.
+            6. Add 1 node with compute-vmware role.
+            7. Deploy the cluster.
+            8. Run OSTF.
 
         Duration 1.8 hours
 
