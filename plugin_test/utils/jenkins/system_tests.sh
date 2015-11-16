@@ -178,9 +178,6 @@ GetoptsVariables() {
       l)
         LOGS_DIR="${OPTARG}"
         ;;
-      L)
-        FUELLOGS_TOOL="no"
-        ;;
       k)
         KEEP_BEFORE="yes"
         ;;
@@ -475,11 +472,11 @@ RunTest() {
     # run python test set to create environments, deploy and test product
     if [ "${DRY_RUN}" = "yes" ]; then
         echo export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
-        echo python run_tests.py -q --nologcapture --with-xunit ${OPTS}
+        echo python plugin_test/run_tests.py -q --nologcapture --with-xunit ${OPTS}
     else
         export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
         echo ${PYTHONPATH}
-        python run_tests.py -q --nologcapture --with-xunit ${OPTS} &
+        python plugin_test/run_tests.py -q --nologcapture --with-xunit ${OPTS} &
 
     fi
     #ec=$?
@@ -500,30 +497,21 @@ RunTest() {
       fi
     done
     sleep 10
+
     # Configre vcenter nodes and interfaces
+    clean_old_bridges
     setup_net $ENV_NAME
     clean_iptables
     revert_ws "$WORKSTATION_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
-    #fixme should use only one clean_iptables call
-    clean_iptables
 
     echo waiting for system tests to finish
     wait $SYSTEST_PID
 
     export RES=$?
     echo ENVIRONMENT NAME is $ENV_NAME
-    #dos.py net-list $ENV_NAME
     virsh net-dumpxml ${ENV_NAME}_admin | grep -P "(\d+\.){3}" -o | awk '{print "Fuel master node IP: "$0"2"}'
 
     echo Result is $RES
-
-    # Extract logs using fuel_logs utility
-    if [ "${FUELLOGS_TOOL}" != "no" ]; then
-      for logfile in $(find "${LOGS_DIR}" -name "fail*.tar.xz" -type f);
-      do
-         .fuel-qa/utils/jenkins/fuel_logs.py "${logfile}" > "${logfile}.filtered.log"
-      done
-    fi
 
     if [ "${KEEP_AFTER}" != "yes" ]; then
       # remove environment after tests
