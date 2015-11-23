@@ -258,3 +258,7 @@ User Guide
 
    DVS plugin support only symmectric ICMP interaction. If your host can ping destination host,
    it means the destination host can ping your host by reverse rules.
+
+#. Sometimes the error at log files happens "Cannot complete operation due to concurrent
+   modification by another operation." due to absence of concurrent access to modify resources
+   by vSphere. Do not panic. Driver has special wrapper for this exception.
