@@ -41,11 +41,6 @@ class TestDVSPlugin(TestBasic):
     plugin_name = 'fuel-plugin-vmware-dvs'
     msg = "Plugin couldn't be enabled. Check plugin version. Test aborted"
     dvs_switch_name = ['dvSwitch']
-    cluster_settings = {'images_vcenter': True,
-                        'images_ceph': False,
-                        'net_provider': 'neutron',
-                        'net_segment_type': NEUTRON_SEGMENT_TYPE,
-                        }
     node_name = lambda self, name_node: self.fuel_web. \
         get_nailgun_node_by_name(name_node)['hostname']
 
@@ -227,7 +222,7 @@ class TestDVSPlugin(TestBasic):
         """
 
         ext_net = [net for net
-                   in self.neutron.list_networks()["networks"]
+                   in os_conn.neutron.list_networks()["networks"]
                    if net['name'] == ext_net_name][0]
 
         gateway = {"network_id": ext_net["id"],
@@ -359,7 +354,8 @@ class TestDVSPlugin(TestBasic):
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE
+                "net_segment_type": NEUTRON_SEGMENT_TYPE,
+                'images_vcenter': True
             }
         )
         self.enable_plugin(cluster_id=cluster_id)
@@ -368,12 +364,15 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.update_nodes(
             cluster_id,
             {'slave-01': ['controller'],
-             'slave-02': ['compute'],
-             'slave-03': ['compute-vmware'], }
+             'slave-02': ['compute'], }
         )
 
         # Configure VMWare vCenter settings
-        self.fuel_web.vcenter_configure(cluster_id)
+        self.fuel_web.vcenter_configure(
+            cluster_id,
+            multiclusters=True,
+            vc_glance=True
+        )
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
@@ -392,8 +391,9 @@ class TestDVSPlugin(TestBasic):
             3. Create cluster with vcenter.
             4. Add 1 node with controller role.
             5. Add 1 node with compute role.
-            6. Deploy the cluster.
-            7. Run OSTF.
+            6. Add 1 node with compute-vmware role.
+            7. Deploy the cluster.
+            8. Run OSTF.
 
         Duration 1.8 hours
 
@@ -408,7 +408,8 @@ class TestDVSPlugin(TestBasic):
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE
+                "net_segment_type": NEUTRON_SEGMENT_TYPE,
+                'images_vcenter': True
             }
         )
         self.enable_plugin(cluster_id=cluster_id)
@@ -426,7 +427,8 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_2=target_node_2,
-            multiclusters=True
+            multiclusters=True,
+            vc_glance=True
         )
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
@@ -487,7 +489,7 @@ class TestDVSPlugin(TestBasic):
             target_node_1=target_node_1
         )
 
-        self.fuel_web.deploy_cluster_wait(cluster_id, timeout=70 * 60)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
@@ -896,23 +898,10 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
-        logger.info("Connect to primary controler")
-
-        primary_controller = self.fuel_web.get_nailgun_primary_node(
-            self.env.d_env.nodes().slaves[0]
-        )
-        remote = self.fuel_web.get_ssh_for_node(primary_controller.name)
-        # Remove networks before redeployment
-        command = '/etc/fuel/plugins/' + \
-                  'fuel-plugin-vmware-dvs-1.0/del_predefined_networks.sh'
-        result = remote.execute(command)
-        for output in result['stdout']:
-            logger.info(" {0}".format(output))
-
         # Remove node with controller role
         self.fuel_web.update_nodes(
             cluster_id,
-            {'slave-04': ['controller'], }, False, True)
+            {'slave-01': ['controller'], }, False, True)
 
         self.fuel_web.deploy_cluster_wait(cluster_id, check_services=False)
 
@@ -921,22 +910,10 @@ class TestDVSPlugin(TestBasic):
 
         # Add node with controller role
 
-        logger.info("Connect to primary controler")
-
-        primary_controller = self.fuel_web.get_nailgun_primary_node(
-            self.env.d_env.nodes().slaves[0]
-        )
-        remote = self.fuel_web.get_ssh_for_node(primary_controller.name)
-
-        # Remove networks before redeployment
-        result = remote.execute(command)
-        for output in result['stdout']:
-            logger.info(" {0}".format(output))
-
         self.fuel_web.update_nodes(
             cluster_id,
             {
-                'slave-04': ['controller'],
+                'slave-07': ['controller'],
             }
         )
 

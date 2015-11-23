@@ -22,7 +22,6 @@ INVALIDTASK_ERR=112
 export REBOOT_TIMEOUT=${REBOOT_TIMEOUT:-5000}
 export ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT=${ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT:-true}
 
-# Export settings
 
 ShowHelp() {
 cat << EOF
@@ -153,7 +152,7 @@ GetoptsVariables() {
         TASK_NAME="${OPTARG}"
         ;;
       o)
-        TEST_OPTIONS="${TEST_OPTIONS} ${OPTARG}"
+        TEST_OPTIONS="${f} ${OPTARG}"
         ;;
       a)
         NOSE_ATTR="${OPTARG}"
@@ -178,9 +177,6 @@ GetoptsVariables() {
         ;;
       l)
         LOGS_DIR="${OPTARG}"
-        ;;
-      L)
-        FUELLOGS_TOOL="no"
         ;;
       k)
         KEEP_BEFORE="yes"
@@ -235,6 +231,56 @@ CheckVariables() {
   if [ -z "${WORKSPACE}" ]; then
     echo "Error! WORKSPACE is not set!"
     exit $NOWORKSPACE_ERR
+  fi
+  #Vcenter variables
+  if [ -z "${VCENTER_USE}" ]; then
+    export VCENTER_USE="true"
+  fi
+  if [ -z "${VCENTER_IP}" ]; then
+    export VCENTER_IP="172.16.0.254"
+  fi
+  if [ -z "${VCENTER_USERNAME}" ]; then
+    echo "Error! VCENTER_USERNAME is not set!"
+  fi
+  if [ -z "${VCENTER_PASSWORD}" ]; then
+    echo "Error! VCENTER_PASSWORD is not set!"
+  fi
+  if [ -z "${VC_DATACENTER}" ]; then
+    export VC_DATACENTER="Datacenter"
+  fi
+  if [ -z "${VC_DATASTORE}" ]; then
+    export VC_DATASTORE="nfs"
+  fi
+  if [ -z "${WORKSTATION_NODES}" ]; then
+    export WORKSTATION_NODES="esxi1 esxi2 esxi3 vcenter trusty"
+  fi
+  if [ -z "${WORKSTATION_IFS}" ]; then
+    export WORKSTATION_IFS="vmnet1 vmnet2"
+  fi
+  if [ -z "${VCENTER_CLUSTERS}" ]; then
+    export VCENTER_CLUSTERS="Cluster1,Cluster2"
+  fi
+  if [ -z "${WORKSTATION_SNAPSHOT}" ]; then
+    export WORKSTATION_SNAPSHOT="vcenterha"
+  fi
+  if [ -z "${WORKSTATION_USERNAME}" ]; then
+    echo "Error! WORKSTATION_USERNAME is not set!"
+  fi
+  if [ -z "${WORKSTATION_PASSWORD}" ]; then
+    echo "Error! WORKSTATION_PASSWORD is not set!"
+  fi
+  # Export settings
+  if [ -z "${ADMIN_NODE_MEMORY}" ]; then
+    export ADMIN_NODE_MEMORY=4096
+  fi
+  if [ -z "${ADMIN_NODE_CPU}" ]; then
+    export ADMIN_NODE_CPU=4
+  fi
+  if [ -z "${SLAVE_NODE_MEMORY}" ]; then
+    export SLAVE_NODE_MEMORY=4096
+  fi
+  if [ -z "${SLAVE_NODE_CPU}" ]; then
+    export SLAVE_NODE_CPU=4
   fi
 }
 
@@ -351,7 +397,6 @@ CdWorkSpace() {
 
 RunTest() {
     # Run test selected by task name
-
     # check if iso file exists
     if [ ! -f "${ISO_PATH}" ]; then
         if [ -z "${ISO_URL}" -a "${DRY_RUN}" != "yes" ]; then
@@ -427,22 +472,46 @@ RunTest() {
     # run python test set to create environments, deploy and test product
     if [ "${DRY_RUN}" = "yes" ]; then
         echo export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
-        echo python run_tests.py -q --nologcapture --with-xunit ${OPTS}
+        echo python plugin_test/run_tests.py -q --nologcapture --with-xunit ${OPTS}
     else
         export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
         echo ${PYTHONPATH}
-        python run_tests.py -q --nologcapture --with-xunit ${OPTS}
+        python plugin_test/run_tests.py -q --nologcapture --with-xunit ${OPTS} &
 
     fi
-    ec=$?
+    #ec=$?
+    SYSTEST_PID=$!
 
-    # Extract logs using fuel_logs utility
-    if [ "${FUELLOGS_TOOL}" != "no" ]; then
-      for logfile in $(find "${LOGS_DIR}" -name "fail*.tar.xz" -type f);
-      do
-         ./utils/jenkins/fuel_logs.py "${logfile}" > "${logfile}.filtered.log"
-      done
+    if ! ps -p $SYSTEST_PID > /dev/null
+    then
+      echo System tests exited prematurely, aborting
+      exit 1
     fi
+
+    #Wait before environment is created
+    while [ $(virsh net-list |grep $ENV_NAME |wc -l) -ne 5 ];do sleep 10
+      if ! ps -p $SYSTEST_PID > /dev/null
+      then
+        echo System tests exited prematurely, aborting
+        exit 1
+      fi
+    done
+    sleep 10
+
+    # Configre vcenter nodes and interfaces
+    clean_old_bridges
+    setup_net $ENV_NAME
+    clean_iptables
+    revert_ws "$WORKSTATION_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+
+    echo waiting for system tests to finish
+    wait $SYSTEST_PID
+
+    export RES=$?
+    echo ENVIRONMENT NAME is $ENV_NAME
+    virsh net-dumpxml ${ENV_NAME}_admin | grep -P "(\d+\.){3}" -o | awk '{print "Fuel master node IP: "$0"2"}'
+
+    echo Result is $RES
 
     if [ "${KEEP_AFTER}" != "yes" ]; then
       # remove environment after tests
@@ -453,7 +522,7 @@ RunTest() {
       fi
     fi
 
-    exit "${ec}"
+    exit "${RES}"
 }
 
 RouteTasks() {
@@ -474,6 +543,73 @@ RouteTasks() {
     ;;
   esac
   exit 0
+}
+
+#Define functions for VCenter configuration
+add_interface_to_bridge() {
+  env=$1
+  net_name=$2
+  nic=$3
+  ip=$4
+
+  for net in $(virsh net-list |grep ${env}_${net_name} |awk '{print $1}');do
+    bridge=`virsh net-info $net |grep -i bridge |awk '{print $2}'`
+    setup_bridge $bridge $nic $ip && echo $net_name bridge $bridge ready
+  done
+}
+
+setup_bridge() {
+  bridge=$1
+  nic=$2
+  ip=$3
+
+  sudo /sbin/brctl stp $bridge off
+  sudo /sbin/brctl addif $bridge $nic
+  #set if with existing ip down
+  for itf in `sudo ip -o addr show to $ip |cut -d' ' -f2`; do
+      echo deleting $ip from $itf
+      sudo ip addr del dev $itf $ip
+  done
+  echo "adding $ip to $bridge"
+  sudo /sbin/ip addr add $ip dev $bridge
+  echo "$nic added to $bridge"
+  sudo /sbin/ip link set dev $bridge up
+  if sudo /sbin/iptables-save |grep $bridge | grep -i reject| grep -q FORWARD;then
+    sudo /sbin/iptables -D FORWARD -o $bridge -j REJECT --reject-with icmp-port-unreachable
+    sudo /sbin/iptables -D FORWARD -i $bridge -j REJECT --reject-with icmp-port-unreachable
+  fi
+}
+
+clean_old_bridges() {
+  for intf in $WORKSTATION_IFS; do
+    for br in `/sbin/brctl show | grep -v "bridge name" | cut -f1 -d'	'`; do
+      /sbin/brctl show $br| grep -q $intf && sudo /sbin/brctl delif $br $intf \
+        && sudo /sbin/ip link set dev $br down && echo $intf deleted from $br
+    done
+  done
+}
+
+clean_iptables() {
+  sudo /sbin/iptables -F
+  sudo /sbin/iptables -t nat -F
+  sudo /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+}
+
+revert_ws() {
+  for i in $1
+  do
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
+    echo "vmrun: reverting $i to $WORKSTATION_SNAPSHOT"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD revertToSnapshot "[standard] $i/$i.vmx" $WORKSTATION_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
+    echo "vmrun: starting $i"
+    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+  done
+}
+
+setup_net() {
+  env=$1
+  add_interface_to_bridge $env private vmnet2 10.0.0.1/24
+  add_interface_to_bridge $env public vmnet1 172.16.0.1/24
 }
 
 # MAIN
