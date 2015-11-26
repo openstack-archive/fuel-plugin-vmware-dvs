@@ -15,13 +15,13 @@
 notice('MODULAR: fuel-plugin-vmware-dvs')
 
 $vc_hash               = hiera('vcenter', {})
-$dvs_hash              = hiera('fuel-plugin-vmware-dvs', {})
-$neutron_hash          = hiera('quantum_settings', {})
+$dvs_hash              = hiera_hash('fuel-plugin-vmware-dvs', {})
+$neutron_hash          = hiera_hash('neutron_config', {})
 $vsphere_hostname      = inline_template('<%= @vc_hash["computes"][0]["vc_host"] %>')
 $vsphere_login         = inline_template('<%= @vc_hash["computes"][0]["vc_user"] %>')
 $vsphere_password      = inline_template('<%= @vc_hash["computes"][0]["vc_password"] %>')
 $dvs_network_maps      = inline_template('<%= @dvs_hash["vmware_dvs_net_maps"] %>')
-$neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks"]["net04"]["L2"]["physnet"] %>')
+$neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks"]["admin_internal_net"]["L2"]["physnet"] %>')
 
 class {'vmware_dvs':
   vsphere_hostname      => $vsphere_hostname,
