@@ -87,6 +87,8 @@ Limitations
 
 -  Only Ubuntu as target OS for Environment suppurted.
 
+-  Only alphanumeric, underscore and hyphen symbols for network name are allowed.
+   Network name must contain no more than 43 symbols. 
 
 Installing the VMware DVS plugin
 --------------------------------
