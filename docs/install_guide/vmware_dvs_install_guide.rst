@@ -55,6 +55,9 @@ advanced network features:
 
 -  VPN/Bridge to remote physical hosting or customer premises.
 
+-  Only alphanumeric, underscore and hyphen symbols for network names are allowed.
+   Network name must contain no more than 43 symbols.
+
 Licensing information
 +++++++++++++++++++++
 
@@ -85,6 +88,8 @@ Limitations
 
 -  Only vSphere 5.5 & 6.0 are supported.
 
+-  Only Only alphanumeric, underscore and hyphen symbols for network name are allowed.
+   Network name must contain no more than 43 symbols. 
 
 Installing the VMware DVS plugin
 --------------------------------
