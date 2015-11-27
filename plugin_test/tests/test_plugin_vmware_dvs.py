@@ -63,7 +63,7 @@ class TestDVSPlugin(TestBasic):
             self.fuel_web.check_plugin_exists(cluster_id, self.plugin_name),
             self.msg)
         options = {'metadata/enabled': True,
-                   'vmware_dvs_net_maps/value': self.dvs_switch_name[0]}
+                   '#1_vmware_dvs_net_maps/value': self.dvs_switch_name[0]}
         self.fuel_web.update_plugin_data(cluster_id, self.plugin_name, options)
 
         logger.info("cluster is {}".format(cluster_id))
