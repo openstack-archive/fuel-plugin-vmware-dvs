@@ -1,517 +1,386 @@
 Destructive
 ===========
 
+
 Check abilities to bind port on DVS to VM, disable and enable this port.
 ------------------------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_enable_disable_port_on_dvs_to_vm
 
-**Description**
-::
 
- Check abilities to bind port on DVS to VM, disable and enable this port.
+Description
+###########
 
-**Complexity**
+Check abilities to bind port on DVS to VM, disable and enable this port.
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Setup for system tests.
+    2. Log in to Horizon Dashboard.
+    3. Navigate to Project ->  Compute -> Instances
+    4. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
+    5. Launch instance VM_2  with image TestVM-VMDK, availability zone  vcenter and flavor m1.micro.
+    6. Verify that VMs  should communicate between each other. Send icmp ping from VM _1 to VM_2  and vice versa.
+    7. Disable dvs_port of VM_1.
+    8. Verify that VMs  should not communicate between each other. Send icmp ping from VM _2 to VM_1  and vice versa.
+    9. Enable dvs_port of VM_1.
+    10. Verify that VMs  should communicate between each other. Send icmp ping from VM _1 to VM_2  and vice versa.
 
- Setup for system tests.
- Log in to Horizon Dashboard.
- Navigate to Project ->  Compute -> Instances
- Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
- Launch instance VM_2  with image TestVM-VMDK, availability zone  vcenter and flavor m1.micro.
- Verify that VMs  should communicate between each other. Send icmp ping from VM _1 to VM_2  and vice versa.
- Disable dvs_port of VM_1.
- Verify that VMs  should not communicate between each other. Send icmp ping from VM _2 to VM_1  and vice versa.
- Enable dvs_port of VM_1.
- Verify that VMs  should communicate between each other. Send icmp ping from VM _1 to VM_2  and vice versa.Pings should get a response
+
+Expected result
+###############
+
+We can enable/disable DVS ports via Horizont.
+
 
 Verify that vmclusters should be migrate after shutdown controller.
 -------------------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_shutdown_controller
 
-**Description**
-::
 
- Verify that vmclusters should be migrate after shutdown controller.
+Description
+###########
 
-**Complexity**
+Verify that vmclusters should be migrate after shutdown controller.
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Install DVS plugin on master node.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Controller
+        * Controller
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers.
+    8. Verify networks.
+    9. Deploy cluster.
+    10. Run OSTF
+    11. Shutdown controller with  vmclusters.
+    12. Check that vmclusters should be migrate to another controller.
 
- Install DVS plugin on master node.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and QEMU/KVM radio button
-  network setup : Neutron with Vlan segmentation.
-  storage backends: default
- additional services: all by default
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- Add nodes:
- 3 controllers
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
 
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway 10.109.1.1
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR 10.109.4.0/24
- Vlan tag is not set
- Managment: CIDR 10.109.2.0/24
- Vlan tag is not set
- Neutron L2 configuration by default
+Expected result
+###############
 
- Neutron L3 configuration by default
- Click button 'save settings'
- Click button 'verify networks'
+VMclusters should be migrate to another controller.
 
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
- Add 2 vSphera Clusters:
- vSphera Cluster: Cluster1
- Service name: vmcluster1
- Datastore regex:.*
- vSphera Cluster: Cluster2
- Service name: vmcluster2
- Datastore regex: .*
-
- Deploy Cluster
- Run OSTF
- Shutdown controller with  vmclusters.
- Check that vmclusters should be migrate to another controller.Vmclusters should be migrate to another controller.
 
 Deploy cluster with plugin, addition and deletion of nodes.
 -----------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_vcenter_add_delete_nodes
 
-**Description**
-::
 
- Deploy cluster with plugin, addition and deletion of nodes.
+Description
+###########
 
-**Complexity**
+Deploy cluster with plugin, addition and deletion of nodes.
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Install DVS plugin on master node.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Controller
+        * Controller
+        * Compute
+        * CinderVMware
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers.
+    9. Configure Glance credentials on VMware tab.
+    10. Verify networks.
+    11. Deploy cluster.
+    12. Run OSTF
+    13. Remove node with cinder-vmdk role.
+    14. Add node with cinder role.
+    15. Redeploy cluster.
+    16.  Run OSTF.
+    17. Remove node with compute role.
+    18. Add node with cinder-vmdk  role.
+    19. Redeploy cluster.
+    20. Run OSTF.
 
- Install DVS plugin on master node.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
-  as hypervisor type: select vcenter check box and QEMU/KVM radio button
- network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
 
- Add nodes:
- 3 controllers
- 2 computers
- 1 cinder-vmdk
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
+Expected result
+###############
 
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway 10.109.1.1
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR 10.109.4.0/24
- Vlan tag is not set
- Management: CIDR 10.109.2.0/24
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
- Verify networks
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
+Cluster should be deployed and all OSTF test cases should be passed.
 
- Add 2 vSphera Clusters:
- vSphera Cluster: Cluster1
-  Service name: vmcluster1
- Datastore regex:.*
- vSphera Cluster: Cluster2
- Service name: vmcluster2
- Datastore regex: .*
-
- Run OSTF
- Remove node with cinder-vmdk role.
- Add node with cinder role.
- Redeploy cluster.
-  Run OSTF
- Remove node with compute role
- Add node with cinder-vmdk  role
- Redeploy cluster.
- Run OSTFCluster should be deployed and all OSTF test cases should be passed.
 
 Deploy cluster with plugin and deletion one node with controller role.
 ----------------------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_vcenter_remove_controller
 
-**Description**
-::
 
- Deploy cluster with plugin and deletion one node with controller role.
+Description
+###########
 
-**Complexity**
+Deploy cluster with plugin and deletion one node with controller role.
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Install DVS plugin on master node.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Controller
+        * Controller
+        * Controller
+        * Compute
+        * CinderVMware
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers.
+    9. Configure Glance credentials on VMware tab.
+    10. Verify networks.
+    11. Deploy cluster.
+    12. Run OSTF.
+    13. Remove node with controller role.
+    14. Redeploy cluster.
+    15. Run OSTF.
+    16. Add controller.
+    17. Redeploy cluster.
+    18. Run OSTF.
 
- Install DVS plugin on master node.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
-  as hypervisor type: select vcenter check box and QEMU/KVM radio button
- network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
- Add nodes:
- 4 controller
- 1 computer
- 1 cinder-vmdk
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
 
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway 10.109.1.1
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR 10.109.4.0/24
- Vlan tag is not set
- Management: CIDR 10.109.2.0/24
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
+Expected result
+###############
 
- Verify networks
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
- Add 2 vSphera Clusters:
- vSphera Cluster: Cluster1
-  Service name: vmcluster1
- Datastore regex:.*
- vSphera Cluster: Cluster2
- Service name: vmcluster2
- Datastore regex: .*
- Run OSTF
- Remove node with controller role.
- Redeploy cluster
- Run OSTF
- Add controller
- Redeploy cluster
- Run OSTFCluster should be deployed and all OSTF test cases should be passed.
+Cluster should be deployed and all OSTF test cases should be passed.
+
 
 Verify that it is not possibility to uninstall of Fuel DVS plugin with deployed environment.
 --------------------------------------------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_uninstall_negative
 
-**Description**
-::
 
- Verify that it is not possibility to uninstall of Fuel DVS plugin with deployed environment.
+Description
+###########
 
-**Complexity**
+Verify that it is not possibility to uninstall of Fuel DVS plugin with deployed environment. 
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Install DVS plugin on master node.
+    2. Create a new environment with enabled plugin.
+    3. Try to delete plugin via cli Remove plugin from master node.
 
- Install DVS plugin on master node.
- Copy plugin to to the Fuel master node using scp.
- Install plugin
- fuel plugins --install plugin-name-1.0-0.0.1-0.noarch.rpm
- Ensure that plugin is installed successfully using cli, run command 'fuel plugins'.
- Connect to the Fuel web UI.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and Qemu radio button
-  network setup : Neutron with Vlan segmentation
-  storage backends: default
- additional services: all by default
- Click on the Settings tab.
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- Add nodes:
- 1 controller
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
 
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway '10.109.1.1'
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR '10.109.4.0/24'
- Vlan tag is not set-Management: CIDR '10.109.2.0/24'
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
+Expected result
+###############
 
- Verify networks.
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
+Alert: "400 Client Error: Bad Request (Can't delete plugin which is enabled for some environment.)" should be displayed.
 
- Add 2 vSphera Clusters:
- vSphera Cluster: Cluster1
- Service name: vmcluster1
- Datastore regex:.*
 
- Deploy cluster
- Run OSTF
- Try to delete plugin via cli Remove plugin from master node  fuel plugins --remove plugin-name==1.0.0Alert: "400 Client Error: Bad Request (Can't delete plugin which is enabled for some environment.)" should be displayed.
 
-Check cluster functionality after reboot vcenter.
--------------------------------------------------
+Check cluster functionality after reboot vcenter (Nova Compute on controllers).
+-------------------------------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_vcenter_reboot_vcenter
 
-**Description**
-::
 
- Check cluster functionality after reboot vcenter.
+Description
+###########
 
-**Complexity**
+Check cluster functionality after reboot vcenter. Nova Compute instances are running on controller nodes.
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Install DVS plugin on master node.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute
+        * Cinder
+        * CinderVMware
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on conrollers.
+    9. Configure Glance credentials on VMware tab.
+    10. Verify networks.
+    11. Deploy cluster.
+    12. Run OSTF.
+    13. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
+        
+    14. Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
+    15. Check connection between VMs, send ping from VM_1 to VM_2 and vice verse.
+    16. Reboot vcenter.
+    17. Check that controller lost connection with vCenter.
+    18. Wait for vCenter.
+    19. Ensure that all instances from vCenter displayed in dashboard.
+    20. Ensure connectivity between Nova's and VMware's VM.
+    21. Run OSTF.
 
- Install DVS plugin on master node.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
-  as hypervisor type: select vcenter check box and QEMU/KVM radio button
- network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
 
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
+Expected result
+###############
 
- Add nodes:
- 1 controller
- 1 computer
- 1 cinder-vmdk
- 1 cinder
+Cluster should be deployed and all OSTF test cases should be passed. ping shoul get response.
 
 
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway 10.109.1.1
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR 10.109.4.0/24
- Vlan tag is not set
- Management: CIDR 10.109.2.0/24
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
+Check cluster functionality after reboot vcenter (Nova Compute on compute-vmware).
+----------------------------------------------------------------------------------
 
- Verify networks
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
- Add Nova Compute Instance:
-             Cluster: ‘Cluster1’
-             Service name: any
-             Datastore regex: .*
-             Target node: controllers
- Run OSTF
 
- Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
-
- Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
- Check connection between VMs, send ping from VM_1 to VM_2 and vice verse.
- Reboot vcenter
- Check that controller lost connection with vCenter
- Wait for vCenter
- Ensure that all instances from vCenter displayed in dashboard.
- Ensure connectivity between Nova's and VMware's VM.
- Run OSTFCluster should be deployed and all OSTF test cases should be passed. ping shoul get response.
-
-Check cluster functionality after reboot vcenter 2
---------------------------------------------------
-
-**ID**
+ID
+##
 
 dvs_vcenter_reboot_vcenter_2
 
-**Description**
-::
 
- Check cluster functionality after reboot vcenter 2 with compute-vmware
+Description
+###########
 
-**Complexity**
+Check cluster functionality after reboot vcenter. Nova Compute instances are running on compute-vmware nodes.
+
+
+Complexity
+##########
 
 core
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Connect to a Fuel web UI with preinstalled plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute
+        * Cinder
+        * CinderVMware
+        * ComputeVMware
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on compute-vmware.
+    9. Configure Glance credentials on VMware tab.
+    10. Verify networks.
+    11. Deploy cluster.
+    12. Run OSTF.
+    13. Launch instance VM_1 with image TestVM, AZ nova and flavor m1.micro.
+    14. Launch instance VM_2  with image TestVM-VMDK, AZ vcenter and flavor m1.micro.
+        
+    15. Check connection between VMs, send ping from VM_1 to VM_2 and vice verse.
+        
+    16. Reboot vcenter.
+    17. Check that ComputeVMware lost connection with vCenter.
+        
+    18. Wait for vCenter.
+    19. Ensure that all instances from vCenter displayed in dashboard.
+    20. Ensure connectivity between Nova's and VMware's VM.
+    21. Run OSTF.
 
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
-  as hypervisor type: select vcenter check box and QEMU/KVM radio button
- network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
 
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
+Expected result
+###############
 
- Add nodes:
- 1 controller
- 1 computer
- 1 ComputeVMware
- 1 cinder-vmdk
- 1 cinder
-
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway 10.109.1.1
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR 10.109.4.0/24
- Vlan tag is not set
- Management: CIDR 10.109.2.0/24
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
-
- Verify networks
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
- Add Nova Compute Instance:
-             Cluster: ‘Cluster1’
-             Service name: any
-             Datastore regex: .*
-             Target node:ComputeVMware
- Run OSTF
- Launch instance VM_1 with image TestVM, AZ nova and flavor m1.micro.
- Launch instance VM_2  with image TestVM-VMDK, AZ vcenter and flavor m1.micro.
-
- Check connection between VMs, send ping from VM_1 to VM_2 and vice verse.
-
- Reboot vcenter
- Check that ComputeVMware lost connection with vCenter
-
- Wait for vCenter
- Ensure that all instances from vCenter displayed in dashboard.
- Ensure connectivity between Nova's and VMware's VM.
- Run OSTFCluster should be deployed and all OSTF test cases should be passed. pings shoul get response.
-
+Cluster should be deployed and all OSTF test cases should be passed. pings shoul get response.

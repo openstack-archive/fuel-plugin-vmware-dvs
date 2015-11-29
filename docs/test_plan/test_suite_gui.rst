@@ -1,45 +1,48 @@
 GUI
 ===
 
-Verify that all elements of DVS plugin section require GUI regiments.
----------------------------------------------------------------------
 
-**ID**
+Verify that all elements of DVS plugin section meets the requirements.
+----------------------------------------------------------------------
+
+
+ID
+##
 
 dvs_gui
 
-**Description**
-::
 
- Verify that all elements of DVS plugin section require GUI regiments.
+Description
+###########
 
-**Complexity**
+Verify that all elements of DVS plugin section meets the requirements.
+
+
+Complexity
+##########
 
 smoke
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Connect to a Fuel web UI with preinstalled plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Click on the Settings tab and check that section of  DVS  plugin is displayed with all required GUI elements.
+    4. Verify that section of DVS plugin is present on the Settings tab.
+    5. Verify that check box "Use Neutron VMware DVS ML2 plugin" is enabled by default.
+    6. Verify that user can disabled -> enabled DVS plugin by click on check box "Use Neutron VMware DVS ML2 plugin".
+    7. Verify that  check box "Use VMware DVS ML2 plugin for networking" is enabled by default.
+    8. Verify that all labels of DVS plugin section have same font style and color.
+    9. Verify that all elements of DVS plugin section are  vertical aligned.
 
- Copy plugin to to the Fuel master node using scp.
- Install plugin
- fuel plugins --install plugin-name-1.1-1.1.0-1.noarch.rpm
- Ensure that plugin is installed successfully using cli, run command 'fuel plugins'.
- Connect to the Fuel web UI.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and Qemu radio button
-  network setup : Neutron with Vlan segmentation
-  storage backends: default
- additional services: all by default
- Click on the Settings tab and check that section of  DVS  plugin is displayed with all required GUI elements.
- Verify that section of DVS plugin is present on the Settings tab.
- Verify that check box ‘Use Neutron VMware DVS ML2 plugin’ is enabled by default.
- Verify that user can disabled -> enabled DVS plugin by click on check box ‘Use Neutron VMware DVS ML2 plugin’.
- Verify that  check box ‘Use VMware DVS ML2 plugin for networking’ is enabled by default.
- Verify that all labels of DVS plugin section have same font style and color.
- Verify that all elements of DVS plugin section are  vertical aligned.All elements of DVS plugin section should be  required GUI regiments.
 
+Expected result
+###############
+
+All elements of DVS plugin section meets the requirements.
