@@ -1,303 +1,223 @@
 Smoke
 =====
 
-Verify that Fuel VMware DVS plugin is installed.
-------------------------------------------------
 
-**ID**
+Install Fuel VMware DVS plugin.
+-------------------------------
+
+
+ID
+##
 
 dvs_install
 
-**Description**
-::
 
- Verify that Fuel VMware DVS plugin is installed.
+Description
+###########
 
-**Complexity**
+Check that plugin can be installed.
+
+
+Complexity
+##########
 
 smoke
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Connect to fuel node via ssh.
+    2. Upload plugin.
+    3. Install plugin.
 
- Copy plugin to to the Fuel master node using scp.
- Install plugin
- fuel plugins --install plugin-name-1.1-0.0.1-0.noarch.rpm
- Ensure that plugin is installed successfully using cli, run command 'fuel plugins'.
- Connect to the Fuel web UI.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and Qemu radio button
-  network setup : Neutron with Vlan segmentation
-  storage backends: default
- additional services: all by default
- Click on the Settings tab and check that section of  DVS  plugin is displayed with all required GUI elements.Section of  DVS  plugin is displayed with all required GUI elements.
 
-Verify that Fuel VMware DVS plugin  is uninstalled.
----------------------------------------------------
+Expected result
+###############
 
-**ID**
+Ensure that plugin is installed successfully using cli, run command 'fuel plugins'. Check name, version and package version of plugin.
+
+
+Uninstall Fuel VMware DVS plugin.
+---------------------------------
+
+
+ID
+##
 
 dvs_uninstall
 
-**Description**
-::
 
- Verify that Fuel VMware DVS plugin  is uninstalled.
+Description
+###########
 
-**Complexity**
+Check that plugin can be removed.
+
+
+Complexity
+##########
 
 smoke
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Connect to fuel node with preinstalled plugin via ssh.
+    2. Remove plugin.
 
- Remove plugin from master node  fuel plugins --remove plugin-name==1.0.0
- Verify that plugin is removed, run command 'fuel plugins'.
- Connect to the Fuel web UI.
- Create a new environment using the Fuel UI Wizard:
- add name of env and select release version with OS
-  as hypervisor type: select vcenter check box and Qemu radio button
- network setup : Neutron with Vlan segmentation.
-  storage backhands: default
- additional services: all by default
- Click on the Settings tab and check that section of  DVS  plugin is not displayedSection of  DVS  plugin is not displayed.
+
+Expected result
+###############
+
+Verify that plugin is removed, run command 'fuel plugins'.
+
+
+Deploy cluster with plugin and controller.
+------------------------------------------
+
+
+ID
+##
+
+dvs_vcenter_smoke
+
+
+Description
+###########
+
+Check deployment with VMware DVS plugin and one controller.
+
+
+Complexity
+##########
+
+smoke
+
+
+Steps
+#####
+
+    1. Connect to a Fuel web UI with preinstalled plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on conrollers.
+    8. Deploy cluster.
+    9. Run OSTF.
+
+
+Expected result
+###############
+
+Cluster should be deployed and all OSTF test cases should be passed.
+
 
 Deploy cluster with plugin and vmware datastore backend.
 --------------------------------------------------------
 
-**ID**
+
+ID
+##
 
 dvs_vcenter_bvt
 
-**Description**
-::
 
- Deploy cluster with plugin and vmware datastore backend.
+Description
+###########
 
-**Complexity**
+Deploy cluster with plugin and vmware datastore backend.
 
-smoke
 
-**Requre to automate**
-
-Yes
-
-**Steps**
-::
-
- Install DVS plugin on master node.
- Create a new environment using the Fuel UI Wizard.
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and QEMU/KVM radio button
-  network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
- Add nodes:
- 1 controller
- 1 compute
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
-
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway '10.109.1.1'
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR '10.109.4.0/24'
- Vlan tag is not set-Management: CIDR '10.109.2.0/24'
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
- Verify networks.
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
-
- Add 2 vSphera Clusters:
- Nova Computes
-             Add Nova Compute Instance:
-             Cluster: ‘Cluster1’
-             Service name: any
-             Datastore regex: .*
-             Target node: controllers
-              Add Nova Compute Instance:
-             Cluster: ‘Cluster2’
-             Service name: any
-             Datastore regex: .*
-             Target node: controllers
-
- Fill Glance credentials:
- vCenter host: 172.16.0.254
- vCenter username: <login>
- vCenter password: <password>
- Datacenter name: Datacenter
- Datastore name: nfs
-
- Deploy cluster
- Run OSTF
-
-Deploy cluster with plugin and controller
------------------------------------------
-
-**ID**
-
-dvs_vcenter_smoke
-
-**Description**
-::
-
- TO DO
-
-**Complexity**
+Complexity
+##########
 
 smoke
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Connect to a Fuel web UI with preinstalled plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers.
+    9. Configure Glance credentials on VMware tab.
+    10. Verify networks.
+    11. Deploy cluster.
+    12. Run OSTF.
 
- Create a new environment using the Fuel UI Wizard.
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and QEMU/KVM radio button
-  network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
- Add node:
- 1 controller
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway '10.109.1.1'
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR '10.109.4.0/24'
- Vlan tag is not set-Management: CIDR '10.109.2.0/24'
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
 
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
- Add 1 vSphera Clusters:
- Nova Computes
-             Add Nova Compute Instance:
-             Cluster: ‘Cluster1’
-             Service name: any
-             Datastore regex: .*
-             Target node: controller
- Deploy cluster
- Run OSTFCluster should be deployed and all OSTF test cases should be passed.
+Expected result
+###############
 
-Deploy cluster with plugin,  ComputeVMWare and vmware datastore backend.
-------------------------------------------------------------------------
+Cluster should be deployed and all OSTF test cases should be passed.
 
-**ID**
+
+Deploy cluster with plugin, ComputeVMware and VMware datastore backend.
+-----------------------------------------------------------------------
+
+
+ID
+##
 
 dvs_vcenter_bvt_2
 
-**Description**
-::
 
- TO DO
+Description
+###########
 
-**Complexity**
+Deploy cluster with plugin, vmware datastore backend and compute-vmware role.
+
+
+Complexity
+##########
 
 smoke
 
-**Requre to automate**
 
-Yes
+Steps
+#####
 
-**Steps**
-::
+    1. Connect to a Fuel web UI with preinstalled plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute
+        * ComputeVMWare
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin.
+    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on compute-vmware.
+    9. Configure Glance credentials on VMware tab.
+    10. Verify networks.
+    11. Deploy cluster.
+    12. Run OSTF.
 
- Create a new environment using the Fuel UI Wizard.
- add name of env and select release version with OS
- as hypervisor type: select vcenter check box and QEMU/KVM radio button
-  network setup : Neutron with Vlan segmentation.
- storage backends: default
- additional services: all by default
- In Settings tab:
- enable DVS plugin
- set dvSwitch name
- select Vmware vcenter esxi datastore for images (glance)
- Add nodes:
- 1 controller
- 1 compute
- 1 ComputeVMWare
 
- Interfaces on slaves should be setup this way in Fuel interface:
- eth0 - admin(PXE)
- eth1 - public
- eth2 - management
- eth3 - VM(Fixed)
- eth4 – storage
+Expected result
+###############
 
- Networks tab:
- Public network: start'10.109.1.2' end '10.109.1.127'
- CIDR '10.109.1.0/24'
- Gateway '10.109.1.1'
- Floating ip range start'10.109.1.128' end '10.109.1.254'
- Storage: CIDR '10.109.4.0/24'
- Vlan tag is not set-Management: CIDR '10.109.2.0/24'
- Vlan tag is not set
- Neutron L2 configuration by default
- Neutron L3 configuration by default
-
- Fill vcenter credentials:
- Availability zone: vcenter
- vCenter host: '172.16.0.254'
- vCenter username: <login>
- vCenter password: <password>
-
- Add 1 vSphera Clusters:
- Nova Computes
-             Add Nova Compute Instance:
-             Cluster: ‘Cluster1’
-             Service name: any
-             Datastore regex: .*
-             Target node: ComputeVMware
- Fill Glance credentials:
- vCenter host: 172.16.0.254
- vCenter username: <login>
- vCenter password: <password>
- Datacenter name: Datacenter
- Datastore name: nfs
-
- Deploy cluster
- Run OSTF
-
+Cluster should be deployed and all OSTF test cases should be passed.
