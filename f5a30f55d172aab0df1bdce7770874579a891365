@@ -1,0 +1,11 @@
+Verified+2: Jenkins
+Code-Review+2: Igor Gajsin <igajsin@mirantis.com>
+Workflow+1: Igor Gajsin <igajsin@mirantis.com>
+Code-Review+1: Slava Tabolin <vtabolin@mirantis.com>
+Workflow+1: Slava Tabolin <vtabolin@mirantis.com>
+Verified+1: Plugins CI <plugins.ci@mirantis.com>
+Submitted-by: Jenkins
+Submitted-at: Tue, 01 Dec 2015 09:39:56 +0000
+Reviewed-on: https://review.openstack.org/251279
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/stable/7.0
