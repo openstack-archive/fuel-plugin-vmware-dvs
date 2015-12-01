@@ -26,3 +26,12 @@
     puppet_manifest: puppet/manifests/site.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
+
+- id: vmware-dvs-compute-vmware
+  groups: ['compute-vmware']
+  requires:  [top-role-compute-vmware]
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/compute-vmware.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720
