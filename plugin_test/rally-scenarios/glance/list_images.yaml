@@ -1,0 +1,19 @@
+---
+  GlanceImages.list_images:
+    -
+      runner:
+        type: "constant"
+        times: {{ compute }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+        images:
+          image_url: "http://172.16.44.5/cirros-0.3.1-x86_64-disk.img"
+          image_type: "vmdk"
+          image_container: "bare"
+          images_per_tenant: 3
+      sla:
+        failure_rate:
+          max: 0

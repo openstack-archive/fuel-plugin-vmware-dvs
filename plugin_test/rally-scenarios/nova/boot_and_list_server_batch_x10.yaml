@@ -1,0 +1,38 @@
+---
+  NovaServers.boot_and_list_server:
+    -
+      args:
+        flavor:
+            name: "m1.nano"
+        image:
+            name: "TestVM-VMDK"
+        zone:
+            name: "vcenter"
+        detailed: True
+        min_count: 10
+      runner:
+        type: "constant"
+        times: {{ compute * 2 }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ [floating_ip_amount - 5, vlan_amount, compute * 20] | sort | first }}
+          users_per_tenant: 3
+        quotas:
+          nova:
+            instances: -1
+            cores: -1
+            ram: -1
+            floating_ips: -1
+            security_groups: -1
+            security_group_rules: -1
+          neutron:
+            network: -1
+            subnet: -1
+            port: -1
+        network:
+          start_cidr: {{ "100.1.0.0/24" if gre_enabled else "1.0.0.0/24" }}
+          networks_per_tenant: 1
+      sla:
+        failure_rate:
+          max: 0
