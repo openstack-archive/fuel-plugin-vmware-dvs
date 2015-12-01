@@ -1,0 +1,17 @@
+---
+  HeatStacks.create_update_delete_stack:
+    -
+      args:
+        template_path: "{{ current_path }}/templates/resource_group.yml.template"
+        updated_template_path: "{{ current_path }}/templates/updated_resource_group_increase.yml.template"
+      runner:
+        type: "constant"
+        times: {{ compute }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: 2
+          users_per_tenant: 3
+      sla:
+        failure_rate:
+          max: 0

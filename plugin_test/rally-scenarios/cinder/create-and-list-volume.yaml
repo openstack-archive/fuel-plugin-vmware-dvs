@@ -1,0 +1,46 @@
+---
+  CinderVolumes.create_and_list_volume:
+    -
+      args:
+        size: 1
+        detailed: True
+        availability_zone: "vcenter-cinder"
+      runner:
+        type: "constant"
+        times: {{ compute * 14 }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+        quotas:
+          cinder:
+            volumes: -1
+            gigabytes: -1
+            snapshots: -1
+      sla:
+        failure_rate:
+          max: 0
+    -
+      args:
+        size: 1
+        detailed: True
+        image:
+          name: "TestVM-VMDK"
+        availability_zone: "vcenter-cinder"
+      runner:
+        type: "constant"
+        times: {{ compute * 14 }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+        quotas:
+          cinder:
+            volumes: -1
+            gigabytes: -1
+            snapshots: -1
+      sla:
+        failure_rate:
+          max: 0
