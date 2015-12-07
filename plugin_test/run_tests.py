@@ -42,7 +42,10 @@ class CloseSSHConnectionsPlugin(Plugin):
 
 
 def import_tests():
-    from tests import test_plugin_vmware_dvs
+    from tests import test_plugin_vmware_dvs_integration
+    from tests import test_plugin_vmware_dvs_smoke
+    from tests import test_plugin_vmware_dvs_system
+    from tests import test_plugin_vmware_dvs_destructive
 
 
 def run_tests():
