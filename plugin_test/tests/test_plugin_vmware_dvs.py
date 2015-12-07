@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import os
+import time
 
 
 from proboscis import test
@@ -19,6 +20,7 @@ from proboscis.asserts import assert_true
 from fuelweb_test.helpers import checkers
 from devops.helpers.helpers import wait
 from devops.error import TimeoutError
+from devops.helpers.helpers import tcp_ping
 
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
@@ -78,27 +80,27 @@ class TestDVSPlugin(TestBasic):
         :param security_group: type dictionary, security group to assign to
                             instances
         """
+        boot_timeout = 300
         # Get list of available images,flavors and hipervisors
         images_list = os_conn.nova.images.list()
         flavors_list = os_conn.nova.flavors.list()
-
-        for image in images_list:
-            if image.name == 'TestVM-VMDK':
-                os_conn.nova.servers.create(
-                    flavor=flavors_list[0],
-                    name='test_{0}'.format(image.name),
-                    image=image, min_count=vm_count,
-                    availability_zone='vcenter',
-                    nics=nics
-                )
+        available_hosts = os_conn.nova.services.list(binary='nova-compute')
+        for host in available_hosts:
+            if host.zone == 'vcenter':
+                image = [image for image
+                         in images_list
+                         if image.name == 'TestVM-VMDK'][0]
             else:
-                os_conn.nova.servers.create(
-                    flavor=flavors_list[0],
-                    name='test_{0}'.format(image.name),
-                    image=image, min_count=vm_count,
-                    availability_zone='nova',
-                    nics=nics
-                )
+                image = [image for image
+                         in images_list
+                         if image.name == 'TestVM'][0]
+            os_conn.nova.servers.create(
+                flavor=flavors_list[0],
+                name='test_{0}'.format(image.name),
+                image=image, min_count=vm_count,
+                availability_zone='{0}:{1}'.format(host.zone, host.host),
+                nics=nics
+            )
 
         # Verify that current state of each VMs is Active
         srv_list = os_conn.get_servers()
@@ -110,7 +112,7 @@ class TestDVSPlugin(TestBasic):
                 wait(
                     lambda:
                     os_conn.get_instance_detail(srv).status == "ACTIVE",
-                    timeout=500)
+                    timeout=boot_timeout)
             except TimeoutError:
                 logger.error(
                     "Timeout is reached.Current state of Vm {0} is {1}".format(
@@ -120,18 +122,21 @@ class TestDVSPlugin(TestBasic):
                 srv.add_security_group(security_group)
 
     def check_connection_vms(self, os_conn=None, srv_list=None,
-                             packets=3, remote=None, ip=None):
-        """Check network connectivity between VMs with ping
+                             result_of_ping=0, remote=None,
+                             destination_ip=None):
+        """Check network connectivity between instancea and destination ip
+           with ping
         :param os_conn: type object, openstack
         :param srv_list: type list, instances
         :param packets: type int, packets count of icmp reply
         :param remote: SSHClient
-        :param ip: type list, remote ip to check by ping
+        :param destination_ip: type list, remote destination ip to
+                               check by ping
         """
+        creds = ("cirros", "cubswin:)")
+        icmp_count = 10
 
         for srv in srv_list:
-            # VMs on different hypervisors should communicate between
-            # each other
             if not remote:
                 primary_controller = self.fuel_web.get_nailgun_primary_node(
                     self.env.d_env.nodes().slaves[0]
@@ -142,31 +147,47 @@ class TestDVSPlugin(TestBasic):
             addresses = srv.addresses[srv.addresses.keys()[0]]
             fip = [add['addr'] for add in addresses
                    if add['OS-EXT-IPS:type'] == 'floating'][0]
+
+            wait(lambda: tcp_ping(fip, 22), timeout=120)
             logger.info("Connect to VM {0}".format(fip))
 
-            if not ip:
+            if not destination_ip:
                 for s in srv_list:
                     if s != srv:
-                        ip_2 = s.networks[s.networks.keys()[0]][0]
-                        res = os_conn.execute_through_host(
+                        ip = s.networks[s.networks.keys()[0]][0]
+                        ping_command = "ping -c {0} {1}".format(
+                            icmp_count, ip)
+                        ping_result = os_conn.execute_through_host(
                             remote, fip,
-                            "ping -q -c3 {}"
-                            "| grep -o '[0-9] packets received' | cut"
-                            " -f1 -d ' '".format(ip_2))
+                            ping_command,
+                            creds)
+                        logger.info("Ping result: \n"
+                                    "{0}\n"
+                                    "{1}\n"
+                                    "exit_code={2}"
+                                    .format(ping_result['stdout'],
+                                            ping_result['stderr'],
+                                            ping_result['exit_code']))
 
             else:
-                for ip_2 in ip:
-                    if ip_2 != srv.networks[srv.networks.keys()[0]][0]:
-                        res = os_conn.execute_through_host(
+                for ip in destination_ip:
+                    if ip != srv.networks[srv.networks.keys()[0]][0]:
+                        ping_command = "ping -c {0} {1}".format(
+                            icmp_count, ip)
+                        ping_result = os_conn.execute_through_host(
                             remote, fip,
-                            "ping -q -c3 {}"
-                            "| grep -o '[0-9] packets received' | cut"
-                            " -f1 -d ' '".format(ip_2))
-
+                            ping_command, creds)
+                        logger.info("Ping result: \n"
+                                    "{0}\n"
+                                    "{1}\n"
+                                    "exit_code={2}"
+                                    .format(ping_result['stdout'],
+                                            ping_result['stderr'],
+                                            ping_result['exit_code']))
             assert_true(
-                int(res) == packets,
+                result_of_ping == ping_result['exit_code'],
                 "Ping VM{0} from Vm {1},"
-                " received {2} icmp".format(ip_2, fip, res)
+                " not reached {2}".format(ip, fip, ping_result)
             )
 
     def check_service(self, ssh=None, commands=None):
@@ -217,7 +238,7 @@ class TestDVSPlugin(TestBasic):
                    tenant_name='admin'):
         """Create router with gateway
         :param router_name: type string
-        :param ext_net: type string
+        :param ext_net_name: type string
         :param tenant_name: type string
         """
 
@@ -380,9 +401,9 @@ class TestDVSPlugin(TestBasic):
             cluster_id=cluster_id, test_sets=['smoke'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_3],
-          groups=["dvs_vcenter_bvt_2", "dvs_vcenter_plugin"])
+          groups=["dvs_vcenter_systest_setup", "dvs_vcenter_plugin"])
     @log_snapshot_after_test
-    def dvs_vcenter_bvt_2(self):
+    def dvs_vcenter_systest_setup(self):
         """Deploy cluster with plugin and vmware datastore backend
 
         Scenario:
@@ -436,7 +457,7 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
-        self.env.make_snapshot("dvs_vcenter_bvt_2", is_make=True)
+        self.env.make_snapshot("dvs_vcenter_systest_setup", is_make=True)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_ha_mode", "dvs_vcenter_plugin"])
@@ -922,7 +943,7 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
-    @test(depends_on=[dvs_vcenter_bvt_2],
+    @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_networks", 'dvs_vcenter_system'])
     @log_snapshot_after_test
     def dvs_vcenter_networks(self):
@@ -944,7 +965,7 @@ class TestDVSPlugin(TestBasic):
         Duration 1.8 hours
 
         """
-        self.env.revert_snapshot("dvs_vcenter_bvt_2")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1006,7 +1027,7 @@ class TestDVSPlugin(TestBasic):
         )
         logger.info('Networks net_2 and net_3 are present.')
 
-    @test(depends_on=[dvs_vcenter_bvt_2],
+    @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_ping_public", 'dvs_vcenter_system'])
     @log_snapshot_after_test
     def dvs_vcenter_ping_public(self):
@@ -1027,7 +1048,7 @@ class TestDVSPlugin(TestBasic):
 
         """
 
-        self.env.revert_snapshot("dvs_vcenter_bvt_2")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1082,14 +1103,14 @@ class TestDVSPlugin(TestBasic):
         self.create_and_assign_floating_ip(os_conn=os_conn)
 
         # Send ping from instances VM_1 and VM_2 to 8.8.8.8
-        # or other outside ip.e
+        # or other outside ip.
         srv_list = os_conn.get_servers()
         self.check_connection_vms(
             os_conn=os_conn, srv_list=srv_list,
-            ip=['8.8.8.8']
+            destination_ip=['8.8.8.8']
         )
 
-    @test(depends_on=[dvs_vcenter_bvt_2],
+    @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_5_instances", 'dvs_vcenter_system'])
     @log_snapshot_after_test
     def dvs_vcenter_5_instances(self):
@@ -1108,7 +1129,7 @@ class TestDVSPlugin(TestBasic):
         Duration 1.8 hours
 
         """
-        self.env.revert_snapshot("dvs_vcenter_bvt_2")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1124,7 +1145,7 @@ class TestDVSPlugin(TestBasic):
             os_conn=os_conn, vm_count=5,
             nics=[{'net-id': network.id}])
 
-    @test(depends_on=[dvs_vcenter_bvt_2],
+    @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_uninstall", 'dvs_vcenter_system'])
     @log_snapshot_after_test
     def dvs_vcenter_uninstall(self):
@@ -1152,4 +1173,755 @@ class TestDVSPlugin(TestBasic):
         assert_true(
             self.plugin_name in output[-1].split(' '),
             "Plugin is removed {}".format(self.plugin_name)
+        )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_vcenter_security", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_security(self):
+        """Check abilities to create and delete security group.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 1 node with controller role.
+            5. Add 1 node with compute role.
+            6. Deploy the cluster.
+            7. Create non default network with subnet net01.
+            8. Launch instance 2 VMs of vcenter and 2 VMs of nova
+               in the tenant network net_01
+            9. Launch instance 2 VMs of vcenter and 2 VMs of nova
+               in the tenant net04.
+            10. Create security groups SG_1 to allow ICMP traffic.
+            11. Add Ingress rule for ICMP protocol to SG_1
+            13. Create security groups SG_2 to allow TCP traffic 22 port.
+            14. Add Ingress rule for TCP protocol to SG_2
+            15. Remove defauld security group and attach SG_1 and SG2 to VMs
+            16. Check ssh between VMs
+            17. Check ping between VMs
+            18. Delete all rules from SG_1 and SG_2
+            19. Check  ssh are not available to VMs
+                and vice verse
+            20. Add Ingress rule for TCP protocol to SG_2
+            21. Add Ingress rule for ICMP protocol to SG_1
+            22. Check ping between VMs and vice verse
+            23. Check SSH between VMs
+            25. Delete security groups.
+            26. Attach Vms to default security group.
+            27. Check  ssh are not available to VMs.
+
+        Duration 1.8 hours
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        # Connect to cluster
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # Create non default network with subnet.
+        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
+        network = self.create_network(
+           os_conn,
+           self.net_data[0].keys()[0], tenant_name=SERVTEST_TENANT
+        )
+
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        subnet = self.create_subnet(
+            os_conn,
+            network,
+            self.net_data[0][self.net_data[0].keys()[0]],
+            tenant_name=SERVTEST_TENANT
+        )
+
+        # Check that network are created.
+        assert_true(
+            os_conn.get_network(network['name'])['id'] == network['id']
+        )
+
+        # Add net_1 to default router
+        router = os_conn.get_router(os_conn.get_network('net04_ext'))
+        self.add_subnet_to_router(
+            os_conn,
+            router['id'], subnet['id'])
+
+        #  Launch instance 2 VMs of vcenter and 2 VMs of nova
+        #  in the tenant network net_01
+        self.create_instances(
+            os_conn=os_conn, vm_count=2,
+            nics=[{'net-id': network['id']}]
+        )
+
+        #  Launch instance 2 VMs of vcenter and 2 VMs of nova
+        #  in the tenant network net04
+        network = os_conn.nova.networks.find(label='net04')
+        self.create_instances(
+            os_conn=os_conn, vm_count=2,
+            nics=[{'net-id': network.id}])
+
+        self.create_and_assign_floating_ip(os_conn=os_conn)
+
+        # Create security groups SG_1 to allow ICMP traffic.
+        # Add Ingress rule for ICMP protocol to SG_1
+        # Create security groups SG_2 to allow TCP traffic 22 port.
+        # Add Ingress rule for TCP protocol to SG_2
+
+        sec_name = ['SG1', 'SG2']
+        sg1 = os_conn.nova.security_groups.create(
+            sec_name[0], "descr")
+        sg2 = os_conn.nova.security_groups.create(
+            sec_name[1], "descr")
+
+        rulesets = [
+            {
+                # ssh
+                'ip_protocol': 'tcp',
+                'from_port': 22,
+                'to_port': 22,
+                'cidr': '0.0.0.0/0',
+            },
+            {
+                # ping
+                'ip_protocol': 'icmp',
+                'from_port': -1,
+                'to_port': -1,
+                'cidr': '0.0.0.0/0',
+            }
+        ]
+
+        tcp = os_conn.nova.security_group_rules.create(
+            sg1.id, **rulesets[0]
+        )
+        icmp = os_conn.nova.security_group_rules.create(
+            sg2.id, **rulesets[1]
+        )
+
+        # Remove defauld security group and attach SG_1 and SG2 to VMs
+        srv_list = os_conn.get_servers()
+        for srv in srv_list:
+            srv.remove_security_group(srv.security_groups[0]['name'])
+            srv.add_security_group(sg1.id)
+            srv.add_security_group(sg2.id)
+
+        time.sleep(20)  # need wait to update rules on dvs
+
+        # SSh to VMs
+        # Check ping between VMs
+        self.check_connection_vms(os_conn=os_conn, srv_list=srv_list)
+
+        # Delete all rules from SG_1 and SG_2
+        os_conn.nova.security_group_rules.delete(tcp.id)
+        os_conn.nova.security_group_rules.delete(icmp.id)
+
+        # Check  ssh are not available between VMs
+        # and vice verse
+        try:
+            self.check_connection_vms(
+                os_conn=os_conn, srv_list=srv_list)
+        except Exception as e:
+            logger.info('{}'.format(e))
+
+        tcp = os_conn.nova.security_group_rules.create(
+            sg1.id, **rulesets[0]
+        )
+        time.sleep(20)  # need wait to update rules on dvs
+
+        # Check  ping are not available between VMs
+        srv_list = os_conn.get_servers()
+        self.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                  result_of_ping=1)
+
+        icmp = os_conn.nova.security_group_rules.create(
+            sg2.id, **rulesets[1]
+        )
+        time.sleep(20)  # need wait to update rules on dvs
+
+        # Check  ping are not available between VMs
+        self.check_connection_vms(
+            os_conn=os_conn, srv_list=srv_list)
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_vcenter_tenants_isolation", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_tenants_isolation(self):
+        """Verify that VMs on different tenants should not communicate
+            between each other. Send icmp ping from VMs
+            of admin tenant to VMs of test_tenant and vice versa.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 1 node with controller role.
+            5. Add 1 node with compute role.
+            6. Deploy the cluster.
+            7. Create non-admin tenant.
+            8. Create network net01 with subnet in non-admin tenant
+            9. Create Router_01, set gateway and add interface
+               to external network.
+            10. Launch instances VM_1 and VM_2 in the net01(non-admin tenant)
+               in nova and vcenter az.
+            11. Launch instances VM_3 and VM_4 in the net04(default
+               admin tenant) in nova and vcenter az.
+            12. Verify that VMs on different tenants should not communicate
+              between each other via no floating ip. Send icmp ping from VM_3,
+              VM_4 of admin tenant to VM_3 VM_4 of test_tenant and vice versa.
+
+        Duration 1,5 hours
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        # Create new network
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # Create non-admin tenant.
+        admin.create_user_and_tenant('test', 'test', 'test')
+        self.add_role_to_user(admin, 'test', 'admin', 'test')
+
+        test = os_actions.OpenStackActions(
+            os_ip, 'test', 'test', 'test')
+
+        # Create non default network with subnet in test tenant.
+        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
+        network = self.create_network(
+            test,
+            self.net_data[0].keys()[0], tenant_name='test'
+        )
+
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        subnet = self.create_subnet(
+            test,
+            network,
+            self.net_data[0][self.net_data[0].keys()[0]],
+            tenant_name='test'
+        )
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[test.get_tenant('test').id] =\
+            test.create_sec_group_for_ssh()
+        security_group = security_group[
+            test.get_tenant('test').id].id
+
+        #  Launch instance VM_1 and VM_2 in the est tenant network net_01
+        self.create_instances(
+            os_conn=test, vm_count=1,
+            nics=[{'net-id': network['id']}], security_group=security_group
+        )
+
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = self.add_router(
+            test,
+            'router_1'
+        )
+
+        # Add net_1 to router_1
+        self.add_subnet_to_router(
+            test,
+            router_1['id'], subnet['id'])
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[admin.get_tenant(SERVTEST_TENANT).id] =\
+            admin.create_sec_group_for_ssh()
+        security_group = security_group[
+            admin.get_tenant(SERVTEST_TENANT).id].id
+
+        # Launch instance VM_3 and VM_4 in the admin tenant net04
+        network = admin.nova.networks.find(label='net04')
+        self.create_instances(
+            os_conn=admin, vm_count=1,
+            nics=[{'net-id': network.id}], security_group=security_group)
+
+        # Send ping from instances VM_1 and VM_2 to VM_3 and VM_4
+        # via no floating ip
+        srv_1 = admin.get_servers()
+        srv_2 = test.get_servers()
+        self.create_and_assign_floating_ip(os_conn=admin, srv_list=srv_1)
+        self.create_and_assign_floating_ip(
+            os_conn=test,
+            srv_list=srv_2,
+            ext_net=None,
+            tenant_id=test.get_tenant('test').id)
+
+        srv_1 = admin.get_servers()
+        srv_2 = test.get_servers()
+
+        ips = []
+        for srv in srv_2:
+            ip = srv.networks[srv.networks.keys()[0]][0]
+            ips.append(ip)
+
+        logger.info(ips)
+        logger.info(srv_1)
+        self.check_connection_vms(
+            os_conn=admin, srv_list=srv_1,
+            result_of_ping=1,
+            remote=None, destination_ip=ips
+        )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_vcenter_same_ip", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_same_ip(self):
+        """Check connectivity between VMs with same ip in different tenants.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 1 node with controller role.
+            5. Add 1 node with compute role.
+            6. Deploy the cluster.
+            7. Create non-admin tenant.
+            8. Create private network net01 with sunet in non-admin tenant.
+            9. Create Router_01, set gateway and add interface
+               to external network.
+            10. Create private network net01 with sunet in default admin tenant
+            11. Create Router_01, set gateway and add interface
+               to external network.
+            12. Launch instances VM_1 and VM_2 in the net01(non-admin tenant)
+               with image TestVM and flavor m1.micro in nova az.
+            13. Launch instances VM_3 and VM_4
+               in the net01(default admin tenant)
+               with image TestVM and flavor m1.micro in nova az.
+            14. Verify that VM_1 and VM_2 should communicate
+               between each other via no floating ip.
+            15. Verify that VM_3 and VM_4 should communicate
+               between each other via no floating ip.
+
+        Duration 1,5 hours
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # Create non-admin tenant.
+        admin.create_user_and_tenant('test', 'test', 'test')
+        self.add_role_to_user(admin, 'test', 'admin', 'test')
+
+        test = os_actions.OpenStackActions(
+            os_ip, 'test', 'test', 'test')
+
+        # Create non default network with subnet in test tenant.
+        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
+        network = self.create_network(
+            test,
+            self.net_data[0].keys()[0], tenant_name='test'
+        )
+
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        subnet = self.create_subnet(
+            test,
+            network,
+            self.net_data[0][self.net_data[0].keys()[0]],
+            tenant_name='test'
+        )
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[test.get_tenant('test').id] =\
+            test.create_sec_group_for_ssh()
+        security_group = security_group[
+            test.get_tenant('test').id].id
+
+        #  Launch instances in the tenant network net_01
+        self.create_instances(
+            os_conn=test, vm_count=1,
+            nics=[{'net-id': network['id']}], security_group=security_group
+        )
+
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = self.add_router(
+            test,
+            'router_1',
+            ext_net_name='net04_ext', tenant_name='test'
+        )
+
+        # Add net_1 to router_1
+        self.add_subnet_to_router(
+            test,
+            router_1['id'], subnet['id'])
+
+        srv_1 = test.get_servers()
+        self.create_and_assign_floating_ip(
+            os_conn=test,
+            srv_list=srv_1,
+            ext_net=None,
+            tenant_id=test.get_tenant('test').id)
+        srv_1 = test.get_servers()
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[admin.get_tenant(SERVTEST_TENANT).id] =\
+            admin.create_sec_group_for_ssh()
+        security_group = security_group[
+            admin.get_tenant(SERVTEST_TENANT).id].id
+        # Create non default network with subnet in admin tenant.
+        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
+        network = self.create_network(
+            admin,
+            self.net_data[0].keys()[0])
+
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        subnet = self.create_subnet(
+            admin,
+            network,
+            self.net_data[0][self.net_data[0].keys()[0]])
+
+        # Launch instance VM_3 and VM_4 in the tenant net04
+        self.create_instances(
+            os_conn=admin, vm_count=1,
+            nics=[{'net-id': network['id']}], security_group=security_group)
+
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = self.add_router(
+            admin,
+            'router_1')
+
+        # Add net_1 to router_1
+        self.add_subnet_to_router(
+            admin,
+            router_1['id'], subnet['id'])
+
+        # Send ping from instances VM_1 and VM_2 to VM_3 and VM_4
+        # via no floating ip
+        srv_2 = admin.get_servers()
+        self.create_and_assign_floating_ip(
+            os_conn=admin,
+            srv_list=srv_2)
+        srv_2 = admin.get_servers()
+
+        # Verify that VM_1 and VM_2 should communicate
+        # between each other via fixed ip.
+        self.check_connection_vms(
+            os_conn=test, srv_list=srv_1)
+
+        # Verify that VM_3 and VM_4 should communicate
+        # between each other via fixed ip.
+        self.check_connection_vms(os_conn=admin, srv_list=srv_2)
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_vcenter_bind_port", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_bind_port(self):
+        """Check abilities to bind port on DVS to VM,
+           disable and enable this port.
+
+        Scenario:
+            1. Revert snapshot to dvs_vcenter_bvt_2
+            2. Create private networks net01 with sunet.
+            3. Launch instances VM_1 and VM_2 in the net01
+               with image TestVM and flavor m1.micro in nova az.
+            4. Bind sub_net port of Vm_1 and VM_2
+            5. Check VMs are not available.
+            6. Enable sub_net port of Vm_1 and VM_2.
+            7. Verify that VMs should communicate between each other.
+               Send icmp ping from VM 2 to VM1 and vice versa.
+
+
+        Duration 1,5 hours
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        # Create new network
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
+            os_conn.create_sec_group_for_ssh()
+        security_group = security_group[
+            os_conn.get_tenant(SERVTEST_TENANT).id].id
+
+        #  Launch instance VM_1 and VM_2
+        network = os_conn.nova.networks.find(label='net04')
+        self.create_instances(
+            os_conn=os_conn, vm_count=1,
+            nics=[{'net-id': network.id}], security_group=security_group
+        )
+
+        self.create_and_assign_floating_ip(os_conn=os_conn)
+
+        time.sleep(30)  # need time to apply updates
+
+        # Bind sub_net port of Vm_1 and VM_2
+        ports = os_conn.neutron.list_ports()['ports']
+        srv_list = os_conn.get_servers()
+        for srv in srv_list:
+            srv_addr = srv.networks[srv.networks.keys()[0]][0]
+            for port in ports:
+                port_addr = port['fixed_ips'][0]['ip_address']
+                if srv_addr == port_addr:
+                    os_conn.neutron.update_port(
+                        port['id'], {'port': {'admin_state_up': False}}
+                    )
+
+        srv_list = os_conn.get_servers()
+
+        # Verify that not connection to VMs
+
+        try:
+            self.check_connection_vms(
+                os_conn=os_conn, srv_list=srv_list)
+        except Exception as e:
+            logger.info(str(e))
+
+        # Enable sub_net port of Vm_1 and VM_2
+        for srv in srv_list:
+            srv_addr = srv.networks[srv.networks.keys()[0]][0]
+            for port in ports:
+                port_addr = port['fixed_ips'][0]['ip_address']
+                if srv_addr == port_addr:
+                    os_conn.neutron.update_port(
+                        port['id'], {'port': {'admin_state_up': True}}
+                    )
+
+        srv_list = os_conn.get_servers()
+        for srv in srv_list:
+            srv.reboot()
+            wait(
+                lambda:
+                os_conn.get_instance_detail(srv).status == "ACTIVE",
+                timeout=300)
+        time.sleep(60)  # need time after reboot to get ip by instance
+
+        self.check_connection_vms(os_conn=os_conn, srv_list=srv_list)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_vcenter_reset_controller", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_reset_controller(self):
+        """Verify that vmclusters should be migrate after reset controller.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 3 node with controller role.
+            5. Add 2 node with compute role.
+            6. Deploy the cluster.
+            7. Launch instances.
+            8. Verify connection between VMs. Send ping
+               Check that ping get reply
+            9. Reset controller.
+            10. Check that vmclusters should be migrate to another controller.
+            11. Verify connection between VMs.
+                Send ping, check that ping get reply
+
+        Duration 1.8 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        self.install_dvs_plugin()
+
+        # Configure cluster with 2 vcenter clusters and vcenter glance
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+        self.enable_plugin(cluster_id=cluster_id)
+
+        # Assign role to node
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['controller'],
+             'slave-03': ['controller'],
+             'slave-04': ['compute'],
+             'slave-05': ['compute']}
+        )
+        # Configure VMWare vCenter settings
+        self.fuel_web.vcenter_configure(cluster_id)
+
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
+            os_conn.create_sec_group_for_ssh()
+        security_group = security_group[
+            os_conn.get_tenant(SERVTEST_TENANT).id].id
+
+        network = os_conn.nova.networks.find(label='net04')
+        self.create_instances(
+            os_conn=os_conn, vm_count=1,
+            nics=[{'net-id': network.id}], security_group=security_group)
+
+        # Verify connection between VMs. Send ping Check that ping get reply
+        self.create_and_assign_floating_ip(os_conn=os_conn)
+        srv_list = os_conn.get_servers()
+        self.check_connection_vms(os_conn=os_conn, srv_list=srv_list)
+
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[0]
+        )
+
+        ssh = self.fuel_web.get_ssh_for_node(primary_controller.name)
+
+        cmds = ['nova-manage service list | grep vcenter-vmcluster1',
+                'nova-manage service list | grep vcenter-vmcluster2']
+
+        self.check_service(ssh=ssh, commands=cmds)
+
+        self.fuel_web.warm_restart_nodes(
+            [self.fuel_web.environment.d_env.get_node(
+                name=primary_controller.name)])
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[1]
+        )
+
+        ssh = self.fuel_web.get_ssh_for_node(primary_controller.name)
+        self.check_service(ssh=ssh, commands=cmds)
+
+        # Verify connection between VMs. Send ping Check that ping get reply
+        srv_list = os_conn.get_servers()
+        self.check_connection_vms(os_conn=os_conn, srv_list=srv_list)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_vcenter_shutdown_controller", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_shutdown_controller(self):
+        """Verify that vmclusters should be migrate after shutdown controller.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 3 node with controller role.
+            5. Add 2 node with compute role.
+            6. Deploy the cluster.
+            7. Launch instances.
+            8. Verify connection between VMs. Send ping
+               Check that ping get reply
+            9. Shutdown controller.
+            10. Check that vmclusters should be migrate to another controller.
+            11. Verify connection between VMs.
+                Send ping, check that ping get reply
+
+        Duration 1.8 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        self.install_dvs_plugin()
+
+        # Configure cluster with 2 vcenter clusters and vcenter glance
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+
+        self.enable_plugin(cluster_id=cluster_id)
+
+        # Assign role to node
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['controller'],
+             'slave-03': ['controller'],
+             'slave-04': ['compute'],
+             'slave-05': ['compute']}
+        )
+
+        # Configure VMWare vCenter settings
+        self.fuel_web.vcenter_configure(cluster_id)
+
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
+            os_conn.create_sec_group_for_ssh()
+        security_group = security_group[
+            os_conn.get_tenant(SERVTEST_TENANT).id].id
+
+        network = os_conn.nova.networks.find(label='net04')
+        self.create_instances(
+            os_conn=os_conn, vm_count=1,
+            nics=[{'net-id': network.id}], security_group=security_group)
+
+        # Verify connection between VMs. Send ping Check that ping get reply
+        self.create_and_assign_floating_ip(os_conn=os_conn)
+        srv_list = os_conn.get_servers()
+        self.check_connection_vms(os_conn=os_conn, srv_list=srv_list)
+
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[0]
+        )
+
+        ssh = self.fuel_web.get_ssh_for_node(primary_controller.name)
+
+        cmds = ['nova-manage service list | grep vcenter-vmcluster1',
+                'nova-manage service list | grep vcenter-vmcluster2']
+
+        self.check_service(ssh=ssh, commands=cmds)
+
+        self.fuel_web.warm_shutdown_nodes(
+            [self.fuel_web.environment.d_env.get_node(
+                name=primary_controller.name)])
+
+        ssh = self.fuel_web.get_ssh_for_node(
+            self.env.d_env.nodes().slaves[1].name)
+
+        self.check_service(ssh=ssh, commands=cmds)
+        # Verify connection between VMs. Send ping Check that ping get reply
+        srv_list = os_conn.get_servers()
+        self.check_connection_vms(
+            os_conn=os_conn, srv_list=srv_list,
+            remote=ssh
         )
