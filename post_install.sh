@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-/usr/bin/dockerctl copy /var/www/nailgun/plugins/%{name}/deployment_scripts/strike.py nailgun:/root
-/usr/bin/dockerctl shell nailgun python /root/strike.py
-/usr/bin/dockerctl shell nailgun sed -i -e "/if common_attrs.get('use_vcenter', {}).get('value') is True and/,+5 d" /usr/lib/python2.6/site-packages/nailgun/api/v1/validators/cluster.py
-/usr/bin/dockerctl shell nailgun supervisorctl restart nailgun
-
+/usr/bin/dockerctl shell nailgun python /var/www/nailgun/plugins/fuel-plugin-vmware-dvs-2.0/deployment_scripts/strike.py
+/usr/bin/dockerctl shell nailgun sed -i -e "/if common_attrs.get('use_vcenter', {}).get('value') is True and/,+5 d" /usr/lib/python2.7/site-packages/nailgun/api/v1/validators/cluster.py
+/usr/bin/dockerctl shell nailgun systemctl restart nailgun.service
