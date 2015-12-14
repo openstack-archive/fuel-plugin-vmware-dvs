@@ -469,6 +469,7 @@ RunTest() {
         OPTS="${OPTS} ${TEST_OPTIONS}"
     fi
 
+    clean_old_bridges
     # run python test set to create environments, deploy and test product
     if [ "${DRY_RUN}" = "yes" ]; then
         echo export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${WORKSPACE}"
@@ -499,10 +500,11 @@ RunTest() {
     sleep 10
 
     # Configre vcenter nodes and interfaces
-    clean_old_bridges
     setup_net $ENV_NAME
     clean_iptables
     revert_ws "$WORKSTATION_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+    #fixme should use only one clean_iptables call
+    clean_iptables
 
     echo waiting for system tests to finish
     wait $SYSTEST_PID
