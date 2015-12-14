@@ -64,7 +64,7 @@ Plugin (or its components) has the following limitations:
 Product compatibility matrix
 ============================
 
-.. list-table:: product compatibility matrix
+.. list-table::
    :widths: 15 10 30
    :header-rows: 1
 
@@ -264,13 +264,3 @@ Acceptance criteria
 * Critical and high issues are fixed
 * All required documents are delivered
 * Release notes including a report on the known errors of that release
-
-**********
-Test cases
-**********
-
-.. include:: test_suite_smoke.rst
-.. include:: test_suite_integration.rst
-.. include:: test_suite_system.rst
-.. include:: test_suite_destructive.rst
-.. include:: test_suite_gui.rst
