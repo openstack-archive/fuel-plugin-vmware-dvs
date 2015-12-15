@@ -28,6 +28,16 @@ class {'nova::network::neutron':
   neutron_url               => $neutron_url,
 }
 
+file {'/usr/lib/python2.7/dist-packages/nova.patch':
+  source => 'puppet:///modules/vmware_dvs/nova.patch',
+  notify => Exec['apply-nova-patch'],
+}
+exec {'apply-nova-patch':
+  command     => 'patch -d /usr/lib/python2.7/dist-packages -N -p1
+  < /usr/lib/python2.7/dist-packages/nova.patch',
+  refreshonly => true,
+}
+
 augeas { 'sysctl-net.bridge.bridge-nf-call-arptables':
   context => '/files/etc/sysctl.conf',
   changes => "set net.bridge.bridge-nf-call-arptables '1'",
