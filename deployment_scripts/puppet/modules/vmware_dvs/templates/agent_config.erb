@@ -1,0 +1,12 @@
+[DEFAULT]
+host=<%= @host %>
+
+[securitygroup]
+enable_security_group = True
+firewall_driver=mech_vmware_dvs.agentDVS.vCenter_firewall.vCenterFirewallDriver
+
+[ml2_vmware]
+vsphere_login=<%= @vsphere_login %>
+network_maps=<%= @network_maps %>
+vsphere_hostname=<%= @vsphere_hostname %>
+vsphere_password=<%= @vsphere_password %>
