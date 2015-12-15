@@ -1,0 +1,38 @@
+description "Neutron vmware dvs plugin agent"
+author "Igor Gajsin <igajsin@mirantis.com>"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+chdir /var/run
+
+pre-start script
+        mkdir -p /var/run/neutron
+        chown neutron:root /var/run/neutron
+end script
+
+script
+        [ -r /usr/share/neutron-common/plugin_guess_func ] || exit 0
+        . /usr/share/neutron-common/plugin_guess_func
+
+        if ! [ -r /etc/neutron/neutron.conf ] ; then
+                echo "Cloud not read /etc/neutron/neutron.conf: exiting"
+                exit 0
+        fi
+        CURRENT_PLUGIN=`grep "^[ \t]*core_plugin[ \t]*=[ \t]*[._a-zA-Z0-9]*\$" /etc/neutron/neutron.conf | sed -e 's/^[ \t]*core_plugin[ \t]*=[ \t]*//'`
+        if [ -z "${CURRENT_PLUGIN}" ] ; then
+                echo "No core_plugin= value found: please set it and try again"
+                exit 0
+        fi
+
+        neutron_core_plugin_to_plugin_name ${CURRENT_PLUGIN}
+        neutron_plugin_ini_path ${NEUTRON_PLUGIN_NAME}
+        [ -r "$NEUTRON_PLUGIN_CONFIG" ] && CONF_ARG="--config-file $NEUTRON_PLUGIN_CONFIG --config-file <%= @agent_config %>"
+        [ -r /etc/default/openstack ] && . /etc/default/openstack
+        [ -r /etc/default/$UPSTART_JOB ] && . /etc/default/$UPSTART_JOB
+
+        [ "x$USE_SYSLOG" = "xyes" ] && DAEMON_ARGS="$DAEMON_ARGS --use-syslog"
+        [ "x$USE_LOGFILE" != "xno" ] && DAEMON_ARGS="$DAEMON_ARGS --log-file=<%= @agent_log %>"
+        exec start-stop-daemon --start --chuid neutron:neutron --exec /usr/local/bin/neutron-dvs-agent -- \
+                --config-file=/etc/neutron/neutron.conf $CONF_ARG $DAEMON_ARGS
+end script

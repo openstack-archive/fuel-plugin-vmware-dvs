@@ -19,7 +19,7 @@
 
 - id: vmware-dvs-setup-neutron-plugin
   groups: ['primary-controller','controller']
-  required_for: [openstack-network-plugins-l2]
+  required_for: [primary-openstack-network-agents-metadata]
   requires: [vmware-dvs-override-hiera]
   type: puppet
   parameters:
