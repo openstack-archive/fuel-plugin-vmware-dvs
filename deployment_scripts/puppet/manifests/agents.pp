@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 #    Copyright 2015 Mirantis, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,26 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nailgun.db.sqlalchemy.models import *
-from nailgun.db import db
-from copy import deepcopy
+notice('MODULAR: vmware_dvs agent install')
 
+$vcenter     = hiera('vcenter', {})
+$vmware_dvs  = hiera_hash('fuel-plugin-vmware-dvs', {})
+$neutron     = hiera_hash('neutron_config', {})
+$agents      = get_agents_data($vcenter, $neutron, $vmware_dvs)
 
-def clear_restriction():
-    for release in db().query(Release).all():
-        release.wizard_metadata = deepcopy(release.wizard_metadata)
-        for value in release.wizard_metadata['Network']['manager']['values']:
-            try:
-                del value['restrictions']
-                db().commit()
-            except:
-                pass
-    return 0
-
-
-def main():
-    return clear_restriction()
-
-
-if __name__ == "__main__":
-    main()
+create_resources(vmware_dvs::agent, $agents)

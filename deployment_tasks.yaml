@@ -27,6 +27,16 @@
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
 
+- id: vmware-dvs-neutron-agent-install
+  groups: ['primary-controller','controller','compute-vmware']
+  require_for: [openstack-network-networks]
+  requires: [openstack-network-plugins-l2]
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/agents.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720
+
 - id: vmware-dvs-compute-vmware
   groups: ['compute-vmware']
   requires:  [top-role-compute-vmware]
