@@ -96,6 +96,7 @@ class vmware_dvs(
     notify => Exec['apply-nova-patch'],
   }
   exec {'apply-nova-patch':
+    path        => '/usr/bin:/usr/sbin:/bin',
     command     => 'patch -d /usr/lib/python2.7/dist-packages -N -p1
     < /usr/lib/python2.7/dist-packages/nova.patch',
     refreshonly => true,
