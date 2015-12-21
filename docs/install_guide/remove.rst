@@ -18,9 +18,11 @@ To uninstall VMware DVS plugin, follow these steps:
       +------+--------+-----------+--------------------+
       +------+--------+-----------+--------------------+
 
+.. _remove-issue:
+
 There is one issue with wizard on the Fuel WEB UI. Please be informed that
 after removing this plugin the option "Neutron with VLAN segmentation" stays
-unlocked when the 'vCenter' checkbox is selected. Therefore there is a
+unlocked when the 'vCenter' checkbox is selected. Therefore there are 
 possibilities for deployment environment with vCenter as a hypervisor, Neutron
 for networking and without the VMware DVS plugin. If no other plugin provides
 this functionality such environment will be misconfigured.
