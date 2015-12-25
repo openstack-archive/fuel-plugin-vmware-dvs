@@ -26,6 +26,7 @@ external_net_name = 'admin_floating_net'
 zone_image_maps = {'vcenter': 'TestVM-VMDK',
                    'nova': 'TestVM'}
 
+
 def create_instances(os_conn=None, vm_count=None, nics=None,
                      security_group=None):
     """Create Vms on available hypervisors
@@ -235,3 +236,18 @@ def add_role_to_user(os_conn, user_name, role_name, tenant_name):
     user_id = os_conn.get_user(user_name).id
     role_id = get_role(os_conn, role_name).id
     os_conn.keystone.roles.add_user_role(user_id, role_id, tenant_id)
+
+
+def check_service(ssh, commands):
+        """Check that required nova services are running on controller
+        :param ssh: SSHClient
+        :param commands: type list, nova commands to execute on controller,
+                         example of commands:
+                         ['nova-manage service list | grep vcenter-vmcluster1'
+        """
+        ssh.execute('source openrc')
+        for cmd in commands:
+            wait(
+                lambda:
+                ':-)' in list(ssh.execute(cmd)['stdout'])[-1].split(' '),
+                timeout=200)

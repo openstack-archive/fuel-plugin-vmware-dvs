@@ -227,7 +227,7 @@ class TestDVSPlugin(TestBasic):
         # Create non default network with subnet.
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
         network = openstack.create_network(
-            os_conn,
+            os_conn,https://mirantis.jira.com/browse/FPL-502
             self.net_data[0].keys()[0], tenant_name=SERVTEST_TENANT
         )
 
