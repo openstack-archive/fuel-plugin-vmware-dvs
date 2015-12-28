@@ -104,6 +104,9 @@ class TestDVSPlugin(TestBasic):
             vc_glance=True
         )
 
+        # Verify networks
+        self.fuel_web.verify_network(cluster_id)
+
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(
