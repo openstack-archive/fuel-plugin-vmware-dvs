@@ -1,0 +1,18 @@
+---
+  GlanceImages.create_and_delete_image:
+    -
+      args:
+        image_location: "http://172.16.44.5/cirros-0.3.1-x86_64-disk.img"
+        container_format: "bare"
+        disk_format: "vmdk"
+      runner:
+        type: "constant"
+        times: {{ compute * 6 }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+      sla:
+        failure_rate:
+          max: 0

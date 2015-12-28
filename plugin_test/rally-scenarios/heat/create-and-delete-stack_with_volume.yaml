@@ -1,0 +1,17 @@
+---
+  HeatStacks.create_and_delete_stack:
+    -
+      args:
+        template_path: "{{ current_path }}/templates/server_with_volume.yml.template"
+      runner:
+        timeout: 90
+        type: "constant"
+        times: {{ compute }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: 2
+          users_per_tenant: 3
+      sla:
+        failure_rate:
+          max: 0

@@ -1,0 +1,16 @@
+---
+  HeatStacks.create_and_list_stack:
+    -
+      args:
+        template_path: "{{ current_path }}/templates/default.yml.template"
+      runner:
+        type: "constant"
+        times: {{ compute }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: 4
+          users_per_tenant: 1
+      sla:
+        failure_rate:
+          max: 0
