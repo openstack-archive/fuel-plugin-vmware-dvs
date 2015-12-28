@@ -107,7 +107,7 @@ class TestDVSPlugin(TestBasic):
                 'images_vcenter': True
             }
         )
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        plugin.enable_plugin(cluster_id, self.fuel_web)
 
         # Assign role to node
         self.fuel_web.update_nodes(
