@@ -38,6 +38,13 @@ from helpers import openstack
 @test(groups=["plugins", 'dvs_vcenter_plugin', 'dvs_vcenter_system'])
 class TestDVSPlugin(TestBasic):
 
+    # constants
+    node_name = lambda self, name_node: self.fuel_web. \
+        get_nailgun_node_by_name(name_node)['hostname']
+
+    # defaults
+    inter_net_name = 'admin_internal_net'
+
     @test(depends_on=[SetupEnvironment.prepare_slaves_9],
           groups=["dvs_vcenter_add_delete_nodes", "dvs_vcenter_plugin"])
     @log_snapshot_after_test
@@ -355,7 +362,7 @@ class TestDVSPlugin(TestBasic):
             os_conn.get_tenant(SERVTEST_TENANT).id].id
 
         #  Launch instance VM_1 and VM_2
-        network = os_conn.nova.networks.find(label='net04')
+        network = os_conn.nova.networks.find(label=self.inter_net_name)
         openstack.create_instances(
             os_conn=os_conn, vm_count=1,
             nics=[{'net-id': network.id}], security_group=security_group
@@ -414,5 +421,106 @@ class TestDVSPlugin(TestBasic):
 
         # Verify that VMs should communicate between each other.
         # Send icmp ping between VMs
+        openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                       remote=ssh_controller)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_vcenter_reset_controller", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_reset_controller(self):
+        """Verify that vmclusters should be migrate after reset controller.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 3 node with controller role.
+            5. Add 2 node with compute role.
+            6. Deploy the cluster.
+            7. Launch instances.
+            8. Verify connection between VMs. Send ping
+               Check that ping get reply
+            9. Reset controller.
+            10. Check that vmclusters should be migrate to another controller.
+            11. Verify connection between VMs.
+                Send ping, check that ping get reply
+
+        Duration 1.8 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+
+        # Configure cluster with 2 vcenter clusters and vcenter glance
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        # Assign role to node
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['controller'],
+             'slave-03': ['controller'],
+             'slave-04': ['compute'],
+             'slave-05': ['compute']}
+        )
+        # Configure VMWare vCenter settings
+        self.fuel_web.vcenter_configure(cluster_id, multiclusters=True)
+
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
+            os_conn.create_sec_group_for_ssh()
+        security_group = security_group[
+            os_conn.get_tenant(SERVTEST_TENANT).id].id
+
+        network = os_conn.nova.networks.find(label=self.inter_net_name)
+        openstack.create_instances(
+            os_conn=os_conn, vm_count=1,
+            nics=[{'net-id': network.id}], security_group=security_group)
+
+        # Verify connection between VMs. Send ping Check that ping get reply
+        openstack.create_and_assign_floating_ip(os_conn=os_conn)
+        srv_list = os_conn.get_servers()
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[0]
+        )
+        ssh_controller = self.fuel_web.get_ssh_for_node(primary_controller.name)
+        openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                       remote=ssh_controller)
+
+        cmds = ['nova-manage service list | grep vcenter-vmcluster1',
+                'nova-manage service list | grep vcenter-vmcluster2']
+
+        openstack.check_service(ssh=ssh_controller, commands=cmds)
+
+        self.fuel_web.warm_restart_nodes(
+            [self.fuel_web.environment.d_env.get_node(
+                name=primary_controller.name)])
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[1]
+        )
+
+        ssh_controller = self.fuel_web.get_ssh_for_node(primary_controller.name)
+        openstack.check_service(ssh=ssh_controller, commands=cmds)
+
+        # Verify connection between VMs. Send ping Check that ping get reply
+        srv_list = os_conn.get_servers()
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
                                        remote=ssh_controller)
