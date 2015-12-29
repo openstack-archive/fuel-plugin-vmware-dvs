@@ -45,9 +45,12 @@ def enable_plugin(cluster_id, fuel_web_client):
     assert_true(
         fuel_web_client.check_plugin_exists(cluster_id, plugin_name),
         msg)
-    options = {'metadata/enabled': True,
-               '#1_vmware_dvs_net_maps/value': dvs_switch_name[0]}
 
-    fuel_web_client.update_plugin_data(cluster_id, plugin_name, options)
+    cluster_attr = fuel_web_client.client.get_cluster_attributes(cluster_id)
+    plugin_data = cluster_attr['editable'][plugin_name]
+    plugin_data['metadata']['enabled'] = True
+    plugin_data['metadata']['versions'][0]['vmware_dvs_net_maps']['value'] = \
+        dvs_switch_name[0]
+    fuel_web_client.client.update_cluster_attributes(cluster_id, cluster_attr)
 
     logger.info("cluster is {}".format(cluster_id))
