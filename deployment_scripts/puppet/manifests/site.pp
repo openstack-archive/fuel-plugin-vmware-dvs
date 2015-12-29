@@ -14,21 +14,18 @@
 
 notice('MODULAR: fuel-plugin-vmware-dvs')
 
-$vc_hash               = hiera('vcenter', {})
-$dvs_hash              = hiera_hash('fuel-plugin-vmware-dvs', {})
-$neutron_hash          = hiera_hash('neutron_config', {})
-$vsphere_hostname      = inline_template('<%= @vc_hash["computes"][0]["vc_host"] %>')
-$vsphere_login         = inline_template('<%= @vc_hash["computes"][0]["vc_user"] %>')
-$vsphere_password      = inline_template('<%= @vc_hash["computes"][0]["vc_password"] %>')
-$dvs_network_maps      = inline_template('<%= @dvs_hash["vmware_dvs_net_maps"] %>')
-$neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks"]["admin_internal_net"]["L2"]["physnet"] %>')
+$vcenter     = hiera('vcenter', {})
+$vmware_dvs  = hiera_hash('fuel-plugin-vmware-dvs', {})
+$neutron     = hiera_hash('neutron_config', {})
 
-class {'vmware_dvs':
-  vsphere_hostname      => $vsphere_hostname,
-  vsphere_login         => $vsphere_login,
-  vsphere_password      => $vsphere_password,
-  network_maps          => $dvs_network_maps,
-  neutron_physnet       => $neutron_physnet,
-  driver_name           => 'vmware_dvs',
-  neutron_url_timeout   => '3600',
+$agents      = get_agents_data($vcenter, $neutron, $vmware_dvs)
+$agents_arr  = values($agents)
+$vc_creds    = $agents_arr[1]
+
+class {'::vmware_dvs':
+  vsphere_hostname    => $vc_creds['vsphere_hostname'],
+  vsphere_login       => $vc_creds['vsphere_login'],
+  vsphere_password    => $vc_creds['vsphere_password'],
+  network_maps        => $vc_creds['network_maps'],
+  neutron_url_timeout => '3600',
 }
