@@ -45,3 +45,59 @@
     puppet_manifest: puppet/manifests/compute-vmware.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
+
+- id: vware-dvs-network-common-config
+  type: puppet
+  version: 2.0.0
+  groups: [compute-vmware]
+  required_for: [openstack-network-end]
+  requires: [openstack-network-start]
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/common-config.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmware-dvs-network-plugins-l2
+  type: puppet
+  version: 2.0.0
+  groups: [compute-vmware]
+  required_for: [openstack-network-end]
+  requires: [openstack-network-common-config, openstack-network-server-config]
+  refresh_on: [neutron_plugin_ml2, neutron_agent_ovs, neutron_config, neutron_api_config]
+  cross-depends:
+    - name: primary-openstack-network-plugins-l2
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/plugins/ml2.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmare-dvs-network-agents-l3
+  type: puppet
+  version: 2.0.0
+  groups: [compute-vmware]
+  required_for: [openstack-network-end]
+  requires: [openstack-network-networks, openstack-network-routers, primary-openstack-network-plugins-l2, openstack-network-plugins-l2]
+  refresh_on: [neutron_l3_agent_config]
+  cross-depends:
+    - name: /(primary-)?openstack-network-plugins-l2/
+    - name: primary-openstack-network-agents-l3
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/agents/l3.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmware-dvs-network-agents-metadata
+  type: puppet
+  version: 2.0.0
+  groups: [compute-vmware]
+  required_for: [openstack-network-end]
+  requires: [openstack-network-common-config,openstack-network-server-nova,openstack-network-agents-l3]
+  refresh_on: [neutron_metadata_agent_config]
+  cross-depends:
+    - name: primary-openstack-network-agents-metadata
+    - name: /(primary-)?openstack-network-plugins-l2/
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/agents/metadata.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
