@@ -1,4 +1,4 @@
-#    Copyright 2015 Mirantis, Inc.
+#    Copyright 2016 Mirantis, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -12,18 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-notice('MODULAR: fuel-plugin-vmware-dvs/agent')
+notice('MODULAR: fuel-plugin-vmware-dvs/set-neutron-timeout')
 
-$vcenter    = hiera('vcenter', {})
-$vmware_dvs = hiera_hash('fuel-plugin-vmware-dvs', {})
-$neutron    = hiera_hash('neutron_config', {})
-$n_fqdn     = hiera('fqdn')
-$roles      = hiera_array('roles', {})
-$agents     = get_agents_data($vcenter, $neutron, $vmware_dvs, $n_fqdn, $roles)
-
-$defaults   = {
-  'neutron_url_timeout' => '3600',
-  'py_root'             => '/usr/lib/python2.7/dist-packages',
-}
-
-create_resources(vmware_dvs::agent, $agents, $defaults)
+nova_config { 'neutron/timeout': value => '3600'}
