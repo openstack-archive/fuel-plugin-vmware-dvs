@@ -30,18 +30,21 @@
 # [*network_maps*]
 #   (required) String. This is a name of DVS.
 #
-# [*neutron_url_timeout*]
-#   (optional) String. This is the timeout for neutron
+# [*driver_path*]
+#   (required) String. This is the ml2 driver's path.
+#
+# [*plugin_path*]
+#   (required) String. This is the ml2 plugin's path.
 
 class vmware_dvs(
-  $vsphere_hostname    = '192.168.0.1',
-  $vsphere_login       = 'administrator@vsphere.loc',
-  $vsphere_password    = 'StrongPassword!',
-  $network_maps        = 'physnet2:dvSwitch1',
-  $neutron_url_timeout = '3600',
+  $vsphere_hostname = '192.168.0.1',
+  $vsphere_login    = 'administrator@vsphere.loc',
+  $vsphere_password = 'StrongPassword!',
+  $network_maps     = 'physnet2:dvSwitch1',
+  $driver_path      = 'neutron/plugins/ml2/drivers/mech_vmware_dvs',
+  $plugin_path      = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py',
 )
 {
-  $py_root = '/usr/lib/python2.7/dist-packages'
   neutron_config {
     'DEFAULT/notification_driver': value => 'messagingv2';
     'DEFAULT/notification_topics': value => 'notifications,vmware_dvs';
@@ -55,53 +58,21 @@ class vmware_dvs(
       package { ['python-suds','python-mech-vmware-dvs']:
         ensure => present,
         }->
-        file {"${py_root}/neutron/plugins/ml2/drivers/mech_vmware_dvs":
+        file {$driver_path:
           ensure => 'link',
           target => '/usr/local/lib/python2.7/dist-packages/mech_vmware_dvs',
         }
+        file {'dvs_neutron_agent.py':
+          path   => $plugin_path,
+          source => 'puppet:///modules/vmware_dvs/dvs_neutron_agent.py',
+        }
 
-  service { 'neutron-server':
-    ensure    => running,
-    enable    => true,
-    subscribe => File["${py_root}/neutron/plugins/ml2/drivers/mech_vmware_dvs"],
-  }
-
-  file_line { 'neutron_timeout':
-    path  => '/etc/haproxy/conf.d/085-neutron.cfg',
-    line  => '  timeout server 1h',
-    after => 'listen neutron',
-  }
-
-  service {'haproxy':
-    ensure     => running,
-    hasrestart => true,
-    restart    => '/sbin/ip netns exec haproxy service haproxy reload',
-    subscribe  => File_Line['neutron_timeout'],
-  }
-
-  nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
-
-  file {"${py_root}/nova.patch":
-    source => 'puppet:///modules/vmware_dvs/nova.patch',
-    notify => Exec['apply-nova-patch'],
-  }
-  exec {'apply-nova-patch':
-    path        => '/usr/bin:/usr/sbin:/bin:/sbin',
-    command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
-    refreshonly => true,
-  }
-
-  file {'dvs_neutron_agent.py':
-    path   => "${py_root}/neutron/cmd/eventlet/plugins/dvs_neutron_agent.py",
-    source => 'puppet:///modules/vmware_dvs/dvs_neutron_agent.py',
-  }
-
-  file {'neutron-dvs-agent':
-    path    => '/usr/local/bin/neutron-dvs-agent',
-    source  => 'puppet:///modules/vmware_dvs/neutron-dvs-agent',
-    owner   => 'root',
-    group   => 'root',
-    mode    => '0755',
-    require => Package['python-mech-vmware-dvs'],
-  }
+        file {'neutron-dvs-agent':
+          path    => '/usr/local/bin/neutron-dvs-agent',
+          source  => 'puppet:///modules/vmware_dvs/neutron-dvs-agent',
+          owner   => 'root',
+          group   => 'root',
+          mode    => '0755',
+          require => Package['python-mech-vmware-dvs'],
+        }
 }
