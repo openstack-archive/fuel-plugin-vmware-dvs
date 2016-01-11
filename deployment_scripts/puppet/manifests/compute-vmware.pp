@@ -1,9 +1,21 @@
+#    Copyright 2015 Mirantis, Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 notice('MODULAR: fuel-plugin-vmware-dvs/compute-vmware')
 
-include nova::params
-
-$neutron_config = hiera_hash('neutron_config')
-$nova_hash = hiera_hash('nova')
+$neutron_config     = hiera_hash('neutron_config')
+$nova_hash          = hiera_hash('nova')
 
 $management_vip     = hiera('management_vip')
 $service_endpoint   = hiera('service_endpoint', $management_vip)
@@ -19,47 +31,12 @@ $admin_identity_uri = "http://${service_endpoint}:35357"
 $admin_auth_url     = "${admin_identity_uri}/${auth_api_version}"
 $neutron_url        = "http://${neutron_endpoint}:9696"
 
-class {'nova::network::neutron':
-  neutron_admin_password    => $admin_password,
-  neutron_admin_tenant_name => $admin_tenant_name,
-  neutron_region_name       => $region_name,
-  neutron_admin_username    => $admin_username,
-  neutron_admin_auth_url    => $admin_auth_url,
-  neutron_url               => $neutron_url,
-}
-
-file {'/usr/lib/python2.7/dist-packages/nova.patch':
-  source => 'puppet:///modules/vmware_dvs/nova.patch',
-  notify => Exec['apply-nova-patch'],
-}
-exec {'apply-nova-patch':
-  path        => '/usr/bin:/usr/sbin:/bin',
-  command     => 'patch -d /usr/lib/python2.7/dist-packages -N -p1
-  < /usr/lib/python2.7/dist-packages/nova.patch',
-  refreshonly => true,
-}
-
-augeas { 'sysctl-net.bridge.bridge-nf-call-arptables':
-  context => '/files/etc/sysctl.conf',
-  changes => "set net.bridge.bridge-nf-call-arptables '1'",
-}
-augeas { 'sysctl-net.bridge.bridge-nf-call-iptables':
-  context => '/files/etc/sysctl.conf',
-  changes => "set net.bridge.bridge-nf-call-iptables '1'",
-}
-augeas { 'sysctl-net.bridge.bridge-nf-call-ip6tables':
-  context => '/files/etc/sysctl.conf',
-  changes => "set net.bridge.bridge-nf-call-ip6tables '1'",
-}
-
-service { 'nova-compute':
-  ensure => 'running',
-  name   => $::nova::params::compute_service_name,
-}
-Nova_config<| |> ~> Service['nova-compute']
-
-if($::operatingsystem == 'Ubuntu') {
-  tweaks::ubuntu_service_override { 'nova-network':
-    package_name => 'nova-network',
-  }
+class {'::vmware_dvs::compute':
+  admin_password      => $admin_password,
+  admin_tenant_name   => $admin_tenant_name,
+  region_name         => $region_name,
+  admin_username      => $admin_username,
+  admin_auth_url      => $admin_auth_url,
+  neutron_url         => $neutron_url,
+  neutron_url_timeout => '3600',
 }
