@@ -46,6 +46,7 @@ def import_tests():
     from tests import test_plugin_vmware_dvs_maintenance
     from tests import test_plugin_vmware_dvs_smoke
     from tests import test_plugin_vmware_dvs_system
+    from tests import test_plugin_vmware_dvs_templates
 
 def run_tests():
     from proboscis import TestProgram  # noqa
