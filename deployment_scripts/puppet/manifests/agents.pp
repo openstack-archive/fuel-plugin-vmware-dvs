@@ -14,9 +14,12 @@
 
 notice('MODULAR: vmware_dvs agent install')
 
-$vcenter     = hiera('vcenter', {})
-$vmware_dvs  = hiera_hash('fuel-plugin-vmware-dvs', {})
-$neutron     = hiera_hash('neutron_config', {})
-$agents      = get_agents_data($vcenter, $neutron, $vmware_dvs)
+$vcenter    = hiera('vcenter', {})
+$vmware_dvs = hiera_hash('fuel-plugin-vmware-dvs', {})
+$neutron    = hiera_hash('neutron_config', {})
+$node_fqdn       = hiera('fqdn')
+$roles      = hiera_array('roles', {})
+$agents      = get_agents_data($vcenter, $neutron, $vmware_dvs, $node_fqdn, $roles)
+
 
 create_resources(vmware_dvs::agent, $agents)
