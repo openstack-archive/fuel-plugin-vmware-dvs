@@ -14,18 +14,30 @@
 
 notice('MODULAR: fuel-plugin-vmware-dvs')
 
-$vcenter     = hiera('vcenter', {})
-$vmware_dvs  = hiera_hash('fuel-plugin-vmware-dvs', {})
-$neutron     = hiera_hash('neutron_config', {})
+$vcenter          = hiera_hash('vcenter', {})
+$computes         = $vcenter['computes'][0]
+$vsphere_hostname = $computes['vc_host']
+$vsphere_login    = $computes['vc_user']
+$vsphere_password = $computes['vc_password']
 
-$agents      = get_agents_data($vcenter, $neutron, $vmware_dvs)
-$agents_arr  = values($agents)
-$vc_creds    = $agents_arr[1]
+$neutron          = hiera_hash('neutron_config', {})
+$physnet          = $neutron["predefined_networks"]["admin_internal_net"]["L2"]["physnet"]
+
+$vmware_dvs       = hiera_hash('fuel-plugin-vmware-dvs', {})
+$vds              = $vmware_dvs['vmware_dvs_net_maps']
+$network_maps     = "${physnet}:${vds}"
+
+$py_root          = '/usr/lib/python2.7/dist-packages'
+$ml2_driver_path  = 'neutron/plugins/ml2/drivers/mech_vmware_dvs'
+$ml2_plugin_path  = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py'
+$driver_path      = "${py_root}/${ml2_driver_path}"
+$plugin_path      = "${py_root}/${ml2_plugin_path}"
 
 class {'::vmware_dvs':
-  vsphere_hostname    => $vc_creds['vsphere_hostname'],
-  vsphere_login       => $vc_creds['vsphere_login'],
-  vsphere_password    => $vc_creds['vsphere_password'],
-  network_maps        => $vc_creds['network_maps'],
-  neutron_url_timeout => '3600',
+  vsphere_hostname => $vsphere_hostname,
+  vsphere_login    => $vsphere_login,
+  vsphere_password => $vsphere_password,
+  network_maps     => $network_maps,
+  driver_path      => $driver_path,
+  plugin_path      => $plugin_path,
 }
