@@ -18,9 +18,19 @@
     timeout: 720
 
 - id: vmware-dvs-setup-neutron-plugin
-  groups: ['primary-controller','controller']
+  groups: ['primary-controller','controller', 'compute-vmware']
   required_for: [openstack-network-plugins-l2]
   requires: [vmware-dvs-override-hiera]
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/site.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720
+
+- id: vmware-dvs-config-neutron-server
+  groups: ['primary-controller','controller']
+  required_for: [openstack-network-plugins-l2]
+  requires: [vmware-dvs-setup-neutron-plugin]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp
@@ -100,4 +110,3 @@
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/agents/metadata.pp
     puppet_modules: /etc/puppet/modules
     timeout: 1800
-

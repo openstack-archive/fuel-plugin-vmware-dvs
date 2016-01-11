@@ -19,24 +19,13 @@ $admin_identity_uri = "http://${service_endpoint}:35357"
 $admin_auth_url     = "${admin_identity_uri}/${auth_api_version}"
 $neutron_url        = "http://${neutron_endpoint}:9696"
 
-class {'nova::network::neutron':
+class {'::nova::network::neutron':
   neutron_admin_password    => $admin_password,
   neutron_admin_tenant_name => $admin_tenant_name,
   neutron_region_name       => $region_name,
   neutron_admin_username    => $admin_username,
   neutron_admin_auth_url    => $admin_auth_url,
   neutron_url               => $neutron_url,
-}
-
-file {'/usr/lib/python2.7/dist-packages/nova.patch':
-  source => 'puppet:///modules/vmware_dvs/nova.patch',
-  notify => Exec['apply-nova-patch'],
-}
-exec {'apply-nova-patch':
-  path        => '/usr/bin:/usr/sbin:/bin',
-  command     => 'patch -d /usr/lib/python2.7/dist-packages -N -p1
-  < /usr/lib/python2.7/dist-packages/nova.patch',
-  refreshonly => true,
 }
 
 augeas { 'sysctl-net.bridge.bridge-nf-call-arptables':
