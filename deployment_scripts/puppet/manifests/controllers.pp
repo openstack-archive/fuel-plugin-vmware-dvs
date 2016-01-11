@@ -1,4 +1,4 @@
-#    Copyright 2015 Mirantis, Inc.
+#    Copyright 2016 Mirantis, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -12,18 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-notice('MODULAR: fuel-plugin-vmware-dvs/agent')
+notice('MODULAR: fuel-plugin-vmware-dvs/controllers')
 
-$vcenter    = hiera('vcenter', {})
-$vmware_dvs = hiera_hash('fuel-plugin-vmware-dvs', {})
-$neutron    = hiera_hash('neutron_config', {})
-$n_fqdn     = hiera('fqdn')
-$roles      = hiera_array('roles', {})
-$agents     = get_agents_data($vcenter, $neutron, $vmware_dvs, $n_fqdn, $roles)
+$py_root         = '/usr/lib/python2.7/dist-packages'
+$ml2_driver_path = 'neutron/plugins/ml2/drivers/mech_vmware_dvs'
+$path            = "${py_root}/${ml2_driver_path}"
 
-$defaults   = {
-  'neutron_url_timeout' => '3600',
-  'py_root'             => '/usr/lib/python2.7/dist-packages',
+class {'::vmware_dvs::neutron_server':
+  path => $path,
 }
-
-create_resources(vmware_dvs::agent, $agents, $defaults)
