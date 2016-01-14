@@ -37,7 +37,13 @@
 #   (optional) String. This is the name of installed driver.
 #
 # [*neutron_url_timeout*]
+#   (optional) String. This is the url timeout for neutron
+#
+# [*neutron_timeout*]
 #   (optional) String. This is the timeout for neutron
+#
+# [*py_root*]
+#   (optional) String. This is the path to the python's dist-packages dir.
 
 
 class vmware_dvs(
@@ -46,8 +52,9 @@ class vmware_dvs(
   $vsphere_password,
   $network_maps,
   $neutron_physnet,
-  $driver_name         = 'vmware_dvs',
-  $neutron_url_timeout = '3600',
+  $driver_name      = 'vmware_dvs',
+  $neutron_timeout  = '3600',
+  $py_root          = '/usr/lib/python2.7/dist-packages',
 )
 {
   $true_network_maps  = get_network_maps($network_maps, $neutron_physnet)
@@ -89,16 +96,15 @@ class vmware_dvs(
     subscribe  => File_Line['neutron_timeout'],
   }
 
-  nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
+  nova_config {'neutron/timeout': value => $neutron_timeout}
 
-  file {'/usr/lib/python2.7/dist-packages/nova.patch':
+  file {"${py_root}/nova.patch":
     source => 'puppet:///modules/vmware_dvs/nova.patch',
     notify => Exec['apply-nova-patch'],
   }
   exec {'apply-nova-patch':
-    path        => '/usr/bin:/usr/sbin:/bin',
-    command     => 'patch -d /usr/lib/python2.7/dist-packages -N -p1
-    < /usr/lib/python2.7/dist-packages/nova.patch',
+    path        => '/usr/bin:/usr/sbin:/bin:/sbin',
+    command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
     refreshonly => true,
   }
 }
