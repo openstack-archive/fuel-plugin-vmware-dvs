@@ -23,12 +23,14 @@ $vsphere_password      = inline_template('<%= @vc_hash["computes"][0]["vc_passwo
 $dvs_network_maps      = inline_template('<%= @dvs_hash["vmware_dvs_net_maps"] %>')
 $neutron_physnet       = inline_template('<%= @neutron_hash["predefined_networks"]["admin_internal_net"]["L2"]["physnet"] %>')
 
-class {'vmware_dvs':
-  vsphere_hostname      => $vsphere_hostname,
-  vsphere_login         => $vsphere_login,
-  vsphere_password      => $vsphere_password,
-  network_maps          => $dvs_network_maps,
-  neutron_physnet       => $neutron_physnet,
-  driver_name           => 'vmware_dvs',
-  neutron_url_timeout   => '3600',
+class {'::vmware_dvs':
+  vsphere_hostname    => $vsphere_hostname,
+  vsphere_login       => $vsphere_login,
+  vsphere_password    => $vsphere_password,
+  network_maps        => $dvs_network_maps,
+  neutron_physnet     => $neutron_physnet,
+  driver_name         => 'vmware_dvs',
+  neutron_url_timeout => '3600',
+  neutron_timeout     => '3600',
+  py_root             => '/usr/lib/python2.7/dist-packages',
 }
