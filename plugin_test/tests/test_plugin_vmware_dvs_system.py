@@ -106,8 +106,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
         self.env.make_snapshot("dvs_vcenter_systest_setup", is_make=True)
 
@@ -134,7 +135,7 @@ class TestDVSPlugin(TestBasic):
 
         # Create new network
         os_ip = self.fuel_web.get_public_vip(cluster_id)
-        os_conn = (
+        os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
@@ -331,7 +332,7 @@ class TestDVSPlugin(TestBasic):
             10. Check ssh between VMs
             11. Check ping between VMs
             12. Delete all rules from SG_1 and SG_2
-            13. Check  ssh are not available to VMs
+            13. Check ssh are not available to VMs
                 and vice verse
             14. Add Ingress rule for TCP protocol to SG_2
             15. Add Ingress rule for ICMP protocol to SG_1
