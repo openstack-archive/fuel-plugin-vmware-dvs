@@ -106,8 +106,9 @@ class TestDVSPlugin(TestBasic):
         )
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
         # Remove node with cinder-vmdk role
         self.fuel_web.update_nodes(
@@ -124,8 +125,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1))
 
         # Remove node with compute role
         self.fuel_web.update_nodes(
@@ -142,8 +144,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_9],
           groups=["dvs_vcenter_add_delete_controller", "dvs_vcenter_plugin"])
@@ -201,8 +204,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
         # Remove node with controller role
         self.fuel_web.update_nodes(
@@ -211,8 +215,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id, check_services=False)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
         # Add node with controller role
 
@@ -225,8 +230,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id, check_services=False)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_destructive_setup", "dvs_vcenter_plugin"])
@@ -283,8 +289,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
         self.env.make_snapshot("dvs_vcenter_destructive_setup", is_make=True)
 
@@ -319,7 +326,7 @@ class TestDVSPlugin(TestBasic):
         )
 
     @test(depends_on=[dvs_vcenter_destructive_setup],
-          groups=["dvs_vcenter_destructive_setup", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_bind_port", "dvs_vcenter_destructive_setup"])
     @log_snapshot_after_test
     def dvs_vcenter_bind_port(self):
         """Check abilities to bind port on DVS to VM,
@@ -477,6 +484,10 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
+
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
@@ -524,3 +535,113 @@ class TestDVSPlugin(TestBasic):
         srv_list = os_conn.get_servers()
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
                                        remote=ssh_controller)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_vcenter_shutdown_controller", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_vcenter_shutdown_controller(self):
+        """Verify that vmclusters should be migrate after shutdown controller.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add 3 node with controller role.
+            5. Add 2 node with compute role.
+            6. Deploy the cluster.
+            7. Launch instances.
+            8. Verify connection between VMs. Send ping
+               Check that ping get reply
+            9. Shutdown controller.
+            10. Check that vmclusters should be migrate to another controller.
+            11. Verify connection between VMs.
+                Send ping, check that ping get reply
+
+        Duration 1.8 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+
+        # Configure cluster with 2 vcenter clusters and vcenter glance
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        # Assign role to node
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['controller'],
+             'slave-03': ['controller'],
+             'slave-04': ['compute'],
+             'slave-05': ['compute']}
+        )
+
+        # Configure VMWare vCenter settings
+        self.fuel_web.vcenter_configure(cluster_id)
+
+        self.fuel_web.deploy_cluster_wait(cluster_id, multiclusters=True)
+
+        # Bug 1529056
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
+            os_conn.create_sec_group_for_ssh()
+        security_group = security_group[
+            os_conn.get_tenant(SERVTEST_TENANT).id].id
+
+        network = os_conn.nova.networks.find(label=self.inter_net_name)
+        openstack.create_instances(
+            os_conn=os_conn, vm_count=1,
+            nics=[{'net-id': network.id}], security_group=security_group)
+
+        # Verify connection between VMs. Send ping, check that ping get reply
+        openstack.create_and_assign_floating_ip(os_conn=os_conn)
+        srv_list = os_conn.get_servers()
+
+        controlers = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
+            self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            cluster_id=cluster_id,
+            roles=['controller']))
+
+        ssh_controller = self.fuel_web.get_ssh_for_node(controlers[0].name)
+        openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                  remote=ssh_controller)
+
+        cmds = ['nova-manage service list | grep vcenter-vmcluster1',
+                'nova-manage service list | grep vcenter-vmcluster2']
+
+        openstack.check_service(ssh=ssh_controller, commands=cmds)
+
+        self.fuel_web.warm_shutdown_nodes(
+            [self.fuel_web.environment.d_env.get_node(
+                name=controlers[0].name)])
+
+        ssh_controller = self.fuel_web.get_ssh_for_node(
+            controlers[1].name)
+
+        openstack.check_service(ssh=ssh_controller, commands=cmds)
+        # Verify connection between VMs. Send ping Check that ping get reply
+        srv_list = os_conn.get_servers()
+        openstack.check_connection_vms(
+            os_conn=os_conn, srv_list=srv_list,
+            remote=ssh_controller
+        )
