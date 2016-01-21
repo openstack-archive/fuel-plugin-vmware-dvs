@@ -14,7 +14,7 @@ $adm_username     = try_get_value($neutron,'keystone/admin_user','neutron')
 $region_name      = hiera('region', 'RegionOne')
 $auth_api_version = 'v2.0'
 $adm_identity_uri = "http://${service_endpoint}:35357"
-$adm_auth_url     = "${admin_identity_uri}/${auth_api_version}"
+$adm_auth_url     = "${adm_identity_uri}/${auth_api_version}"
 $neutron_url      = "http://${neutron_endpoint}:9696"
 $py_root          = '/usr/lib/python2.7/dist-packages'
 
