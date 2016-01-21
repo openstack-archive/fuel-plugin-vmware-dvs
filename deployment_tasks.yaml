@@ -1,4 +1,5 @@
 - id: vmware-dvs-property-hypervisor_type
+  version: 2.0.0
   role: ['primary-controller']
   required_for: [post_deployment_end]
   requires: [disable_keystone_service_token]
@@ -17,7 +18,7 @@
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
 
-- id: vmware-dvs-setup-neutron-plugin
+- id: vmware-dvs-config-neutron-server
   groups: ['primary-controller','controller']
   required_for: [openstack-network-plugins-l2]
   requires: [vmware-dvs-override-hiera]
@@ -37,12 +38,100 @@
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
 
-
 - id: vmware-dvs-compute-vmware
+  version: 2.0.0
   groups: ['compute-vmware']
-  requires:  [top-role-compute-vmware]
+  requires:  [vmware-dvs-network-compute-nova]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/compute-vmware.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
+
+# Anchor (empty task) for another tasks, say 'tenant network FW setup starting'
+- id: vmware-dvs-network-start
+  type: skipped
+  version: 2.0.0
+  groups: ['primary-controller','controller','compute-vmware']
+  requires: [neutron-keystone, neutron-db, netconfig, openstack-controller, top-role-compute]
+  required_for: [openstack-network-common-config]
+  cross-depends:
+    - name: neutron-keystone
+    - name: openstack-haproxy
+    - name: neutron-db
+
+- id: vmware-dvs-network-compute-nova
+  type: puppet
+  version: 2.0.0
+  groups: ['compute-vmware']
+  required_for: [vmware-dvs-network-end]
+  requires: [vmware-dvs-network-common-config,vmware-dvs-network-agents-l3,vmware-dvs-network-agents-metadata]
+  cross-depends:
+    - name: /(primary-)?openstack-network-plugins-l2/
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/compute-nova.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmware-dvs-network-common-config
+  type: puppet
+  version: 2.0.0
+  groups: ['compute-vmware']
+  required_for: [vmware-dvs-network-end]
+  requires: [vmware-dvs-network-start]
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/common-config.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmware-dvs-network-plugins-l2
+  type: puppet
+  version: 2.0.0
+  groups: ['compute-vmware']
+  required_for: [vmware-dvs-network-end]
+  requires: [vmware-dvs-network-common-config, openstack-network-server-config]
+  refresh_on: [neutron_plugin_ml2, neutron_agent_ovs, neutron_config, neutron_api_config]
+  cross-depends:
+    - name: primary-openstack-network-plugins-l2
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/plugins/ml2.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmware-dvs-network-agents-l3
+  type: puppet
+  version: 2.0.0
+  groups: ['compute-vmware']
+  required_for: [vmware-dvs-network-end]
+  requires: [openstack-network-networks, openstack-network-routers, primary-openstack-network-plugins-l2, vmware-dvs-network-plugins-l2]
+  refresh_on: [neutron_l3_agent_config]
+  cross-depends:
+    - name: /(primary-)?openstack-network-plugins-l2/
+    - name: primary-openstack-network-agents-l3
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/agents/l3.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+
+- id: vmware-dvs-network-agents-metadata
+  type: puppet
+  version: 2.0.0
+  groups: ['compute-vmware']
+  required_for: [vmware-dvs-network-end]
+  requires: [vmware-dvs-network-common-config, openstack-network-server-nova,vmware-dvs-network-agents-l3]
+  refresh_on: [neutron_metadata_agent_config]
+  cross-depends:
+    - name: primary-openstack-network-agents-metadata
+    - name: /(primary-)?openstack-network-plugins-l2/
+  parameters:
+    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/agents/metadata.pp
+    puppet_modules: /etc/puppet/modules
+    timeout: 1800
+    
+# Anchor (empty task) for another tasks, say 'tenant network FW setup done'
+- id: vmware-dvs-network-end
+  type: skipped
+  version: 2.0.0
+  groups: ['primary-controller','controller','compute-vmware']
+  required_for: [deploy_end]
+  requires: []
