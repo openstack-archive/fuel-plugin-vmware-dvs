@@ -11,8 +11,8 @@
 - id: vmware-dvs-override-hiera
   version: 2.0.0
   groups: ['primary-controller','controller']
-  required_for: [openstack-network-plugins-l2]
-  requires: [openstack-network-server-config]
+  required_for: [openstack-network-server-config]
+  requires: [override_configuration]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/override_hiera.pp
