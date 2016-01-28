@@ -84,8 +84,9 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_9],
           groups=["dvs_vcenter_bvt", "dvs_vcenter_plugin"])
@@ -167,5 +168,6 @@ class TestDVSPlugin(TestBasic):
         self.fuel_web.verify_network(cluster_id)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
