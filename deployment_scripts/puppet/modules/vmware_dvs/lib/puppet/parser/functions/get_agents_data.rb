@@ -19,6 +19,7 @@
         agent["vsphere_login"] = vc["vc_user"]
         agent["vsphere_password"] = vc["vc_password"]
         agent["network_maps"] = physnet + ":" + dvSwitch
+        agent["ha_enabled"] = controllersp
         agents.push(agent)
       end
     }

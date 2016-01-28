@@ -44,24 +44,35 @@ define vmware_dvs::agent(
   $network_maps        = 'physnet1:dvSwitch1',
   $neutron_url_timeout = '3600',
   $py_root             = '/usr/lib/python2.7/dist-packages',
+  $ha_enabled          = true,
 )
 {
-
+  $neutron_conf = '/etc/neutron/neutron.conf'
+  $ml2_conf     = '/etc/neutron/plugin.ini'
+  $ocf_dvs_name = 'ocf-neutron-vmware-dvs-agent'
+  $ocf_dvs_res  = "/usr/lib/ocf/resource.d/fuel/${ocf_dvs_name}"
   $agent_config = "/etc/neutron/plugins/ml2/vmware_dvs-${host}.ini"
   $agent_name   = "neutron-plugin-vmware-dvs-agent-${host}"
   $agent_init   = "/etc/init/${agent_name}.conf"
+  $agent_crs    = "p_${agent_name}"
   $agent_log    = "/var/log/neutron/vmware-dvs-agent-${host}.log"
 
-  nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
-
-  file {"${py_root}/nova.patch":
-    source => 'puppet:///modules/vmware_dvs/nova.patch',
-    notify => Exec['apply-nova-patch'],
+  if ! defined(Nova_config['neutron/url_timeout']) {
+    nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
   }
-  exec {'apply-nova-patch':
-    path        => '/usr/bin:/usr/sbin:/bin:/sbin',
-    command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
-    refreshonly => true,
+
+  if ! defined(File["${py_root}/nova.patch"]) {
+    file {"${py_root}/nova.patch":
+      source => 'puppet:///modules/vmware_dvs/nova.patch',
+      notify => Exec['apply-nova-patch'],
+    }
+  }
+  if ! defined(Exec['apply-nova-patch']) {
+    exec {'apply-nova-patch':
+      path        => '/usr/bin:/usr/sbin:/bin:/sbin',
+      command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
+      refreshonly => true,
+    }
   }
 
   file {$agent_config:
@@ -78,9 +89,48 @@ define vmware_dvs::agent(
     owner   => 'root',
     group   => 'root',
     mode    => '0644',
-  }->
-  exec {"start_${agent_name}":
-    path    => '/usr/sbin:/sbin:/usr/bin:/bin',
-    command => "service ${agent_name} restart",
   }
+
+  if $ha_enabled {
+    if ! defined(File[$ocf_dvs_res]) {
+      file {$ocf_dvs_res:
+        source => "puppet:///modules/vmware_dvs/${ocf_dvs_name}",
+      }
+    }
+    
+    cs_resource { $agent_crs:
+      ensure          => present,
+      primitive_class => 'ocf',
+      provided_by     => 'fuel',
+      primitive_type  => 'neutron-dvs-agent',
+      metadata        => {
+        resource-stickiness => '1'
+      },
+      parameters      => {
+        config                => $neutron_conf,
+        plugin_config         => $ml2_conf,
+        pid                   => "/var/run/neutron/${agent_name}.pid",
+        log_file              => $agent_log,
+        additional_parameters => "--config-file=${agent_config}",
+      },
+      operations      => {
+        monitor  => { timeout => '10', interval => '20' },
+        start    => { timeout => '30' },
+        stop     => { timeout => '30' }
+      }
+    }
+    service { $agent_crs:
+      ensure   => 'running',
+      enable   => true,
+      provider => 'pacemaker',
+    }
+    File[$ocf_dvs_res] -> Cs_resource[$agent_crs] -> Service[$agent_crs]
+  }
+  else {
+      exec {"start_${agent_name}":
+        path    => '/usr/sbin:/sbin:/usr/bin:/bin',
+        command => "service ${agent_name} restart",
+      }
+  }
+
 }
