@@ -21,12 +21,6 @@ $vsphere_login    = $computes['vc_user']
 $vsphere_password = $computes['vc_password']
 
 $neutron          = hiera_hash('neutron_config', {})
-$physnet          = $neutron["predefined_networks"]["admin_internal_net"]["L2"]["physnet"]
-
-$vmware_dvs       = hiera_hash('fuel-plugin-vmware-dvs', {})
-$vds              = $vmware_dvs['vmware_dvs_net_maps']
-$network_maps     = "${physnet}:${vds}"
-
 $py_root          = '/usr/lib/python2.7/dist-packages'
 $ml2_driver_path  = 'neutron/plugins/ml2/drivers/mech_vmware_dvs'
 $ml2_plugin_path  = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py'
@@ -37,7 +31,6 @@ class {'::vmware_dvs':
   vsphere_hostname => $vsphere_hostname,
   vsphere_login    => $vsphere_login,
   vsphere_password => $vsphere_password,
-  network_maps     => $network_maps,
   driver_path      => $driver_path,
   plugin_path      => $plugin_path,
 }

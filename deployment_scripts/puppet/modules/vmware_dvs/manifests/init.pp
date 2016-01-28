@@ -40,7 +40,6 @@ class vmware_dvs(
   $vsphere_hostname = '192.168.0.1',
   $vsphere_login    = 'administrator@vsphere.loc',
   $vsphere_password = 'StrongPassword!',
-  $network_maps     = 'physnet2:dvSwitch1',
   $driver_path      = 'neutron/plugins/ml2/drivers/mech_vmware_dvs',
   $plugin_path      = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py',
 )
@@ -53,7 +52,6 @@ class vmware_dvs(
       'ml2_vmware/vsphere_hostname': value => $vsphere_hostname;
       'ml2_vmware/vsphere_login':    value => $vsphere_login;
       'ml2_vmware/vsphere_password': value => $vsphere_password;
-      'ml2_vmware/network_maps':     value => $network_maps;
       } ->
       package { ['python-suds','python-mech-vmware-dvs']:
         ensure => present,
@@ -68,11 +66,18 @@ class vmware_dvs(
         }
 
         file {'neutron-dvs-agent':
-          path    => '/usr/local/bin/neutron-dvs-agent',
+          path    => '/usr/bin/neutron-dvs-agent',
           source  => 'puppet:///modules/vmware_dvs/neutron-dvs-agent',
           owner   => 'root',
           group   => 'root',
           mode    => '0755',
           require => Package['python-mech-vmware-dvs'],
         }
+
+        file {'/etc/neutron/plugin.ini':
+          ensure => 'link',
+          target => '/etc/neutron/plugins/ml2/ml2_conf.ini',
+        }
+
+
 }
