@@ -1,4 +1,6 @@
 attributes:
+  metadata:
+    group: 'network'
   vmware_dvs_net_maps:
     value: ""
     label: "Enter the dvSwitch's name."
