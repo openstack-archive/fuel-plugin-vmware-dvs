@@ -2,5 +2,5 @@
 
 . /root/openrc
 
-glance image-update TestVM --property hypervisor_type=qemu
-glance image-update TestVM-VMDK --property hypervisor_type=vmware
+glance image-update $(glance image-list | awk '/ TestVM / {print $2}') --property hypervisor_type=qemu
+glance image-update $(glance image-list | awk '/ TestVM-VMDK / {print $2}') --property hypervisor_type=vmware
