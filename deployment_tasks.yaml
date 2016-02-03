@@ -5,8 +5,8 @@
   requires: [disable_keystone_service_token]
   type: shell
   parameters:
-    cmd: ./add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
-    timeout: 120
+    cmd: bash add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
+    timeout: 240
 
 - id: vmware-dvs-override-hiera
   version: 2.0.0
