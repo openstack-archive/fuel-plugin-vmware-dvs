@@ -11,8 +11,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import paramiko
 
-
+from netaddr import *
 from proboscis.asserts import assert_true
 from devops.helpers.helpers import wait
 from devops.error import TimeoutError
@@ -42,42 +43,46 @@ def create_instances(os_conn=None, vm_count=None, nics=None,
     images_list = os_conn.nova.images.list()
     flavors_list = os_conn.nova.flavors.list()
     available_hosts = os_conn.nova.services.list(binary='nova-compute')
+    instances = []
     for host in available_hosts:
         for zone in zone_image_maps.keys():
             if host.zone == zone:
                 image = [image for image
                          in images_list
                          if image.name == zone_image_maps[zone]][0]
-        os_conn.nova.servers.create(
+        instance = os_conn.nova.servers.create(
             flavor=flavors_list[0],
             name='test_{0}'.format(image.name),
             image=image, min_count=vm_count,
             availability_zone='{0}:{1}'.format(host.zone, host.host),
             nics=nics
         )
+        instances.append(instance)
 
     # Verify that current state of each VMs is Active
-    srv_list = os_conn.get_servers()
-    for srv in srv_list:
-        assert_true(os_conn.get_instance_detail(srv).status != 'ERROR',
+    #srv_list = os_conn.get_servers()
+    #for srv in srv_list:
+    for instance in instances:
+        assert_true(os_conn.get_instance_detail(instance).status != 'ERROR',
                     "Current state of Vm {0} is {1}".format(
-                        srv.name, os_conn.get_instance_detail(srv).status))
+                        instance.name,
+                        os_conn.get_instance_detail(instance).status))
         try:
             wait(
                 lambda:
-                os_conn.get_instance_detail(srv).status == "ACTIVE",
+                os_conn.get_instance_detail(instance).status == "ACTIVE",
                 timeout=boot_timeout)
         except TimeoutError:
             logger.error(
                 "Timeout is reached.Current state of Vm {0} is {1}".format(
-                    srv.name, os_conn.get_instance_detail(srv).status))
+                instance.name, os_conn.get_instance_detail(instance).status))
         # assign security group
         if security_group:
-            srv.add_security_group(security_group)
+            instance.add_security_group(security_group)
 
 
-def check_connection_vms(os_conn, srv_list, remote,
-                         result_of_ping=0,
+def check_connection_vms(os_conn, srv_list, remote, command,
+                         result_of_command=0,
                          destination_ip=None):
     """Check network connectivity between instancea and destination ip
        with ping
@@ -89,53 +94,73 @@ def check_connection_vms(os_conn, srv_list, remote,
                            check by ping
     """
     creds = ("cirros", "cubswin:)")
-    icmp_count = 10
+    commands = {
+                "pingv4": "ping -c 5 {}",
+                "pingv6": "ping6 -c 5 {}",
+                "arping": "sudo arping -I eth0 {}"}
 
     for srv in srv_list:
         addresses = srv.addresses[srv.addresses.keys()[0]]
         fip = [add['addr'] for add in addresses
                if add['OS-EXT-IPS:type'] == 'floating'][0]
 
-        logger.info("Connect to VM {0}".format(fip))
-
         if not destination_ip:
-            for s in srv_list:
-                if s != srv:
-                    ip = s.networks[s.networks.keys()[0]][0]
-                    ping_command = "ping -c {0} {1}".format(
-                        icmp_count, ip)
-                    ping_result = os_conn.execute_through_host(
-                        remote, fip,
-                        ping_command,
-                        creds)
-                    logger.info("Ping result: \n"
-                                "{0}\n"
-                                "{1}\n"
-                                "exit_code={2}"
-                                .format(ping_result['stdout'],
-                                        ping_result['stderr'],
-                                        ping_result['exit_code']))
+            destination_ip = [s.networks[s.networks.keys()[0]][0]
+                              for s in srv_list if s != srv]
 
-        else:
-            for ip in destination_ip:
-                if ip != srv.networks[srv.networks.keys()[0]][0]:
-                    ping_command = "ping -c {0} {1}".format(
-                        icmp_count, ip)
-                    ping_result = os_conn.execute_through_host(
-                        remote, fip,
-                        ping_command, creds)
-                    logger.info("Ping result: \n"
-                                "{0}\n"
-                                "{1}\n"
-                                "exit_code={2}"
-                                .format(ping_result['stdout'],
-                                        ping_result['stderr'],
-                                        ping_result['exit_code']))
-        assert_true(
-            result_of_ping == ping_result['exit_code'],
-            "Ping VM{0} from Vm {1},"
-            " not reached {2}".format(ip, fip, ping_result)
-        )
+        for ip in destination_ip:
+            if ip != srv.networks[srv.networks.keys()[0]][0]:
+                logger.info("Connect to VM {0}".format(fip))
+                command_result = os_conn.execute_through_host(
+                    remote, fip,
+                    commands[command].format(ip), creds)
+                logger.info("Command result: \n"
+                            "{0}\n"
+                            "{1}\n"
+                            "exit_code={2}"
+                            .format(command_result['stdout'],
+                                    command_result['stderr'],
+                                    command_result['exit_code']))
+                assert_true(
+                    result_of_command == command_result['exit_code'],
+                    " Command {0} from Vm {1},"
+                    " executed with code {2}".format(
+                        commands[command].format(ip),
+                        fip, command_result)
+                )
+
+
+def get_ssh_connection(ip, username, userpassword, timeout=30):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(ip, port=22, username=username,
+                             password=userpassword, timeout=timeout)
+    return ssh
+
+
+def check_ssh_between_instances(instance1, instance2):
+    """Check ssh conection between instances
+    :param instance1: dictionary with keys ip, username and userpassword
+    :param instance2: dictionary with keys ip, username and userpassword
+    """
+
+    ssh = get_ssh_connection(instance1['ip'], instance1['username'],
+                         instance1['userpassword'], timeout=30)
+
+    interm_transp = ssh.get_transport()
+    logger.info("Opening channel to VM")
+    interm_chan = interm_transp.open_channel('direct-tcpip',
+                                             (instance2['ip'], 22),
+                                             (instance1['ip'], 0))
+    logger.info("Opening paramiko transport")
+    transport = paramiko.Transport(interm_chan)
+    logger.info("Starting client")
+    transport.start_client()
+    logger.info("Passing authentication to VM")
+    transport.auth_password(
+        instance2['username'], instance2['userpassword'])
+    channel = transport.open_session()
+    assert_true(channel.send_ready())
 
 
 def create_and_assign_floating_ip(os_conn, srv_list=None,

@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import time
+import paramiko
 
 
 from proboscis import test
@@ -47,6 +48,7 @@ class TestDVSPlugin(TestBasic):
     # defaults
     ext_net_name = 'admin_floating_net'
     inter_net_name = 'admin_internal_net'
+    instance_creds = ("cirros", "cubswin:)")
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_systest_setup", 'dvs_vcenter_system'])
@@ -277,9 +279,10 @@ class TestDVSPlugin(TestBasic):
         ssh_controller = self.fuel_web.get_ssh_for_node(
             primary_controller.name)
         openstack.check_connection_vms(
-            os_conn=os_conn, srv_list=srv_list, remote=ssh_controller,
+            os_conn=os_conn, srv_list=srv_list, command='pingv4',
+            remote=ssh_controller,
             destination_ip=['8.8.8.8']
-        )
+         )
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_5_instances", 'dvs_vcenter_system'])
@@ -344,6 +347,24 @@ class TestDVSPlugin(TestBasic):
         Duration 30 min
 
         """
+
+        # security group rules
+        tcp = {"security_group_rule":
+                        {"direction": "ingress",
+                         "port_range_min": "22",
+                         "ethertype": "IPv4",
+                         "port_range_max": "22",
+                         "protocol": "TCP",
+                         "security_group_id": ""}}
+        icmp = {"security_group_rule":
+                         {"direction": "ingress",
+                         "ethertype": "IPv4",
+                         "protocol": "icmp",
+                         "security_group_id": ""}}
+        other = {"security_group_rule":
+                         {"direction": "egress",
+                         "ethertype": "IPv4",
+                         "security_group_id": ""}}
 
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
@@ -410,29 +431,10 @@ class TestDVSPlugin(TestBasic):
         sg2 = os_conn.nova.security_groups.create(
             sec_name[1], "descr")
 
-        rulesets = [
-            {
-                # ssh
-                'ip_protocol': 'tcp',
-                'from_port': 22,
-                'to_port': 22,
-                'cidr': '0.0.0.0/0',
-            },
-            {
-                # ping
-                'ip_protocol': 'icmp',
-                'from_port': -1,
-                'to_port': -1,
-                'cidr': '0.0.0.0/0',
-            }
-        ]
-
-        tcp = os_conn.nova.security_group_rules.create(
-            sg1.id, **rulesets[0]
-        )
-        icmp = os_conn.nova.security_group_rules.create(
-            sg2.id, **rulesets[1]
-        )
+        tcp["security_group_rule"]["security_group_id"] = sg1.id
+        os_conn.neutron.create_security_group_rule(tcp)
+        icmp["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(icmp)
 
         # Remove defauld security group and attach SG_1 and SG2 to VMs
         srv_list = os_conn.get_servers()
@@ -444,7 +446,7 @@ class TestDVSPlugin(TestBasic):
         time.sleep(20)  # need wait to update rules on dvs
 
         # SSh to VMs
-        # Check ping between VMs
+        logger.info("Check ping between VMs")
         primary_controller = self.fuel_web.get_nailgun_primary_node(
             self.env.d_env.nodes().slaves[0]
         )
@@ -452,38 +454,71 @@ class TestDVSPlugin(TestBasic):
             primary_controller.name)
 
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
-                                       remote=ssh_controller)
+                                       command='pingv4', remote=ssh_controller)
+        #Check ssh connections between VMs
+        floating_ip = []
+        for srv in srv_list:
+            floating_ip.append([add['addr']
+                           for add in srv.addresses[srv.addresses.keys()[0]]
+                           if add['OS-EXT-IPS:type'] == 'floating'][0])
 
-        # Delete all rules from SG_1 and SG_2
-        os_conn.nova.security_group_rules.delete(tcp.id)
-        os_conn.nova.security_group_rules.delete(icmp.id)
+        for ip_1 in floating_ip:
+            for ip_2 in floating_ip:
+                if  ip_1 != ip_2:
+                    openstack.check_ssh_between_instances(
+                        {'ip': ip_1,
+                         'username': self.instance_creds[0],
+                         'userpassword': self.instance_creds[1]},
+                        {'ip': ip_2,
+                         'username': self.instance_creds[0],
+                         'userpassword': self.instance_creds[1]})
 
-        # Check  ssh are not available between VMs
-        # and vice verse
-        try:
-            openstack.check_connection_vms(
-                os_conn=os_conn, srv_list=srv_list, remote=ssh_controller)
-        except Exception as e:
-            logger.info('{}'.format(e))
+        logger.info("Delete all rules from SG_1 and SG_2")
+        sg_rules = os_conn.neutron.list_security_group_rules()[
+            'security_group_rules']
+        sg_rules = [
+            sg_rule for sg_rule
+            in os_conn.neutron.list_security_group_rules()[
+            'security_group_rules']
+            if sg_rule['security_group_id'] == sg1.id or sg2.id]
+        for rule in sg_rules:
+            os_conn.neutron.delete_security_group_rule(rule['id'])
 
-        tcp = os_conn.nova.security_group_rules.create(
-            sg1.id, **rulesets[0]
-        )
         time.sleep(20)  # need wait to update rules on dvs
 
-        # Check  ping are not available between VMs
-        srv_list = os_conn.get_servers()
+        logger.info("Check  ssh are not available to Vms")
+        # need change
+        for ip in floating_ip:
+            try:
+                openstack.get_ssh_connection(ip, self.instance_creds[0],
+                            self.instance_creds[1])
+            except Exception as e:
+                logger.info('{}'.format(e))
+
+        logger.info("Add ssh rule to SG_2")
+        tcp["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(tcp)
+        other["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(other)
+
+        time.sleep(20)  # need wait to update rules on dvs ports
+
+        # Check  pingv4 are not available between VMs
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
-                                       remote=ssh_controller, result_of_ping=1)
+                                       command='pingv4', remote=ssh_controller,
+                                       result_of_command=1)
 
-        icmp = os_conn.nova.security_group_rules.create(
-            sg2.id, **rulesets[1]
-        )
-        time.sleep(20)  # need wait to update rules on dvs
+        for srv in srv_list:
+            for i in range(srv.security_groups.list()):
+                srv.remove_security_group(srv.security_groups[i]['name'])
+            srv.add_security_group('default')
 
-        # Check  ping are not available between VMs
+        time.sleep(20)  # need wait to update rules on dvs ports
+
+        # Check  ping are available between VMs
         openstack.check_connection_vms(
-            os_conn=os_conn, srv_list=srv_list, remote=ssh_controller)
+            os_conn=os_conn, srv_list=srv_list, command='ping',
+            remote=ssh_controller)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_tenants_isolation", 'dvs_vcenter_system'])
@@ -610,7 +645,7 @@ class TestDVSPlugin(TestBasic):
             primary_controller.name)
         openstack.check_connection_vms(
             os_conn=admin, srv_list=srv_1,
-            result_of_ping=1,
+            result_of_command=1,
             remote=ssh_controller, destination_ip=ips
         )
 
@@ -649,6 +684,7 @@ class TestDVSPlugin(TestBasic):
         """
 
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        time.sleep(60 * 5)
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 

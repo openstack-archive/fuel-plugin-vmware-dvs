@@ -583,9 +583,9 @@ class TestDVSPlugin(TestBasic):
         )
 
         # Configure VMWare vCenter settings
-        self.fuel_web.vcenter_configure(cluster_id)
+        self.fuel_web.vcenter_configure(cluster_id, multiclusters=True)
 
-        self.fuel_web.deploy_cluster_wait(cluster_id, multiclusters=True)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
