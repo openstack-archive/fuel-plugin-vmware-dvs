@@ -4,3 +4,4 @@
   requires:
     - name: 'network:neutron:core:ml2'
     - name: 'hypervisor:vmware'
+      message: 'The VMware DVS plugin requires vCenter as the hypervisor option.'
