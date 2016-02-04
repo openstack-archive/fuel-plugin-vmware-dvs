@@ -1,0 +1,9 @@
+Verified+1: Plugins CI <plugins.ci@mirantis.com>
+Code-Review+2: Slava Tabolin <vtabolin@mirantis.com>
+Workflow+1: Slava Tabolin <vtabolin@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 04 Feb 2016 14:46:47 +0000
+Reviewed-on: https://review.openstack.org/276196
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/stable/8.0-agentless
