@@ -43,7 +43,7 @@ class TestDVSPlugin(TestBasic):
         get_nailgun_node_by_name(name_node)['hostname']
 
     # defaults
-    inter_net_name = 'admin_internal_net'
+    inter_net_name = openstack.get_defaults()['networks']['internal']['name']
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_9],
           groups=["dvs_vcenter_add_delete_nodes", "dvs_vcenter_plugin"])
@@ -583,9 +583,9 @@ class TestDVSPlugin(TestBasic):
         )
 
         # Configure VMWare vCenter settings
-        self.fuel_web.vcenter_configure(cluster_id)
+        self.fuel_web.vcenter_configure(cluster_id, multiclusters=True)
 
-        self.fuel_web.deploy_cluster_wait(cluster_id, multiclusters=True)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])

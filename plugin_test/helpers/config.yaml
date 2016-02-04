@@ -1,0 +1,12 @@
+os_credentials:
+  cirros:
+    user: 'cirros'
+    password: 'cubswin:)'
+networks:
+  floating:
+    name: 'admin_floating_net'
+  internal:
+    name: 'admin_internal_net'
+zone_image_maps:
+  vcenter: 'TestVM-VMDK'
+  nova: 'TestVM'

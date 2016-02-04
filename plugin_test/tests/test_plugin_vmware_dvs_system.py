@@ -45,8 +45,11 @@ class TestDVSPlugin(TestBasic):
                 {'net_2': '192.168.113.0/24'}]
 
     # defaults
-    ext_net_name = 'admin_floating_net'
-    inter_net_name = 'admin_internal_net'
+    ext_net_name = openstack.get_defaults()['networks']['floating']['name']
+    inter_net_name = openstack.get_defaults()['networks']['internal']['name']
+    instance_creds = (
+        openstack.get_defaults()['os_credentials']['cirros']['user'],
+        openstack.get_defaults()['os_credentials']['cirros']['password'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_systest_setup", 'dvs_vcenter_system'])
@@ -277,9 +280,10 @@ class TestDVSPlugin(TestBasic):
         ssh_controller = self.fuel_web.get_ssh_for_node(
             primary_controller.name)
         openstack.check_connection_vms(
-            os_conn=os_conn, srv_list=srv_list, remote=ssh_controller,
+            os_conn=os_conn, srv_list=srv_list, command='pingv4',
+            remote=ssh_controller,
             destination_ip=['8.8.8.8']
-        )
+         )
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_5_instances", 'dvs_vcenter_system'])
@@ -319,44 +323,63 @@ class TestDVSPlugin(TestBasic):
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Create non default network with subnet net01.
-            3. Launch 2 instances of nova az
+            3. Launch 2 instances  of vcenter and 2 instances of nova
                in the tenant network net_01
-            4. Launch 2 instances of vcenter az
-               in the tenant net04.
-            5. Create security groups SG_1 to allow ICMP traffic.
+            4. Launch 2 instances  of vcenter and 2 instances of nova
+               in the default tenant network
+            5. Create security group SG_1 to allow ICMP traffic.
             6. Add Ingress rule for ICMP protocol to SG_1
             7. Create security groups SG_2 to allow TCP traffic 22 port.
             8. Add Ingress rule for TCP protocol to SG_2
-            9. Remove defauld security group and attach SG_1 and SG2 to VMs
-            10. Check ssh between VMs
-            11. Check ping between VMs
-            12. Delete all rules from SG_1 and SG_2
-            13. Check ssh are not available to VMs
-                and vice verse
-            14. Add Ingress rule for TCP protocol to SG_2
-            15. Add Ingress rule for ICMP protocol to SG_1
-            16. Check ping between VMs and vice verse
-            17. Check SSH between VMs
-            18. Delete security groups.
-            19. Attach Vms to default security group.
-            20. Check  ssh are not available to VMs.
+            9. Check ping is available between instances.
+            10. Check ssh connection is available between instances.
+            11. Delete all rules from SG_1 and SG_2
+            12. Check that ssh aren't available to instances.
+            13. Add Ingress and egress rules for TCP protocol to SG_2
+            14. Check ssh connection is available between instances.
+            15. Check ping is not available between instances.
+            16. Add Ingress and egress rules for ICMP protocol to SG_1
+            17. Check ping is available between instances.
+            18. Delete Ingress rule for ICMP protocol from SG_1
+                (if OS cirros skip this step)
+            19. Add Ingress rule for ICMP ipv6 to SG_1
+                (if OS cirros skip this step)
+            20. Check ping6 between VM_1 and VM_2 and vice versa
+                (if OS cirros skip this step)
+            21. Delete SG1 and SG2 security groups.
+            22. Attach instances to default security group.
+            23. Check ping is available between instances.
+            24. Check ssh is available between instances.
 
         Duration 30 min
 
         """
 
+        # security group rules
+        tcp = {"security_group_rule":
+                        {"direction": "ingress",
+                         "port_range_min": "22",
+                         "ethertype": "IPv4",
+                         "port_range_max": "22",
+                         "protocol": "TCP",
+                         "security_group_id": ""}}
+        icmp = {"security_group_rule":
+                         {"direction": "ingress",
+                         "ethertype": "IPv4",
+                         "protocol": "icmp",
+                         "security_group_id": ""}}
+
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
-        # Connect to cluster
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
 
-        # Create non default network with subnet.
+        logger.info("Create non default network with subnet.")
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
         network = openstack.create_network(
             os_conn,
@@ -372,26 +395,27 @@ class TestDVSPlugin(TestBasic):
             tenant_name=SERVTEST_TENANT
         )
 
-        # Check that network are created.
+        logger.info("Check that network are created.")
         assert_true(
             os_conn.get_network(network['name'])['id'] == network['id']
         )
 
-        # Add net_1 to default router
+        logger.info("Add net_1 to default router")
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
         openstack.add_subnet_to_router(
             os_conn,
             router['id'], subnet['id'])
 
-        #  Launch instance 2 VMs of vcenter and 2 VMs of nova
-        #  in the tenant network net_01
+        logger.info("""Launch 2 instances of vcenter and 2 instances of nova
+                       in the tenant network net_01.""")
         openstack.create_instances(
             os_conn=os_conn, vm_count=1,
             nics=[{'net-id': network['id']}]
         )
 
-        #  Launch instance 2 VMs of vcenter and 2 VMs of nova
-        #  in the tenant network net04
+        logger.info("""Launch 2 instances of vcenter and
+                       2 instances of nova
+                       in the  default tenant network.""")
         network = os_conn.nova.networks.find(label=self.inter_net_name)
         openstack.create_instances(
             os_conn=os_conn, vm_count=1,
@@ -399,10 +423,10 @@ class TestDVSPlugin(TestBasic):
 
         openstack.create_and_assign_floating_ip(os_conn=os_conn)
 
-        # Create security groups SG_1 to allow ICMP traffic.
-        # Add Ingress rule for ICMP protocol to SG_1
-        # Create security groups SG_2 to allow TCP traffic 22 port.
-        # Add Ingress rule for TCP protocol to SG_2
+        logger.info("""Create security groups SG_1 to allow ICMP traffic.
+            Add Ingress rule for ICMP protocol to SG_1
+            Create security groups SG_2 to allow TCP traffic 22 port.
+            Add Ingress rule for TCP protocol to SG_2.""")
 
         sec_name = ['SG1', 'SG2']
         sg1 = os_conn.nova.security_groups.create(
@@ -410,31 +434,13 @@ class TestDVSPlugin(TestBasic):
         sg2 = os_conn.nova.security_groups.create(
             sec_name[1], "descr")
 
-        rulesets = [
-            {
-                # ssh
-                'ip_protocol': 'tcp',
-                'from_port': 22,
-                'to_port': 22,
-                'cidr': '0.0.0.0/0',
-            },
-            {
-                # ping
-                'ip_protocol': 'icmp',
-                'from_port': -1,
-                'to_port': -1,
-                'cidr': '0.0.0.0/0',
-            }
-        ]
+        tcp["security_group_rule"]["security_group_id"] = sg1.id
+        os_conn.neutron.create_security_group_rule(tcp)
+        icmp["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(icmp)
 
-        tcp = os_conn.nova.security_group_rules.create(
-            sg1.id, **rulesets[0]
-        )
-        icmp = os_conn.nova.security_group_rules.create(
-            sg2.id, **rulesets[1]
-        )
-
-        # Remove defauld security group and attach SG_1 and SG2 to VMs
+        logger.info("""Remove default security group
+                       and attach SG_1 and SG2 to instances""")
         srv_list = os_conn.get_servers()
         for srv in srv_list:
             srv.remove_security_group(srv.security_groups[0]['name'])
@@ -443,47 +449,106 @@ class TestDVSPlugin(TestBasic):
 
         time.sleep(20)  # need wait to update rules on dvs
 
-        # SSh to VMs
-        # Check ping between VMs
+        logger.info("Check ping between instances.")
         primary_controller = self.fuel_web.get_nailgun_primary_node(
             self.env.d_env.nodes().slaves[0]
         )
         ssh_controller = self.fuel_web.get_ssh_for_node(
             primary_controller.name)
 
+        logger.info("Check ping is available between instances.")
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
-                                       remote=ssh_controller)
+                                       command='pingv4', remote=ssh_controller)
 
-        # Delete all rules from SG_1 and SG_2
-        os_conn.nova.security_group_rules.delete(tcp.id)
-        os_conn.nova.security_group_rules.delete(icmp.id)
+        logger.info("Check ssh connection is available between instances.")
+        floating_ip = []
+        for srv in srv_list:
+            floating_ip.append([add['addr']
+                           for add in srv.addresses[srv.addresses.keys()[0]]
+                           if add['OS-EXT-IPS:type'] == 'floating'][0])
 
-        # Check  ssh are not available between VMs
-        # and vice verse
-        try:
-            openstack.check_connection_vms(
-                os_conn=os_conn, srv_list=srv_list, remote=ssh_controller)
-        except Exception as e:
-            logger.info('{}'.format(e))
+        ip_pair = [(ip_1, ip_2)
+                   for ip_1 in floating_ip
+                   for ip_2 in floating_ip
+                   if ip_1 != ip_2]
 
-        tcp = os_conn.nova.security_group_rules.create(
-            sg1.id, **rulesets[0]
-        )
+        for ips in ip_pair:
+            openstack.check_ssh_between_instances(ips[0], ips[1])
+
+        logger.info("Delete all rules from SG_1 and SG_2")
+        sg_rules = os_conn.neutron.list_security_group_rules()[
+            'security_group_rules']
+        sg_rules = [
+            sg_rule for sg_rule
+            in os_conn.neutron.list_security_group_rules()[
+            'security_group_rules']
+            if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
+        for rule in sg_rules:
+            os_conn.neutron.delete_security_group_rule(rule['id'])
+
         time.sleep(20)  # need wait to update rules on dvs
 
-        # Check  ping are not available between VMs
+        logger.info("Check  ssh are not available to instances")
+        for ip in floating_ip:
+            try:
+                openstack.get_ssh_connection(ip, self.instance_creds[0],
+                            self.instance_creds[1])
+            except Exception as e:
+                logger.info('{}'.format(e))
+
+        logger.info("Add Ingress and egress rules for TCP protocol to SG_2")
+        tcp["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(tcp)
+        tcp["security_group_rule"]["direction"] = "egress"
+        os_conn.neutron.create_security_group_rule(tcp)
+
+        time.sleep(20)  # need wait to update rules on dvs ports
+
+        logger.info("Check ssh connection is available between instances.")
+        for ips in ip_pair:
+            openstack.check_ssh_between_instances(ips[0], ips[1])
+
+        logger.info("Check ping is not available between instances.")
+        openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                       command='pingv4', remote=ssh_controller,
+                                       result_of_command=1)
+
+        logger.info("Add Ingress and egress rules for ICMP protocol to SG_1")
+        icmp["security_group_rule"]["security_group_id"] = sg1.id
+        os_conn.neutron.create_security_group_rule(icmp)
+        icmp["security_group_rule"]["direction"] = "egress"
+        os_conn.neutron.create_security_group_rule(icmp)
+
+        time.sleep(20)  # need wait to update rules on dvs ports
+
+        logger.info("Check ping is available between instances.")
+        openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                       command='pingv4', remote=ssh_controller)
+
+        logger.info("""Delete SG1 and SG2 security groups.
+                     Attach instances to default security group.""")
         srv_list = os_conn.get_servers()
+        for srv in srv_list:
+            for sg in srv.security_groups:
+                srv.remove_security_group(sg['name'])
+            srv.add_security_group('default')
+        # need add tcp rule for ssh to instances
+        tcp["security_group_rule"]["security_group_id"] = \
+            [sg['id']
+             for sg in os_conn.neutron.list_security_groups()['security_groups']
+             if sg['tenant_id'] == os_conn.get_tenant(SERVTEST_TENANT).id
+             if sg['name'] == 'default'][0]
+        tcp["security_group_rule"]["direction"] = "ingress"
+        os_conn.neutron.create_security_group_rule(tcp)
+        time.sleep(20)  # need wait to update rules on dvs ports
+
+        logger.info("Check ping is available between instances.")
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
-                                       remote=ssh_controller, result_of_ping=1)
+                                       command='pingv4', remote=ssh_controller)
 
-        icmp = os_conn.nova.security_group_rules.create(
-            sg2.id, **rulesets[1]
-        )
-        time.sleep(20)  # need wait to update rules on dvs
-
-        # Check  ping are not available between VMs
-        openstack.check_connection_vms(
-            os_conn=os_conn, srv_list=srv_list, remote=ssh_controller)
+        logger.info("Check ssh connection is available between instances.")
+        for ips in ip_pair:
+            openstack.check_ssh_between_instances(ips[0], ips[1])
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_tenants_isolation", 'dvs_vcenter_system'])
@@ -609,8 +674,8 @@ class TestDVSPlugin(TestBasic):
         ssh_controller = self.fuel_web.get_ssh_for_node(
             primary_controller.name)
         openstack.check_connection_vms(
-            os_conn=admin, srv_list=srv_1,
-            result_of_ping=1,
+            os_conn=admin, srv_list=srv_1, command='pingv4',
+            result_of_command=1,
             remote=ssh_controller, destination_ip=ips
         )
 
