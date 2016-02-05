@@ -106,9 +106,8 @@ class TestDVSPlugin(TestBasic):
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
-        # Bug 1529056
         self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'], should_fail=1)
+            cluster_id=cluster_id, test_sets=['smoke'])
 
         self.env.make_snapshot("dvs_vcenter_systest_setup", is_make=True)
 
