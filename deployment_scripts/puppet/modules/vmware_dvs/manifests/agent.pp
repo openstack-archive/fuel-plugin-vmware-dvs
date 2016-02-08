@@ -44,24 +44,39 @@ define vmware_dvs::agent(
   $network_maps        = 'physnet1:dvSwitch1',
   $neutron_url_timeout = '3600',
   $py_root             = '/usr/lib/python2.7/dist-packages',
+  $ha_enabled          = true,
+  $primary             = false,
 )
 {
-
+  $neutron_conf = '/etc/neutron/neutron.conf'
+  $ml2_conf     = '/etc/neutron/plugin.ini'
+  $ocf_dvs_name = 'ocf-neutron-dvs-agent'
+  $ocf_dvs_res  = "/usr/lib/ocf/resource.d/fuel/${ocf_dvs_name}"
   $agent_config = "/etc/neutron/plugins/ml2/vmware_dvs-${host}.ini"
   $agent_name   = "neutron-plugin-vmware-dvs-agent-${host}"
   $agent_init   = "/etc/init/${agent_name}.conf"
+  $agent_initd  = "/etc/init.d/${agent_name}"
   $agent_log    = "/var/log/neutron/vmware-dvs-agent-${host}.log"
+  $ocf_pid_dir  = '/var/run/resource-agents/ocf-neutron-dvs-agent'
+  $ocf_pid      = "${ocf_pid_dir}/${agent_name}.pid"
 
-  nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
 
-  file {"${py_root}/nova.patch":
-    source => 'puppet:///modules/vmware_dvs/nova.patch',
-    notify => Exec['apply-nova-patch'],
+  if ! defined(Nova_config['neutron/url_timeout']) {
+    nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
   }
-  exec {'apply-nova-patch':
-    path        => '/usr/bin:/usr/sbin:/bin:/sbin',
-    command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
-    refreshonly => true,
+
+  if ! defined(File["${py_root}/nova.patch"]) {
+    file {"${py_root}/nova.patch":
+      source => 'puppet:///modules/vmware_dvs/nova.patch',
+      notify => Exec['apply-nova-patch'],
+    }
+  }
+  if ! defined(Exec['apply-nova-patch']) {
+    exec {'apply-nova-patch':
+      path        => '/usr/bin:/usr/sbin:/bin:/sbin',
+      command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
+      refreshonly => true,
+    }
   }
 
   file {$agent_config:
@@ -78,9 +93,55 @@ define vmware_dvs::agent(
     owner   => 'root',
     group   => 'root',
     mode    => '0644',
-  }->
-  exec {"start_${agent_name}":
-    path    => '/usr/sbin:/sbin:/usr/bin:/bin',
-    command => "service ${agent_name} restart",
   }
+
+  file {$agent_initd:
+    ensure  => present,
+    content => template('vmware_dvs/agent_init.d.erb'),
+    owner   => 'root',
+    group   => 'root',
+    mode    => '0755',
+  }
+
+  if $ha_enabled {
+    if ! defined(File[$ocf_dvs_res]) {
+      file {$ocf_dvs_res:
+        source => "puppet:///modules/vmware_dvs/${ocf_dvs_name}",
+        owner  => 'root',
+        group  => 'root',
+        mode   => '0755',
+      }
+    }
+
+    service {$agent_name: }
+
+    cluster::corosync::cs_service{$agent_name:
+      ocf_script       => $ocf_dvs_name,
+      csr_complex_type => 'clone',
+      csr_ms_metadata  => {
+        'interleave' => true
+      },
+      csr_parameters   => {
+        'plugin_config'         => $ml2_conf,
+        'additional_parameters' => "--config-file=${agent_config}",
+        'log_file'              => $agent_log,
+        'pid'                   => $ocf_pid,
+      },
+      csr_mon_intr     => '20',
+      csr_mon_timeout  => '10',
+      csr_timeout      => '80',
+      service_name     => $agent_name,
+      package_name     => $agent_name,
+      service_title    => $agent_name,
+      primary          => $primary,
+      hasrestart       => false,
+    }
+  }
+  else {
+      exec {"start_${agent_name}":
+        path    => '/usr/sbin:/sbin:/usr/bin:/bin',
+        command => "service ${agent_name} restart",
+      }
+  }
+
 }
