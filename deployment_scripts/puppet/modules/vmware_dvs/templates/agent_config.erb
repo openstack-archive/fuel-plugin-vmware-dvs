@@ -3,7 +3,7 @@ host=<%= @host %>
 
 [securitygroup]
 enable_security_group = True
-firewall_driver=mech_vmware_dvs.agentDVS.vCenter_firewall.vCenterFirewallDriver
+firewall_driver=<%= @fw_driver %>
 
 [ml2_vmware]
 vsphere_login=<%= @vsphere_login %>
