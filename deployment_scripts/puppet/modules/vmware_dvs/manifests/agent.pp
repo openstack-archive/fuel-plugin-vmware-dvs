@@ -42,6 +42,7 @@ define vmware_dvs::agent(
   $vsphere_login       = 'administrator@vsphere.local',
   $vsphere_password    = 'StrongPassword!',
   $network_maps        = 'physnet1:dvSwitch1',
+  $use_fw_driver       = true,
   $neutron_url_timeout = '3600',
   $py_root             = '/usr/lib/python2.7/dist-packages',
   $ha_enabled          = true,
@@ -59,6 +60,13 @@ define vmware_dvs::agent(
   $agent_log    = "/var/log/neutron/vmware-dvs-agent-${host}.log"
   $ocf_pid_dir  = '/var/run/resource-agents/ocf-neutron-dvs-agent'
   $ocf_pid      = "${ocf_pid_dir}/${agent_name}.pid"
+
+  if $use_fw_driver {
+    $fw_driver = 'mech_vmware_dvs.agentDVS.vCenter_firewall.DVSFirewallDriver'
+  }
+  else {
+    $fw_driver = 'mech_vmware_dvs.agentDVS.noop.vCenterNOOP'
+  }
 
 
   if ! defined(Nova_config['neutron/url_timeout']) {

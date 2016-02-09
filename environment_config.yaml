@@ -1,6 +1,11 @@
 attributes:
   metadata:
     group: 'network'
+  vmware_dvs_fw_driver:
+    value: true
+    label: "Use the VMware DVS firewall driver"
+    weight: 20
+    type: "checkbox"
   vmware_dvs_net_maps:
     value: ""
     label: "Enter the dvSwitch's name."

@@ -8,6 +8,7 @@
     vcenter = args[0]['computes']
     physnet = args[1]["predefined_networks"]["admin_internal_net"]["L2"]["physnet"]
     netmaps = args[2]["vmware_dvs_net_maps"]
+    fw_driverp = args[2]["vmware_dvs_fw_driver"]
     current_node = args[3].split(".")[0]
     controllersp = args[4].any? {|role| role.include?("controller")}
     primaryp = args[4].any? {|role| role.include?("primary")}
@@ -27,6 +28,7 @@
           vds = netmaps
         end
         agent["network_maps"] = physnet + ":" + vds
+        agent["use_fw_driver"] = fw_driverp
         agent["ha_enabled"] = controllersp
         agent["primary"] = primaryp
         agents.push(agent)
