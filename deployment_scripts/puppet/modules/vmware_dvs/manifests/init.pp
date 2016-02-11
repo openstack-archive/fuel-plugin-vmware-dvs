@@ -72,6 +72,10 @@ class vmware_dvs(
           group   => 'root',
           mode    => '0755',
           require => Package['python-mech-vmware-dvs'],
+        }->
+        file {'/usr/local/bin/neutron-dvs-agent':
+          ensure => 'link',
+          target => '/usr/bin/neutron-dvs-agent',
         }
 
         file {'/etc/neutron/plugin.ini':
