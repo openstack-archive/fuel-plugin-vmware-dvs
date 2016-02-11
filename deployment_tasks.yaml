@@ -44,25 +44,12 @@
 - id: vmware-dvs-compute-vmware
   version: 2.0.0
   groups: ['compute-vmware']
-  requires:  [vmware-dvs-network-compute-nova]
+  requires:  [top-role-compute-vmware]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/compute-vmware.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
-
-- id: vmware-dvs-network-compute-nova
-  type: puppet
-  version: 2.0.0
-  groups: ['compute-vmware']
-  required_for: [vmware-dvs-network-end]
-  requires: [vmware-dvs-network-common-config,vmware-dvs-network-agents-l3,vmware-dvs-network-agents-metadata]
-  cross-depends:
-    - name: /(primary-)?openstack-network-plugins-l2/
-  parameters:
-    puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/compute-nova.pp
-    puppet_modules: /etc/puppet/modules
-    timeout: 1800
 
 - id: vmware-dvs-set-neutron-timeout
   version: 2.0.0
