@@ -8,10 +8,13 @@ VMware-related MOS environments.
 Problem description
 ===================
 
-Modern facilities to networking in OpenStack is Neutron which replaces obsolete
-nova-networks. Unfortunately integration with VMware which realized in Fuel 6.1
-and below doesn't provide the possibilities to using Neutron. It leads that an
-environment which uses VMware hypervisors is greatly limited. When customers
+There are several solutions which provides networking for OpenStack with
+vSphere. Part of them are or were integrated in the Fuel: nova-network and
+VMware NSXv plugin. Other part --- networking-vsphere is separate upstream
+project.
+
+Unfurtunately each of them has defects. Nova-network is obsolete network
+solution which provides realy restricted passibiliteis. When customers
 (especially huge customers) want to replicate rich enterprise network
 topologies:
 
@@ -31,7 +34,13 @@ Nova-networks can offer:
 
 * No generic service insertion.
 
-Such we have the contradiction between customer needs and our solution.
+This contradiction doesn't allow to use nova-network in big enterpraise.
+
+VMware NSXv and networking-vsphere don't have such restrictions. Both of this
+solution are based on the same idea: create on ESXi's hosts special control VMs
+and redirect all tenant traffic to them. That approach permit to using all
+possibilities of Neutron but multiple traffic redirection drammaticaly afects
+to network performance. Also NSXv can be used in VMware-only environments.
 
 Proposed change
 ===============
@@ -39,7 +48,14 @@ Proposed change
 The Neutron has pluggable architecture which provides using different backends
 in different cases simultaneously by using ML2 plugin [0]. There is the
 vmware_dvs driver [1] which provides using Neutron for networking in
-vmware-related environments. And it is exactly what we want.
+vmware-related environments. This driver realises different way to manage
+networks on vSphere. Vmware_dvs provides the mechanism driver which uses
+special vSphere API for direct manipulation virtual distubuted switches:
+creates or deletes port-groups, ports and changes securit rules on that ports.
+In that way no unnecessary traffic redirections and the given scheme admits to
+achieve best performance. Also using modular ML2 architecture provides to
+usage several network backends simultaneously and hence creating heterogeneous
+OpenStack environments. And it is exactly what we want.
 
 This plugin automates installation and configuration the vmware_dvs driver and
 its dependencies (it carries all of them with it to be independent from public
@@ -92,21 +108,21 @@ can manage networking on vCenter.
 Assumptions:
 ------------
 
-  #. DVS switches must be provisioned by using vCenter firstly and manually
+  #. The VDS must be provisioned by using vCenter firstly and manually.
 
-  #. There must be a mapping between physical network and DVS switch:
+  #. There must be a mapping between physical network and VDS:
 
   3. VLANs will be used as a tenant network separation by KVM’s OVS and ESXi’s
-     DVS (must be the same for tenant network regardless which switch type OVS
-     or DVS)
+     VDS (must be the same for tenant network regardless which switch type OVS
+     or VDS)
 
   #. There must be an ability to:
 
-    #. create / terminate network on DVS
+    #. create / terminate network on VDS
 
-    #. bind port on DVS to VM
+    #. bind port on VDS to VM
 
-    #. disable state of the neutron network / port on DVS
+    #. disable state of the neutron network / port on VDS
 
     #. assign multiple vNIC to a single VM deployed on ESXi
 
@@ -132,7 +148,7 @@ There are two changes will appears on the Settings tab:
 
   #. checkbox "Neutron VMware DVS ML2 plugin".
 
-  #. input field for specification dvSwitch's name for clusters.
+  #. input field for specification VDS's name for clusters.
 
 REST API impact
 ---------------
@@ -142,7 +158,8 @@ None
 Upgrade impact
 --------------
 
-This plugin has to have a special version for an each Fuel's version. For this reason after the Fuel's upgrades plugin also should be upgraded.
+This plugin has to have a special version for an each Fuel's version. For this
+reason after the Fuel's upgrades plugin also should be upgraded.
 
 Security impact
 ---------------
@@ -158,7 +175,7 @@ None
 Other end user impact
 ---------------------
 
-In the Fuel 6.1 if using vCenter was chosen on the wizard UI then possibilities
+In the Fuel 8.0 if using vCenter was chosen on the wizard UI then possibilities <---- переписать
 of using Neutron for networking are locked. Unfortunately current plugin's
 architecture doesn't provide the way to pliable unlock it. Instead of it when
 the plugin is installed it just amend the Nailgun's database and cancel this
@@ -204,14 +221,13 @@ Assignee(s)
 :QA: Olesia Tsvigun <otsvigun>
 
 :Mandatory design review: Vladimir Kuklin <vkuklin>, Bogdan Dobrelia
-                        <bogdando>, Sergii Golovatiuk <sgolovatiuk>,
-                        Andrzej Skupień <kendriu>
+                        <bogdando>, Sergii Golovatiuk <sgolovatiuk>
 
 
 Work Items
 ----------
 
-* Create the development and testing environment. Make a repository on github
+* Create the development and testing environment. Make a repository on github <--- устарело!
   and job for CI on jenkins.
 
 * Add script for amend the nailgun database.
@@ -245,21 +261,25 @@ written. There is the list of cases for cheking:
 
   #. Uninstall Fuel plugin for Neutron ML2 vmware_dvs driver.
 
-  #. Deploy in HA cluster with plugin.
+  #. Deploy an environment with plugin where all VMware clusters are assigned
+     to controllers.
 
-  #. Deploy cluster with plugin and vmware datastore backend.
+  #. Deploy an environment with plugin where somre VMware clusters are
+     assigned to controllers and some --- to compute-vmware nodes
 
-  #. Deploy cluster with plugin and Ceph backend for Glance and Cinder.
+  #. Deploy an environment with plugin and vmware datastore backend.
 
-  #. Deploy cluster with plugin on Fuel 6.1 and upgrade to Fuel 7.0.
+  #. Deploy an environment with plugin and Ceph backend for Glance and Cinder.
+
+  #. Deploy an envronment with plugin on Fuel 7.0 and upgrade to Fuel 8.0.
 
 #. Functional testing:
 
-  #. Check abilities to create and teminate networks on DVS.
+  #. Check abilities to create and terminate networks on VDS.
 
   #. Check abilities to create and delete security groups.
 
-  #. Check abilities to bind port on DVS to VM, disable and enable this port.
+  #. Check abilities to bind port on VDS to VM, disable and enable this port.
 
   #. Check abilities to assign multiple vNIC to a single VM.
 
@@ -279,9 +299,9 @@ written. There is the list of cases for cheking:
 
 #. Failover testing.
 
-  #. Verify that vmclusters should be migrate after remove controler.
+  #. Verify that an environment survives after remove controler.
 
-  #. Deploy cluster with plugin, addition and deletion of nodes.
+  #. Deploy an environment with plugin, addition and deletion of nodes.
 
 Acceptance criterias:
 ---------------------
