@@ -80,7 +80,7 @@ class TestDVSPlugin(TestBasic):
         )
 
         # Configure VMWare vCenter settings
-        self.fuel_web.vcenter_configure(cluster_id, vc_glance=True)
+        self.fuel_web.vcenter_configure(cluster_id, vcenter_glance=True)
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 

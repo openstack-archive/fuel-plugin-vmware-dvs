@@ -104,7 +104,7 @@ class TestDVSPlugin(TestBasic):
             cluster_id,
             target_node_2=target_node_2,
             multiclusters=True,
-            vc_glance=True
+            vcenter_glance=True
         )
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
