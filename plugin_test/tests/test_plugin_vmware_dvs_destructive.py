@@ -296,7 +296,7 @@ class TestDVSPlugin(TestBasic):
            of Fuel DVS plugin with deployed environment.
 
         Scenario:
-            1. Revert snapshot to dvs_vcenter_bvt_2
+            1. Revert snapshot to dvs_vcenter_destructive_setup
             2. Try to uninstall dvs plugin.
 
         Duration 1.8 hours
@@ -326,17 +326,17 @@ class TestDVSPlugin(TestBasic):
            disable and enable this port.
 
         Scenario:
-            1. Revert snapshot to dvs_vcenter_bvt_2
+            1. Revert snapshot to dvs_vcenter_destructive_setup
             2. Create private networks net01 with sunet.
             3. Launch instances VM_1 and VM_2 in the net01
                with image TestVM and flavor m1.micro in nova az.
             4. Launch instances VM_3 and VM_4 in the net01
                with image TestVM-VMDK and flavor m1.micro in nova az.
-            4. Bind sub_net port of Vms
-            5. Check VMs are not available.
-            6. Enable sub_net port of all Vms.
-            7. Verify that VMs should communicate between each other.
-               Send icmp ping between VMs.
+            4. Bind sub_net port of instances.
+            5. Check instances are not available.
+            6. Enable sub_net port of all instances.
+            7. Verify that instances should communicate between each other.
+               Send icmp ping between instances.
 
 
         Duration 1,5 hours
@@ -355,24 +355,21 @@ class TestDVSPlugin(TestBasic):
             SERVTEST_TENANT)
 
         # create security group with rules for ssh and ping
-        security_group = {}
-        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
-            os_conn.create_sec_group_for_ssh()
-        security_group = security_group[
-            os_conn.get_tenant(SERVTEST_TENANT).id].id
+        security_group = os_conn.create_sec_group_for_ssh()
 
         #  Launch instance VM_1 and VM_2
         network = os_conn.nova.networks.find(label=self.inter_net_name)
         openstack.create_instances(
-            os_conn=os_conn, vm_count=1,
-            nics=[{'net-id': network.id}], security_group=security_group
+            os_conn=os_conn, nics=[{'net-id': network.id}], vm_count=1,
+            security_groups=[security_group.name]
         )
+        openstack.verify_instance_state(os_conn)
 
         openstack.create_and_assign_floating_ip(os_conn=os_conn)
 
         time.sleep(30)  # need time to apply updates
 
-        # Bind sub_net ports of Vms
+        # Bind sub_net ports of instances
         ports = os_conn.neutron.list_ports()['ports']
         srv_list = os_conn.get_servers()
         for srv in srv_list:
@@ -386,7 +383,7 @@ class TestDVSPlugin(TestBasic):
 
         srv_list = os_conn.get_servers()
 
-        # Verify that not connection to VMs
+        # Verify that not connection to instances
         primary_controller = self.fuel_web.get_nailgun_primary_node(
             self.env.d_env.nodes().slaves[0]
         )
@@ -400,7 +397,7 @@ class TestDVSPlugin(TestBasic):
         except Exception as e:
             logger.info(str(e))
 
-        # Enable sub_net ports of VMs
+        # Enable sub_net ports of instances
         for srv in srv_list:
             srv_addr = srv.networks[srv.networks.keys()[0]][0]
             for port in ports:
@@ -419,8 +416,8 @@ class TestDVSPlugin(TestBasic):
                 timeout=300)
         time.sleep(60)  # need time after reboot to get ip by instance
 
-        # Verify that VMs should communicate between each other.
-        # Send icmp ping between VMs
+        # Verify that instances should communicate between each other.
+        # Send icmp ping between instances
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
                                        remote=ssh_controller)
 
@@ -438,11 +435,11 @@ class TestDVSPlugin(TestBasic):
             5. Add 2 node with compute role.
             6. Deploy the cluster.
             7. Launch instances.
-            8. Verify connection between VMs. Send ping
-               Check that ping get reply
+            8. Verify connection between instances. Send ping,
+               check that ping get reply
             9. Reset controller.
             10. Check that vmclusters should be migrate to another controller.
-            11. Verify connection between VMs.
+            11. Verify connection between instances.
                 Send ping, check that ping get reply
 
         Duration 1.8 hours
@@ -487,18 +484,17 @@ class TestDVSPlugin(TestBasic):
             SERVTEST_TENANT)
 
         # create security group with rules for ssh and ping
-        security_group = {}
-        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
-            os_conn.create_sec_group_for_ssh()
-        security_group = security_group[
-            os_conn.get_tenant(SERVTEST_TENANT).id].id
+        security_group = os_conn.create_sec_group_for_ssh()
 
         network = os_conn.nova.networks.find(label=self.inter_net_name)
         openstack.create_instances(
-            os_conn=os_conn, vm_count=1,
-            nics=[{'net-id': network.id}], security_group=security_group)
+            os_conn=os_conn, nics=[{'net-id': network.id}], vm_count=1,
+            security_groups=[security_group.name]
+        )
+        openstack.verify_instance_state(os_conn)
 
-        # Verify connection between VMs. Send ping Check that ping get reply
+        # Verify connection between instances.
+        # Send ping Check that ping get reply.
         openstack.create_and_assign_floating_ip(os_conn=os_conn)
         srv_list = os_conn.get_servers()
         primary_controller = self.fuel_web.get_nailgun_primary_node(
@@ -527,7 +523,8 @@ class TestDVSPlugin(TestBasic):
         )
         openstack.check_service(ssh=ssh_controller, commands=cmds)
 
-        # Verify connection between VMs. Send ping Check that ping get reply
+        # Verify connection between instances.
+        # Send ping Check that ping get reply.
         srv_list = os_conn.get_servers()
         openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
                                        remote=ssh_controller)
@@ -546,11 +543,11 @@ class TestDVSPlugin(TestBasic):
             5. Add 2 node with compute role.
             6. Deploy the cluster.
             7. Launch instances.
-            8. Verify connection between VMs. Send ping
-               Check that ping get reply
+            8. Verify connection between instances. Send ping,
+               check that ping get reply.
             9. Shutdown controller.
             10. Check that vmclusters should be migrate to another controller.
-            11. Verify connection between VMs.
+            11. Verify connection between instances.
                 Send ping, check that ping get reply
 
         Duration 1.8 hours
@@ -597,18 +594,16 @@ class TestDVSPlugin(TestBasic):
             SERVTEST_TENANT)
 
         # create security group with rules for ssh and ping
-        security_group = {}
-        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
-            os_conn.create_sec_group_for_ssh()
-        security_group = security_group[
-            os_conn.get_tenant(SERVTEST_TENANT).id].id
+        security_group = os_conn.create_sec_group_for_ssh()
 
         network = os_conn.nova.networks.find(label=self.inter_net_name)
         openstack.create_instances(
-            os_conn=os_conn, vm_count=1,
-            nics=[{'net-id': network.id}], security_group=security_group)
+            os_conn=os_conn, nics=[{'net-id': network.id}], vm_count=1,
+            security_groups=[security_group.name])
+        openstack.verify_instance_state(os_conn)
 
-        # Verify connection between VMs. Send ping, check that ping get reply
+        # Verify connection between instances.
+        # Send ping, check that ping get reply.
         openstack.create_and_assign_floating_ip(os_conn=os_conn)
         srv_list = os_conn.get_servers()
 
@@ -637,7 +632,8 @@ class TestDVSPlugin(TestBasic):
             controlers[1].name)
 
         openstack.check_service(ssh=ssh_controller, commands=cmds)
-        # Verify connection between VMs. Send ping Check that ping get reply
+        # Verify connection between instances.
+        # Send ping Check that ping get reply.
         srv_list = os_conn.get_servers()
         openstack.check_connection_vms(
             os_conn=os_conn, srv_list=srv_list,
