@@ -286,14 +286,21 @@ class TestDVSPlugin(TestBasic):
          )
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_5_instances", 'dvs_vcenter_system'])
+          groups=["dvs_instances_batch", 'dvs_vcenter_system'])
     @log_snapshot_after_test
-    def dvs_vcenter_5_instances(self):
+    def dvs_instances_batch(self):
         """Check creation instance in the one group simultaneously
 
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
-            2. Create 5 instances of vcenter and 5 of nova simultaneously.
+            2. Launch few instance VM_1 simultaneously with image TestVM
+               and flavor m1.micro in nova availability zone
+               in default internal network.
+            3. Launch few instance VM_2 simultaneously with image TestVM-VMDK
+               and flavor m1.micro in vcenter availability zone in default
+               internal network.
+            4. Check connection between VMs (ping, ssh).
+            5. Delete all Vms from horizon simultaneously.
 
         Duration 15 min
 
@@ -302,7 +309,7 @@ class TestDVSPlugin(TestBasic):
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
-        # Create 5 instances of vcenter and 5 of nova simultaneously.
+        logger.info("Launch few instance in nova and vcenter availability zone")
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
@@ -310,9 +317,64 @@ class TestDVSPlugin(TestBasic):
             SERVTEST_TENANT)
 
         network = os_conn.nova.networks.find(label=self.inter_net_name)
+
+        # create security group with rules for ssh and ping
+        security_group = {}
+        security_group[os_conn.get_tenant(SERVTEST_TENANT).id] =\
+            os_conn.create_sec_group_for_ssh()
+        security_group = security_group[
+            os_conn.get_tenant(SERVTEST_TENANT).id].id
+
+        # Get max count of instance which we can create according to resource
+        # limit
+        vm_count = min(
+            [os_conn.nova.hypervisors.resource_class.to_dict(h)['vcpus']
+             for h in os_conn.nova.hypervisors.list()]
+         )
+
         openstack.create_instances(
-            os_conn=os_conn, vm_count=5,
-            nics=[{'net-id': network.id}])
+            os_conn=os_conn, vm_count=vm_count,
+            nics=[{'net-id': network['id']}], security_group=security_group)
+
+        logger.info("Check ping is available between instances.")
+        openstack.create_and_assign_floating_ip(os_conn=os_conn)
+
+        srv_list = os_conn.nova.servers.list()
+
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[0])
+
+        ssh_controller = self.fuel_web.get_ssh_for_node(
+            primary_controller.name)
+
+        openstack.check_connection_vms(os_conn=os_conn, srv_list=srv_list,
+                                       command='pingv4', remote=ssh_controller)
+
+        logger.info("Check ssh connection is available between instances.")
+        floating_ip = []
+        for srv in srv_list:
+            floating_ip.append([add['addr']
+                           for add in srv.addresses[srv.addresses.keys()[0]]
+                           if add['OS-EXT-IPS:type'] == 'floating'][0])
+        ip_pair = [(ip_1, ip_2)
+           for ip_1 in floating_ip
+           for ip_2 in floating_ip
+           if ip_1 != ip_2]
+
+        for ips in ip_pair:
+            openstack.check_ssh_between_instances(ips[0], ips[1])
+
+        logger.info("Delete all Vms from horizon simultaneously.")
+        for srv in srv_list:
+            os_conn.nova.servers.delete(srv)
+
+        assert_true(os_conn.nova.servers.list() == [],
+                    "Instances {} were not deleted")
+        wait(
+             lambda:
+             os_conn.nova.servers.list() == [],
+             timeout=300, "Instances {} were not deleted".format(
+                 os_conn.nova.servers.list()))
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_security", 'dvs_vcenter_system'])

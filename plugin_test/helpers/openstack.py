@@ -30,16 +30,16 @@ def get_defaults():
         logger.info(''.format(defaults))
         return defaults
 
-#defaults
+# defaults
 external_net_name = get_defaults()['networks']['floating']['name']
 zone_image_maps = get_defaults()['zone_image_maps']
 instance_creds = (
-        get_defaults()['os_credentials']['cirros']['user'],
-        get_defaults()['os_credentials']['cirros']['password'])
+    get_defaults()['os_credentials']['cirros']['user'],
+    get_defaults()['os_credentials']['cirros']['password'])
 
 
 def create_instances(os_conn=None, vm_count=None, nics=None,
-                     security_group=None):
+                     security_group=None, available_hosts=None):
     """Create Vms on available hypervisors
     :param os_conn: type object, openstack
     :param vm_count: type interger, count of VMs to create
@@ -52,14 +52,13 @@ def create_instances(os_conn=None, vm_count=None, nics=None,
     # Get list of available images,flavors and hipervisors
     images_list = os_conn.nova.images.list()
     flavors_list = os_conn.nova.flavors.list()
-    available_hosts = os_conn.nova.services.list(binary='nova-compute')
+    if not available_hosts:
+        available_hosts = os_conn.nova.services.list(binary='nova-compute')
     instances = []
     for host in available_hosts:
-        for zone in zone_image_maps.keys():
-            if host.zone == zone:
-                image = [image for image
-                         in images_list
-                         if image.name == zone_image_maps[zone]][0]
+        image = [image for image
+                 in images_list
+                 if image.name == zone_image_maps[host.zone]][0]
         instance = os_conn.nova.servers.create(
             flavor=flavors_list[0],
             name='test_{0}'.format(image.name),
@@ -83,7 +82,8 @@ def create_instances(os_conn=None, vm_count=None, nics=None,
         except TimeoutError:
             logger.error(
                 "Timeout is reached.Current state of Vm {0} is {1}".format(
-                instance.name, os_conn.get_instance_detail(instance).status))
+                instance.name, os_conn.get_instance_detail(instance).status)
+            )
         # assign security group
         if security_group:
             instance.add_security_group(security_group)
@@ -141,8 +141,10 @@ def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
 def get_ssh_connection(ip, username, userpassword, timeout=30):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(ip, port=22, username=username,
-                             password=userpassword, timeout=timeout)
+    ssh.connect(
+        ip, port=22, username=username,
+        password=userpassword, timeout=timeout
+    )
     return ssh
 
 
