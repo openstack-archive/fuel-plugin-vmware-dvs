@@ -30,63 +30,68 @@ def get_defaults():
         logger.info(''.format(defaults))
         return defaults
 
-#defaults
+# defaults
 external_net_name = get_defaults()['networks']['floating']['name']
 zone_image_maps = get_defaults()['zone_image_maps']
 instance_creds = (
-        get_defaults()['os_credentials']['cirros']['user'],
-        get_defaults()['os_credentials']['cirros']['password'])
+    get_defaults()['os_credentials']['cirros']['user'],
+    get_defaults()['os_credentials']['cirros']['password'])
 
 
-def create_instances(os_conn=None, vm_count=None, nics=None,
-                     security_group=None):
+def verify_instance_state(os_conn, instances=None, expected_state='ACTIVE',
+                          boot_timeout=300):
+    """Verify that current state of each instance/s is expected
+    :param os_conn: type object, openstack
+    :param instances: type list, list of created instances
+    :param expected_state: type string, expected state of instance
+    :param boot_timeout: type int, time in seconds to build instance
+    """
+    boot_timeout = 300
+    if not instances:
+        instances = os_conn.nova.servers.list()
+    for instance in instances:
+        try:
+            wait(
+                lambda:
+                os_conn.get_instance_detail(instance).status == expected_state,
+                timeout=boot_timeout)
+        except TimeoutError:
+            current_state = os_conn.get_instance_detail(instance).status
+            assert_true(
+                current_state == expected_state,
+                "Timeout is reached. Current state of Vm {0} is {1}".format(
+                    instance.name, current_state)
+            )
+
+
+def create_instances(os_conn, nics, vm_count=1,
+                     security_groups=None, available_hosts=None):
     """Create Vms on available hypervisors
     :param os_conn: type object, openstack
     :param vm_count: type interger, count of VMs to create
     :param nics: type dictionary, neutron networks
                      to assign to instance
-    :param security_group: type dictionary, security group to assign to
-                        instances
+    :param security_groups: A list of security group names
+    :param available_hosts: available hosts for creating instances
     """
-    boot_timeout = 300
+
     # Get list of available images,flavors and hipervisors
     images_list = os_conn.nova.images.list()
-    flavors_list = os_conn.nova.flavors.list()
-    available_hosts = os_conn.nova.services.list(binary='nova-compute')
-    instances = []
+    flavors = os_conn.nova.flavors.list()
+    flavor = [f for f in flavors if f.name == 'm1.micro'][0]
+    if not available_hosts:
+        available_hosts = os_conn.nova.services.list(binary='nova-compute')
     for host in available_hosts:
-        for zone in zone_image_maps.keys():
-            if host.zone == zone:
-                image = [image for image
-                         in images_list
-                         if image.name == zone_image_maps[zone]][0]
-        instance = os_conn.nova.servers.create(
-            flavor=flavors_list[0],
+        image = [image for image
+                 in images_list
+                 if image.name == zone_image_maps[host.zone]][0]
+        os_conn.nova.servers.create(
+            flavor=flavor,
             name='test_{0}'.format(image.name),
             image=image, min_count=vm_count,
             availability_zone='{0}:{1}'.format(host.zone, host.host),
-            nics=nics
+            nics=nics, security_groups=security_groups
         )
-        instances.append(instance)
-
-    # Verify that current state of each VMs is Active
-    for instance in instances:
-        assert_true(os_conn.get_instance_detail(instance).status != 'ERROR',
-                    "Current state of Vm {0} is {1}".format(
-                        instance.name,
-                        os_conn.get_instance_detail(instance).status))
-        try:
-            wait(
-                lambda:
-                os_conn.get_instance_detail(instance).status == "ACTIVE",
-                timeout=boot_timeout)
-        except TimeoutError:
-            logger.error(
-                "Timeout is reached.Current state of Vm {0} is {1}".format(
-                instance.name, os_conn.get_instance_detail(instance).status))
-        # assign security group
-        if security_group:
-            instance.add_security_group(security_group)
 
 
 def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
@@ -103,14 +108,16 @@ def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
     """
 
     commands = {
-                "pingv4": "ping -c 5 {}",
-                "pingv6": "ping6 -c 5 {}",
-                "arping": "sudo arping -I eth0 {}"}
+        "pingv4": "ping -c 5 {}",
+        "pingv6": "ping6 -c 5 {}",
+        "arping": "sudo arping -I eth0 {}"}
 
     for srv in srv_list:
         addresses = srv.addresses[srv.addresses.keys()[0]]
-        fip = [add['addr'] for add in addresses
-               if add['OS-EXT-IPS:type'] == 'floating'][0]
+        fip = [
+            add['addr']
+            for add in addresses
+            if add['OS-EXT-IPS:type'] == 'floating'][0]
 
         if not destination_ip:
             destination_ip = [s.networks[s.networks.keys()[0]][0]
@@ -141,8 +148,10 @@ def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
 def get_ssh_connection(ip, username, userpassword, timeout=30):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(ip, port=22, username=username,
-                             password=userpassword, timeout=timeout)
+    ssh.connect(
+        ip, port=22, username=username,
+        password=userpassword, timeout=timeout
+    )
     return ssh
 
 
@@ -317,3 +326,18 @@ def check_service(ssh, commands):
                 lambda:
                 ':-)' in list(ssh.execute(cmd)['stdout'])[-1].split(' '),
                 timeout=200)
+
+
+def create_volume(self, availability_zone, size=1,
+                    expected_state="available"):
+    image = [image for image
+                 in images_list
+                 if image.name == zone_image_maps[availability_zone]][0]
+    volume = os_conn.cinder.volumes.create(
+        size=size, imageRef=image_id, availability_zone=availability_zone)
+    helpers.wait(
+        lambda: self.cinder.volumes.get(volume.id).status == expected_state,
+        timeout=100)
+    logger.info("Created volume: '{0}', parent image: '{1}'"
+                .format(volume.id, image_id))
+    return volume
