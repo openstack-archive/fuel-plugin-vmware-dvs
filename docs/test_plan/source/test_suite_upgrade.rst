@@ -58,4 +58,3 @@ Expected result
 ###############
 
 Cluster should be deployed and all OSTF test cases should be passed.
-
