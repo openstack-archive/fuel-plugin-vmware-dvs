@@ -790,3 +790,148 @@ Expected result
 
 Cluster should be deployed and all OSTF test cases should be passed.
 
+
+Security group rules with remoute group id.
+-------------------------------------------
+
+
+ID
+##
+
+dvs_vcenter_remoute_sg
+
+
+Description
+###########
+
+Verifiy that network traffic is allowed/prohibited to instances according security groups
+rules.
+
+
+Complexity
+##########
+
+core
+
+
+Steps
+#####
+
+    1. Setup for system tests.
+    2. Launch ubuntu cloud image.
+    3. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    4. Create security groups:
+       SG_web
+       SG_db
+       SG_man
+       SG_DNS
+    5. Delete all default egress rules from
+       SG_web
+       SG_db
+       SG_man
+       SG_DNS
+    6. Add rules to SG_web
+       Ingress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'tcp ' , port range 3306-3306, SG group 'SG_db'
+       Ingress rule with ip protocol 'tcp ' , port range 22-22, SG group 'SG_man
+       Engress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
+       Egress rule with ip protocol 'tcp ' , port range 3306-3306, SG group 'SG_db'
+       Egress rule with ip protocol 'tcp ' , port range 22-22, SG group 'SG_man
+
+
+    7. Add rules to SG_db:
+       Egress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
+       Egress rule with ip protocol 'https ' , port range 443-443, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'https ' , port range 443-443, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'tcp ' , port range 3306-3306, SG group 'SG_web'
+       Ingress rule with ip protocol 'tcp ' , port range 22-22, SG group 'SG_man'
+       Egress rule with ip protocol 'tcp ' , port range 3306-3306, SG group 'SG_web'
+       Egress rule with ip protocol 'tcp ' , port range 22-22, SG group 'SG_man'
+
+    8. Add rules to SG_DNS
+       Ingress rule with ip protocol 'udp ' , port range 53-53, ip-prefix 'ip DNS server'
+       Egress rule with ip protocol 'udp ' , port range 53-53, ip-prefix 'ip DNS server'
+       Ingress rule with ip protocol 'tcp ' , port range 53-53, ip-prefix 'ip DNS server'
+       Egress rule with ip protocol 'tcp ' , port range 53-53, ip-prefix 'ip DNS server'
+    9. Add rules to SG_man:
+       Ingress rule with ip protocol 'tcp ' , port range 22-22, ip range 0.0.0.0/0
+       Egress rule with ip protocol 'tcp ' , port range 22-22, ip range 0.0.0.0/0
+    10. Launch following Vms in net_1 from image 'ubuntu':
+            	VM 'webserver' of vcenter az with SG_web, SG_DNS
+           	VM 'mysqldb ' of vcenter az with SG_db, SG_DNS
+                VM 'manage' of nova az with SG_man, SG_DNS
+
+    11. Verify that  traffic is enabled to VM 'webserver' from internet by http port 80.
+
+    12. Verify that  traffic is enabled to VM 'webserver' from VM 'manage' by tcp port 22.
+    13. Verify that traffic is enabled to VM 'webserver' from VM 'mysqldb' by tcp port 3306.
+    14. Verify that traffic is enabled to internet from VM ' mysqldb' by https port 443.
+    15. Verify that traffic is enabled to VM ' mysqldb' from VM 'manage' by tcp port 22.
+    16. Verify that traffic is enabled to VM ' manage' from internet by tcp port 22.
+    17. Verify that traffic is not enabled to VM ' webserver' from internet by tcp port 22.
+    18. Verify that traffic is not enabled to VM ' mysqldb' from internet by tcp port 3306.
+    19. Verify that traffic is not enabled to VM 'manage' from internet by http port 80.
+    20. Verify that traffic is enabled to all VMs from DNS server by udp/tcp port 53 and vice versa.
+
+
+Expected result
+###############
+
+Network traffic is allowed/prohibited to instances according security groups
+rules.
+
+
+Security group rules with remoute group id simple.
+--------------------------------------------------
+
+
+ID
+##
+
+-
+
+
+Description
+###########
+
+Verify that network traffic is allowed/prohibited to instances according security groups
+rules.
+
+
+Complexity
+##########
+
+core
+
+
+Steps
+#####
+
+    1. Setup for system tests.
+    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    3. Create security groups:
+       SG1
+       SG2
+    4. Delete all defaults egress rules of SG1 and SG2.
+    5. Add icmp rule to SG1:
+       Ingress rule with ip protocol 'icmp ', port range any, SG group 'SG1'
+       Egress rule with ip protocol 'icmp ', port range any, SG group 'SG1'
+    6. Add icmp rule to SG2:
+       Ingress rule with ip protocol 'icmp ', port range any, SG group 'SG2'
+       Egress rule with ip protocol 'icmp ', port range any, SG group 'SG2'
+    7. Launch 2 instance of vcenter az with SG1 in net1.
+       Launch 2 instance of nova az with SG1 in net1.
+    8. Launch 2 instance of vcenter az with SG2 in net1.
+       Launch 2 instance of nova az with SG2 in net1.
+    9. Verify that icmp ping is enabled between VMs from SG1.
+    10. Verify that icmp ping is enabled between VMs from SG2.
+    11. Verify that icmp ping is not enabled between VMs from SG1 and VMs form SG2.
+
+
+Expected result
+###############
+
+Network traffic is allowed/prohibited to instances according security groups
+rules.
+
