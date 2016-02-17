@@ -164,7 +164,7 @@ class TestDVSPlugin(TestBasic):
             multiclusters=True
         )
 
-        self.fuel_web.verify_network(cluster_id)
+        self.fuel_web.verify_network(cluster_id, timeout=60 * 10)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(
