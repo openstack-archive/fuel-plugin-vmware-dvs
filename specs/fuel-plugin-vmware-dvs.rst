@@ -222,7 +222,8 @@ Assignee(s)
 Work Items
 ----------
 
-* Add changes to 7.0 version of the plugin according to component registry.
+* Add changes to 2.0.0 version of the plugin according to component
+  registry[3].
 
 * Rewrite puppet manifests and deployment scripts for Fuel 8.0.
 
@@ -325,3 +326,6 @@ References
 * Neutron ML2 wiki page https://wiki.openstack.org/wiki/Neutron/ML2
 
 * Repository of ML2 driver https://github.com/Mirantis/vmware-dvs
+
+* The blueprint for component registry
+  https://blueprints.launchpad.net/fuel/+spec/component-registry
