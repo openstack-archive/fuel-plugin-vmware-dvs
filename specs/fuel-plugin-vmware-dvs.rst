@@ -174,8 +174,8 @@ None
 Other end user impact
 ---------------------
 
-After the VMware DVS plugin is installed there is the new checkbox "Neutron 
-with VMware DVS" on the "Networking Setup" step of wizard. UI elements of the 
+After the VMware DVS plugin is installed there is the new checkbox "Neutron
+with VMware DVS" on the "Networking Setup" step of wizard. UI elements of the
 plugin are stored on subtab "Other" of tab "Networks" on the Fuel WebUI.
 
 Performance Impact
@@ -223,12 +223,12 @@ Work Items
 ----------
 
 * Add changes to 7.0 version of the plugin according to component registry.
-  
+
 * Rewrite puppet manifests and deployment scripts for Fuel 8.0.
 
 * Make new tests and build CI.
 
-* Rewrite the documentation.  
+* Rewrite the documentation.
 
 Dependencies
 ============
@@ -238,64 +238,73 @@ VMware_dvs Neutron ML2 plugin [1]
 Testing
 =======
 
-There is the list of cases for checking:
+Target Test Items:
+------------------
 
-#. Deploy testing:
+* Install/uninstall Fuel Vmware-DVS plugin
+* Deploy Cluster with Fuel Vmware-DVS plugin by Fuel
+    * Roles of nodes
+        * controller
+        * compute
+        * cinder
+        * mongo
+        * compute-vmware
+        * cinder-vmware
+    * Hypervisors:
+        * KVM+Vcenter
+        * Qemu+Vcenter
+    * Storage:
+        * Ceph
+        * Cinder
+        * VMWare vCenter/ESXi datastore for images
+    * Network
+        * Neutron with Vlan segmentation
+        * HA + Neutron with VLAN
+    * Additional components
+        * Ceilometer
+        * Health Check
+    * Upgrade master node
+* MOS and VMware-DVS plugin
+    * Computes(Nova)
+        * Launch and manage instances
+        * Launch instances in batch
+    * Networks (Neutron)
+        * Create and manage public and private networks.
+        * Create and manage routers.
+        * Port binding / disabling
+        * Port security
+        * Security groups
+        * Assign vNIC to a VM
+        * Connection between instances
+    * Heat
+        * Create stack from template
+        * Delete stack
+    * Keystone
+        * Create and manage roles
+    * Horizon
+        * Create and manage projects
+        * Create and manage users
+    * Glance
+        * Create  and manage images
+* GUI
+    * Fuel UI
+* CLI
+    * Fuel CLI
 
-  1. Install Fuel plugin for Neutron ML2 vmware_dvs driver.
+Test approach:
+--------------
 
-  #. Uninstall Fuel plugin for Neutron ML2 vmware_dvs driver.
-
-  #. Deploy an environment with plugin where all VMware clusters are assigned
-     to controllers.
-
-  #. Deploy an environment with plugin where some VMware clusters are
-     assigned to controllers and some --- to compute-vmware nodes
-
-  #. Deploy an environment with plugin and vmware datastore backend.
-
-  #. Deploy an environment with plugin and Ceph backend for Glance and Cinder.
-
-  #. Deploy an environment with plugin on Fuel 7.0 and upgrade to Fuel 8.0.
-
-#. Functional testing:
-
-  #. Check abilities to create and terminate networks on VDS.
-
-  #. Check abilities to create and delete security groups.
-
-  #. Check abilities to bind port on VDS to VM, disable and enable this port.
-
-  #. Check abilities to assign multiple vNIC to a single VM.
-
-  #. Check connection between VMs in one tenant.
-
-  #. Check connectivity between VMs in one tenant which works in different
-     availability zones: on KVM and on vCenter.
-
-  #. Check connectivity between VMs attached to different networks with and
-     within a router between them.
-
-  #. Check isolation between VMs in different tenants.
-
-  #. Check connectivity to public network.
-
-#.  GUI testing.
-
-#. Failover testing.
-
-  #. Verify that an environment survives after remove controller.
-
-  #. Deploy an environment with plugin, addition and deletion of nodes.
+The project test approach consists of Smoke,  Integration, System, Regression
+Failover and Acceptance  test levels.
 
 Acceptance criterias:
 ---------------------
 
-  #. Tests with high and medium priority are passed.
-
+  #. All acceptance criteria for user stories are met.
+  #. All test cases are executed. BVT tests are passed.
   #. Critical and high issues are fixed.
-
-  #. Test Coverage of feature is about 90 %
+  #. All required documents are delivered.
+  #. Release notes including a report on the known errors of that release.
 
 Documentation Impact
 ====================
