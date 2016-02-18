@@ -188,8 +188,8 @@ latex_elements = { 'classoptions': ',openany,oneside', 'babel': '\\usepackage[en
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'FuelVMwareDVSvplugin.tex', u'Fuel VMware DVS plugin testing\
-   documentation', u'Mirantis Inc.', 'manual'),
+  ('index', 'FuelVMwareDVSvplugin.tex', u'Fuel VMware DVS plugin user\
+   guide', u'Mirantis Inc.', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -218,8 +218,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'fuelvmwaredvsplugin', u'Fuel VMware DVS plugin testing\
-     documentation', [u'Mirantis Inc.'], 1)
+    ('index', 'fuelvmwaredvsplugin', u'Fuel VMware DVS plugin user\
+     guide', [u'Mirantis Inc.'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -232,8 +232,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'FuelVMwareDVSplugin', u'Fuel VMware DVS plugin testing\
-   documentation', u'Mirantis Inc.', 'FuelVMwareDVSplugin',\
+  ('index', 'FuelVMwareDVSplugin', u'Fuel VMware DVS plugin user\
+   guide', u'Mirantis Inc.', 'FuelVMwareDVSplugin',\
    'One line description of project.', 'Miscellaneous'),
 ]
 
