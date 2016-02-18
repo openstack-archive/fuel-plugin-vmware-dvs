@@ -1,0 +1,9 @@
+Code-Review+1: Olesia Tsvigun <otsvigun@mirantis.com>
+Code-Review+2: Slava Tabolin <vtabolin@mirantis.com>
+Workflow+1: Slava Tabolin <vtabolin@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 18 Feb 2016 14:09:36 +0000
+Reviewed-on: https://review.openstack.org/281798
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/stable/8.0-agentless
