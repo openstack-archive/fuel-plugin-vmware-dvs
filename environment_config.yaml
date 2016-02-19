@@ -8,8 +8,8 @@ attributes:
     type: "checkbox"
   vmware_dvs_net_maps:
     value: ""
-    label: "Enter the dvSwitch's name."
-    description: "Set the name of dvSwitch on vCenter."
+    label: "Enter the Cluster to dvSwitch mapping."
+    description: "List of ClusterName:dvSwitchName pairs, separated by semicolon."
     weight: 25
     type: "text"
     regex:
