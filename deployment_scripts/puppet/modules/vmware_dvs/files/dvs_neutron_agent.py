@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import neutron.plugins.ml2.drivers.mech_vmware_dvs.agentDVS.dvs_neutron_agent as agent_main
+import neutron.plugins.ml2.drivers.vmware_dvs.agent.dvs_neutron_agent as agent_main
 
 
 def main():

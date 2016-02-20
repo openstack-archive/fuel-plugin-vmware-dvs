@@ -40,25 +40,24 @@ class vmware_dvs(
   $vsphere_hostname = '192.168.0.1',
   $vsphere_login    = 'administrator@vsphere.loc',
   $vsphere_password = 'StrongPassword!',
-  $driver_path      = 'neutron/plugins/ml2/drivers/mech_vmware_dvs',
+  $driver_path      = 'neutron/plugins/ml2/drivers/vmware_dvs',
   $plugin_path      = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py',
 )
 {
   neutron_config {
     'DEFAULT/notification_driver': value => 'messagingv2';
-    'DEFAULT/notification_topics': value => 'notifications,vmware_dvs';
     }->
     neutron_plugin_ml2 {
       'ml2_vmware/vsphere_hostname': value => $vsphere_hostname;
       'ml2_vmware/vsphere_login':    value => $vsphere_login;
       'ml2_vmware/vsphere_password': value => $vsphere_password;
       } ->
-      package { ['python-suds','python-mech-vmware-dvs']:
+      package { ['python-suds','python-vmware-dvs']:
         ensure => present,
         }->
         file {$driver_path:
           ensure => 'link',
-          target => '/usr/local/lib/python2.7/dist-packages/mech_vmware_dvs',
+          target => '/usr/local/lib/python2.7/dist-packages/vmware_dvs',
         }
         file {'dvs_neutron_agent.py':
           path   => $plugin_path,
@@ -71,7 +70,7 @@ class vmware_dvs(
           owner   => 'root',
           group   => 'root',
           mode    => '0755',
-          require => Package['python-mech-vmware-dvs'],
+          require => Package['python-vmware-dvs'],
         }->
         file {'/usr/local/bin/neutron-dvs-agent':
           ensure => 'link',
