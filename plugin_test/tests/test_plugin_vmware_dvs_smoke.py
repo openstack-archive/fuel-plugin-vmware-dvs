@@ -71,7 +71,7 @@ class TestDVSPlugin(TestBasic):
                 'images_vcenter': True
             }
         )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
+        plugin.enable_plugin(cluster_id, self.fuel_web, multiclusters=False)
 
         # Assign role to node
         self.fuel_web.update_nodes(
@@ -125,7 +125,8 @@ class TestDVSPlugin(TestBasic):
         """
         self.env.revert_snapshot("ready_with_9_slaves")
 
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        dvs_plugin_data = plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -140,7 +141,7 @@ class TestDVSPlugin(TestBasic):
                 'volumes_lvm': False
             }
         )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
+        plugin.enable_plugin(cluster_id, self.fuel_web, dvs_plugin_data)
 
         # Assign role to node
         self.fuel_web.update_nodes(
@@ -164,7 +165,7 @@ class TestDVSPlugin(TestBasic):
             multiclusters=True
         )
 
-        self.fuel_web.verify_network(cluster_id)
+        self.fuel_web.verify_network(cluster_id, timeout=60 * 15)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(

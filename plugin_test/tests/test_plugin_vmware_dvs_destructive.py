@@ -305,8 +305,13 @@ class TestDVSPlugin(TestBasic):
 
         self.env.revert_snapshot("dvs_vcenter_destructive_setup")
 
+        dvs_plugin_data = plugin.get_dvs_plugin_data(
+            self.env.d_env.get_admin_remote())
+
         # Try to uninstall dvs plugin
-        cmd = 'fuel plugins --remove {}==1.1.0'.format(plugin.plugin_name)
+        cmd = 'fuel plugins --remove {0}=={1}'.format(
+            dvs_plugin_data['name'], dvs_plugin_data['version'])
+
         self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
 
         # Check that plugin is not removed
