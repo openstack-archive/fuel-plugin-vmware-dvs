@@ -50,7 +50,8 @@ class TestDVSPlugin(TestBasic):
         """
         self.env.revert_snapshot("ready_with_9_slaves")
 
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        dvs_plugin_data = plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -62,7 +63,7 @@ class TestDVSPlugin(TestBasic):
                 'images_vcenter': True
             }
         )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
+        plugin.enable_plugin(cluster_id, self.fuel_web, dvs_plugin_data)
 
         # Assign role to node
         self.fuel_web.update_nodes(
