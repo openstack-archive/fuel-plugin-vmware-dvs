@@ -24,12 +24,17 @@ from fuelweb_test import logger
 
 # constants
 DVS_PLUGIN_PATH = os.environ.get('DVS_PLUGIN_PATH')
-plugin_name = 'fuel-plugin-vmware-dvs'
+DVS_PLUGIN_VERSION = os.environ.get('DVS_PLUGIN_VERSION')
+DVS_SWITCHES = os.environ.get('DVS_SWITCHES').split(',')
+VCENTER_CLUSTERS = os.environ.get('VCENTER_CLUSTERS').split(',')
 msg = "Plugin couldn't be enabled. Check plugin version. Test aborted"
-dvs_switch_name = ['dvSwitch']
+plugin_name = "fuel-plugin-vmware-dvs"
 
 
 def install_dvs_plugin(master_node):
+    """Download and instal DVS plugin on master node.
+
+    """
     # copy plugins to the master node
     checkers.upload_tarball(
         master_node,
@@ -41,16 +46,24 @@ def install_dvs_plugin(master_node):
         plugin=os.path.basename(DVS_PLUGIN_PATH))
 
 
-def enable_plugin(cluster_id, fuel_web_client):
+def enable_plugin(
+    cluster_id, fuel_web_client, multiclusters=True):
+    """Enable DVS plugin on cluster
+
+    """
     assert_true(
-        fuel_web_client.check_plugin_exists(cluster_id, plugin_name),
+        fuel_web_client.check_plugin_exists(
+            cluster_id, plugin_name),
         msg)
+    map_switch_clusters = map(
+        lambda x, y: "{0};{1}".format(x, y), VCENTER_CLUSTERS, DVS_SWITCHES)
+    if multiclusters is True:
+        options = {'vmware_dvs_net_maps/value': ''.join(map_switch_clusters)}
+    else:
+        options = {'vmware_dvs_net_maps/value': map_switch_clusters[0]}
 
-    cluster_attr = fuel_web_client.client.get_cluster_attributes(cluster_id)
-    plugin_data = cluster_attr['editable'][plugin_name]
-    plugin_data['metadata']['enabled'] = True
-    plugin_data['metadata']['versions'][0]['vmware_dvs_net_maps']['value'] = \
-        dvs_switch_name[0]
-    fuel_web_client.client.update_cluster_attributes(cluster_id, cluster_attr)
+    logger.info("cluster is {0}".format(cluster_id))
 
-    logger.info("cluster is {}".format(cluster_id))
+    fuel_web_client.update_plugin_settings(
+        cluster_id, plugin_name,
+        DVS_PLUGIN_VERSION, options)
