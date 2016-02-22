@@ -45,189 +45,6 @@ class TestDVSPlugin(TestBasic):
     # defaults
     inter_net_name = openstack.get_defaults()['networks']['internal']['name']
 
-    @test(depends_on=[SetupEnvironment.prepare_slaves_9],
-          groups=["dvs_vcenter_add_delete_nodes", "dvs_vcenter_plugin"])
-    @log_snapshot_after_test
-    def dvs_vcenter_add_delete_nodes(self):
-        """Deploy cluster with plugin and vmware datastore backend
-
-        Scenario:
-            1. Upload plugins to the master node.
-            2. Install plugin.
-            3. Create cluster with vcenter.
-            4. Add 3 node with controller role.
-            5. Add 2 node with cinder-vmdk role.
-            6. Add 1 node with compute role.
-            7. Remove node with cinder-vmdk role.
-            8. Add node with cinder role.
-            9. Redeploy cluster.
-            10. Run OSTF.
-            11. Remove node with compute role.
-            12. Add node with cinder-vmdk role.
-            13. Redeploy cluster.
-            14. Run OSTF.
-
-        Duration 3 hours
-
-        """
-        self.env.revert_snapshot("ready_with_9_slaves")
-
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
-
-        # Configure cluster
-        cluster_id = self.fuel_web.create_cluster(
-            name=self.__class__.__name__,
-            mode=DEPLOYMENT_MODE,
-            settings={
-                "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE
-            }
-        )
-
-        plugin.enable_plugin(cluster_id, self.fuel_web)
-
-        # Assign role to node
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller'],
-             'slave-02': ['controller'],
-             'slave-03': ['controller'],
-             'slave-04': ['cinder-vmware'],
-             'slave-05': ['compute'],
-             'slave-06': ['compute'],
-             'slave-07': ['compute-vmware'], })
-
-        # Configure VMWare vCenter settings
-        target_node_1 = self.node_name('slave-07')
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            target_node_1=target_node_1,
-            multiclusters=True
-        )
-        self.fuel_web.deploy_cluster_wait(cluster_id)
-
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
-
-        # Remove node with cinder-vmdk role
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-04': ['cinder-vmware'], }, False, True)
-
-        # Add 1 node with cinder role and redeploy cluster
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {
-                'slave-08': ['cinder'],
-            }
-        )
-
-        self.fuel_web.deploy_cluster_wait(cluster_id)
-
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
-
-        # Remove node with compute role
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-05': ['compute'], }, False, True)
-
-        # Add 1 node with cinder-vmdk role and redeploy cluster
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {
-                'slave-04': ['cinder-vmware'],
-            }
-        )
-
-        self.fuel_web.deploy_cluster_wait(cluster_id)
-
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
-
-    @test(depends_on=[SetupEnvironment.prepare_slaves_9],
-          groups=["dvs_vcenter_add_delete_controller", "dvs_vcenter_plugin"])
-    @log_snapshot_after_test
-    def dvs_vcenter_add_delete_controller(self):
-        """Deploy cluster with plugin, adding  and deletion controler node.
-
-        Scenario:
-            1. Upload plugins to the master node.
-            2. Install plugin.
-            3. Create cluster with vcenter.
-            4. Add 4 node with controller role.
-            5. Add 1 node with cinder-vmdk role.
-            6. Add 1 node with compute role.
-            7. Deploy cluster.
-            8. Run OSTF.
-            9. Remove node with controller role.
-            10. Redeploy cluster.
-            11. Run OSTF.
-            12. Add node with controller role.
-            13. Redeploy cluster.
-            14. Run OSTF.
-
-        Duration 3.5 hours
-
-        """
-        self.env.revert_snapshot("ready_with_9_slaves")
-
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
-
-        # Configure cluster
-        cluster_id = self.fuel_web.create_cluster(
-            name=self.__class__.__name__,
-            mode=DEPLOYMENT_MODE,
-            settings={
-                "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE
-            }
-        )
-
-        plugin.enable_plugin(cluster_id, self.fuel_web)
-
-        # Assign role to node
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller'],
-             'slave-02': ['controller'],
-             'slave-03': ['controller'],
-             'slave-04': ['controller'],
-             'slave-05': ['cinder-vmware'],
-             'slave-06': ['compute'], })
-
-        # Configure VMWare vCenter settings
-        self.fuel_web.vcenter_configure(cluster_id)
-
-        self.fuel_web.deploy_cluster_wait(cluster_id)
-
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
-
-        # Remove node with controller role
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller'], }, False, True)
-
-        self.fuel_web.deploy_cluster_wait(cluster_id, check_services=False)
-
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
-
-        # Add node with controller role
-
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {
-                'slave-07': ['controller'],
-            }
-        )
-
-        self.fuel_web.deploy_cluster_wait(cluster_id, check_services=False)
-
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
-
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_destructive_setup", "dvs_vcenter_plugin"])
     @log_snapshot_after_test
@@ -249,7 +66,8 @@ class TestDVSPlugin(TestBasic):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        dvs_plugin_data = plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -261,7 +79,7 @@ class TestDVSPlugin(TestBasic):
                 'images_vcenter': True
             }
         )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
+        plugin.enable_plugin(cluster_id, self.fuel_web, dvs_plugin_data)
 
         # Assign role to node
         self.fuel_web.update_nodes(
@@ -305,8 +123,13 @@ class TestDVSPlugin(TestBasic):
 
         self.env.revert_snapshot("dvs_vcenter_destructive_setup")
 
+        dvs_plugin_data = plugin.get_dvs_plugin_data(
+            self.env.d_env.get_admin_remote())
+
         # Try to uninstall dvs plugin
-        cmd = 'fuel plugins --remove {}==1.1.0'.format(plugin.plugin_name)
+        cmd = 'fuel plugins --remove {0}=={1}'.format(
+            dvs_plugin_data['name'], dvs_plugin_data['version'])
+
         self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
 
         # Check that plugin is not removed
@@ -450,7 +273,8 @@ class TestDVSPlugin(TestBasic):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        dvs_plugin_data = plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -461,7 +285,7 @@ class TestDVSPlugin(TestBasic):
                 "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
+        plugin.enable_plugin(cluster_id, self.fuel_web, dvs_plugin_data)
 
         # Assign role to node
         self.fuel_web.update_nodes(
@@ -558,7 +382,8 @@ class TestDVSPlugin(TestBasic):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        dvs_plugin_data = plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -570,7 +395,7 @@ class TestDVSPlugin(TestBasic):
             }
         )
 
-        plugin.enable_plugin(cluster_id, self.fuel_web)
+        plugin.enable_plugin(cluster_id, self.fuel_web, dvs_plugin_data)
 
         # Assign role to node
         self.fuel_web.update_nodes(
