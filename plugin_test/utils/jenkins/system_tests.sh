@@ -260,6 +260,9 @@ CheckVariables() {
   if [ -z "${VCENTER_CLUSTERS}" ]; then
     export VCENTER_CLUSTERS="Cluster1,Cluster2"
   fi
+  if [ -z "${DVS_SWITCHES}" ]; then
+    export DVS_SWITCHES="dvSwitch,dvSwitch2"
+  fi
   if [ -z "${WORKSTATION_SNAPSHOT}" ]; then
     export WORKSTATION_SNAPSHOT="vcenterha"
   fi
