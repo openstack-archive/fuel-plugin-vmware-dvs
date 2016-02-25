@@ -10,3 +10,4 @@ networks:
 zone_image_maps:
   vcenter: 'TestVM-VMDK'
   nova: 'TestVM'
+  vcenter-cinder: 'TestVM-VMDK'
