@@ -18,7 +18,7 @@ PROJECT_NAME=neutron
 NAME=${PROJECT_NAME}-vmware-dvs-agent
 CONFIG_FILE=<%= @agent_config %>
 
-DAEMON=/usr/local/bin/neutron-dvs-agent
+DAEMON=/usr/bin/neutron-dvs-agent
 DAEMON_ARGS="--config-file=/etc/neutron/neutron.conf --config-file=/etc/neutron/plugins/ml2/ml2_conf.ini"
 #!/bin/sh
 # The content after this line comes from openstack-pkg-tools

@@ -33,6 +33,6 @@ script
 
         [ "x$USE_SYSLOG" = "xyes" ] && DAEMON_ARGS="$DAEMON_ARGS --use-syslog"
         [ "x$USE_LOGFILE" != "xno" ] && DAEMON_ARGS="$DAEMON_ARGS --log-file=<%= @agent_log %>"
-        exec start-stop-daemon --start --chuid neutron:neutron --exec /usr/local/bin/neutron-dvs-agent -- \
+        exec start-stop-daemon --start --chuid neutron:neutron --exec /usr/bin/neutron-dvs-agent -- \
                 --config-file=/etc/neutron/neutron.conf $CONF_ARG $DAEMON_ARGS
 end script

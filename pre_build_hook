@@ -1,1 +1,11 @@
+#!/usr/bin/env sh
 
+rm repositories/ubuntu/python-vmware-dvs*
+
+git clone git@github.com:Mirantis/vmware-dvs.git
+cd vmware-dvs
+make
+cp *.deb ../repositories/ubuntu
+
+cd ..
+rm -rf vmware-dvs

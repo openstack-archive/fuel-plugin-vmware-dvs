@@ -22,15 +22,12 @@ $vsphere_password = $computes['vc_password']
 
 $neutron          = hiera_hash('neutron_config', {})
 $py_root          = '/usr/lib/python2.7/dist-packages'
-$ml2_driver_path  = 'neutron/plugins/ml2/drivers/vmware_dvs'
 $ml2_plugin_path  = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py'
-$driver_path      = "${py_root}/${ml2_driver_path}"
 $plugin_path      = "${py_root}/${ml2_plugin_path}"
 
 class {'::vmware_dvs':
   vsphere_hostname => $vsphere_hostname,
   vsphere_login    => $vsphere_login,
   vsphere_password => $vsphere_password,
-  driver_path      => $driver_path,
   plugin_path      => $plugin_path,
 }
