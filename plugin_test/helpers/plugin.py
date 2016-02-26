@@ -56,9 +56,9 @@ def enable_plugin(
             cluster_id, plugin_name),
         msg)
     map_switch_clusters = map(
-        lambda x, y: "{0};{1}".format(x, y), VCENTER_CLUSTERS, DVS_SWITCHES)
+        lambda x, y: "{0}:{1}".format(x, y), VCENTER_CLUSTERS, DVS_SWITCHES)
     if multiclusters is True:
-        options = {'vmware_dvs_net_maps/value': ''.join(map_switch_clusters)}
+        options = {'vmware_dvs_net_maps/value': ';'.join(map_switch_clusters)}
     else:
         options = {'vmware_dvs_net_maps/value': map_switch_clusters[0]}
 
