@@ -99,19 +99,23 @@ smoke
 Steps
 #####
 
-    1. Connect to a Fuel web UI with preinstalled plugin.
+    1. Install Neutron VMware DVS ML2 plugin on master node. Connect to a Fuel Web UI .
     2. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
         * Storage: default
         * Additional services: default
-    3. Click on the Settings tab and check that section of  DVS  plugin is displayed with all required GUI elements.
-    4. Verify that section of DVS plugin is present on the Settings tab.
-    5. Verify that check box "Use Neutron VMware DVS ML2 plugin" is enabled by default.
-    6. Verify that user can disabled -> enabled DVS plugin by click on check box "Use Neutron VMware DVS ML2 plugin".
-    7. Verify that check box "Use VMware DVS ML2 plugin for networking" is enabled by default.
-    8. Verify that all labels of DVS plugin section have same font style and color.
-    9. Verify that all elements of DVS plugin section are vertical aligned.
+    3. Go to  Network tab -> Other subtub and check that section of  DVS  plugin is displayed with all required GUI elements:
+       'Neutron VMware DVS ML2 plugin' check box
+       "Use the VMware DVS firewall driver" check box
+       "Neutron VMware DVS ML2 plugin" check box
+       "Enter the cluster to dvSwitch mapping." text field with description 'List of ClusterName:SwitchName pairs, separated by semicolon. '
+       'Versions' radio button with <plugin version>
+    4. Verify that check box "Neutron VMware DVS ML2 plugin" is enabled by default.
+    5. Verify that user can disabled -> enabled DVS plugin by click on check box "Neutron VMware DVS ML2 plugin".
+    6. Verify that  check box "Use the VMware DVS firewall driver" is enabled by default.
+    7. Verify that all labels of DVS plugin section have same font style and color.
+    8. Verify that all elements of DVS plugin section are  vertical aligned.
 
 
 Expected result
@@ -222,4 +226,3 @@ Expected result
 ###############
 
 Cluster should be deployed and all OSTF test cases should be passed.
-

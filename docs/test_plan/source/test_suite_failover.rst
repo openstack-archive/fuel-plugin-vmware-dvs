@@ -10,7 +10,7 @@ Verify that it is not possibility to uninstall of Fuel DVS plugin with deployed 
 ID
 ##
 
-dvs_uninstall_negative
+dvs_vcenter_uninstall
 
 
 Description
@@ -46,7 +46,7 @@ Verify that vmclusters should be migrate after shutdown controller.
 ID
 ##
 
-dvs_shutdown_controller
+dvs_vcenter_shutdown_controller
 
 
 Description
@@ -83,12 +83,12 @@ Steps
     8. Verify networks.
     9. Deploy cluster.
     10. Run OSTF
-    11. Launch instances in nova and vcenter az.
-    12. Verify connection between VMs. Send ping.
+    11. Launch instances in nova and vcenter availability zones .
+    12. Verify connection between instances. Send ping.
         Check that ping get reply.
     13. Shutdown controller with  vmclusters.
     14. Check that vcenter-vmcluster should be migrate to another controller.
-    15. Verify connection between VMs.
+    15. Verify connection between instances.
         Send ping, check that ping get reply.
 
 
@@ -145,12 +145,12 @@ Steps
     12. Run OSTF.
     13. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
     14. Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
-    15. Check connection between VMs, send ping from VM_1 to VM_2 and vice verse.
+    15. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
     16. Reboot vcenter.
     17. Check that controller lost connection with vCenter.
     18. Wait for vCenter.
     19. Ensure that all instances from vCenter displayed in dashboard.
-    20. Ensure connectivity between Nova's and VMware's VM.
+    20. Ensure connectivity between instances.
     21. Run OSTF.
 
 
@@ -185,7 +185,7 @@ core
 Steps
 #####
 
-    1. Connect to a Fuel web UI with preinstalled plugin.
+    1. Install DVS plugin on master node.
     2. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
@@ -206,14 +206,14 @@ Steps
     10. Verify networks.
     11. Deploy cluster.
     12. Run OSTF.
-    13. Launch instance VM_1 with image TestVM, AZ nova and flavor m1.micro.
-    14. Launch instance VM_2  with image TestVM-VMDK, AZ vcenter and flavor m1.micro.
-    15. Check connection between VMs, send ping from VM_1 to VM_2 and vice verse.
+    13. Launch instance VM_1 with image TestVM,  nova availability zone and flavor m1.micro.
+    14. Launch instance VM_2  with image TestVM-VMDK,  vcenter availability zone and flavor m1.micro.
+    15. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
     16. Reboot vcenter.
     17. Check that ComputeVMware lost connection with vCenter.
     18. Wait for vCenter.
     19. Ensure that all instances from vCenter displayed in dashboard.
-    20. Ensure connectivity between Nova's and VMware's VM.
+    20. Ensure connectivity between instances.
     21. Run OSTF.
 
 
@@ -230,7 +230,7 @@ Verify that vmclusters should be migrate after reset controller.
 ID
 ##
 
-dvs_reset_controller
+dvs_vcenter_reset_controller
 
 
 Description
@@ -267,12 +267,12 @@ Steps
     8. Verify networks.
     9. Deploy cluster.
     10. Run OSTF
-    11. Launch instances in nova and vcenter az.
-    12. Verify connection between VMs. Send ping.
+    11. Launch instances in nova and vcenter availability zones.
+    12. Verify connection between instances. Send ping.
         Check that ping get reply.
-    13. Reset controller with  vmclusters.
-    14. Check that vmclusters should be migrate to another controller.
-    15. Verify connection between VMs.
+    13. Reset controller with  vmclusters services.
+    14. Check that vmclusters services should be migrate to another controller.
+    15. Verify connection between instances.
         Send ping, check that ping get reply.
 
 
@@ -280,4 +280,3 @@ Expected result
 ###############
 
 Vcenter-vmcluster should be migrate to another controller. Ping is available between instances.
-
