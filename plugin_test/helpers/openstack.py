@@ -145,11 +145,11 @@ def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
                 )
 
 
-def get_ssh_connection(ip, username, userpassword, timeout=30):
+def get_ssh_connection(ip, username, userpassword, timeout=30, port=22):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(
-        ip, port=22, username=username,
+        ip, port=port, username=username,
         password=userpassword, timeout=timeout
     )
     return ssh
@@ -157,20 +157,38 @@ def get_ssh_connection(ip, username, userpassword, timeout=30):
 
 def check_ssh_between_instances(instance1_ip, instance2_ip):
     """Check ssh conection between instances
-    :param instance1: instance ip connect from
-    :param instance2: instance ip connect to
+    :param instance1: string, instance ip connect from
+    :param instance2: string, instance ip connect to
     """
 
-    channel = open_ssh_session(instance1_ip, instance2_ip)
+    ssh = get_ssh_connection(instance1_ip, instance_creds[0],
+                             instance_creds[1], timeout=30)
+
+    interm_transp = ssh.get_transport()
+    logger.info("Opening channel to VM")
+    logger.info('{0}, {1}'.format(instance2_ip, instance1_ip))
+    interm_chan = interm_transp.open_channel('direct-tcpip',
+                                             (instance2_ip, 22),
+                                             (instance1_ip, 0))
+    logger.info("Opening paramiko transport")
+    transport = paramiko.Transport(interm_chan)
+    logger.info("Starting client")
+    transport.start_client()
+    logger.info("Passing authentication to VM")
+    transport.auth_password(
+        instance_creds[0], instance_creds[1])
+    channel = transport.open_session()
     assert_true(channel.send_ready())
+    logger.debug("Closing channel")
+    channel.close()
 
 
-def open_ssh_session(instance1_ip, instance2_ip):
-    """Open channel between instances
-    :param instance1: instance ip connect from
-    :param instance2: instance ip connect to
+def remote_execute_command(instance1_ip, instance2_ip, command):
+    """Check execute remote command
+    :param instance1: string, instance ip connect from
+    :param instance2: string, instance ip connect to
+    :param command: string, remote command
     """
-
     ssh = get_ssh_connection(instance1_ip, instance_creds[0],
                              instance_creds[1], timeout=30)
 
@@ -187,12 +205,9 @@ def open_ssh_session(instance1_ip, instance2_ip):
     transport.auth_password(
         instance_creds[0], instance_creds[1])
     channel = transport.open_session()
-    return channel
-
-
-def remote_execute_command(channel, command):
-    logger.info("Executing command: {}".format(cmd))
-    channel.exec_command(cmd)
+    channel.get_pty()
+    channel.fileno()
+    channel.exec_command(command)
 
     result = {
         'stdout': [],
@@ -326,3 +341,28 @@ def check_service(ssh, commands):
                 lambda:
                 ':-)' in list(ssh.execute(cmd)['stdout'])[-1].split(' '),
                 timeout=200)
+
+
+def create_volume(os_conn, availability_zone, size=1,
+                  expected_state="available"):
+    """Verify that current state of each instance/s is expected
+    :param os_conn: type object, openstack
+    :param availability_zone: type string,
+     availability_zone where volume will be created
+    :param expected_state: type string, expected state of instance
+    :param size: type int, size of volume
+    """
+    boot_timeout = 300
+    images_list = os_conn.nova.images.list()
+    image = [
+        image for image
+        in images_list
+        if image.name == zone_image_maps[availability_zone]][0]
+    volume = os_conn.cinder.volumes.create(
+        size=size, imageRef=image.id, availability_zone=availability_zone)
+    wait(
+        lambda: os_conn.cinder.volumes.get(volume.id).status == expected_state,
+        timeout=boot_timeout)
+    logger.info("Created volume: '{0}', parent image: '{1}'"
+                .format(volume.id, image.id))
+    return volume
