@@ -371,8 +371,9 @@ class TestDVSPlugin(TestBasic):
 
         logger.info("Check that all instances were deleted.")
         for srv in srv_list:
-            assert_true(os_conn.verify_srv_deleted(srv),
-                    "Verify server was deleted")
+            assert_true(
+                os_conn.verify_srv_deleted(srv),
+                "Verify server was deleted")
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_security", 'dvs_vcenter_system'])
@@ -905,3 +906,211 @@ class TestDVSPlugin(TestBasic):
         # between each other via fixed ip.
         openstack.check_connection_vms(os_conn=admin, srv_list=srv_2,
                                        remote=ssh_controller)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_volume", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_volume(self):
+        """Deploy cluster with plugin and vmware datastore backend
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin on master node.
+            3. Create a new environment with following parameters:
+                    * Compute: KVM/QEMU with vCenter
+                    * Networking: Neutron with VLAN segmentation
+                    * Storage: default
+                    * Additional services: default
+            4. Add nodes with following roles:
+                    * Controller
+                    * Compute
+                    * Cinder
+                    * CinderVMware
+                    * Compute-VMware
+            5. Configure interfaces on nodes.
+            6. Configure network settings.
+            7. Enable and configure DVS plugin.
+            8. Configure VMware vCenter Settings. Add 2 vSphere clusters
+               and configure Nova Compute instances on conroller
+               and compute-vmware
+            9. Verify networks.
+            10. Deploy cluster.
+            11. Create instances for each of hypervisor's type.
+            12. Create 2 volumes each in his own availability zone.
+            13. Attach each volume to his instance.
+            14. Check that each volume is attached to its instance.
+
+
+        Duration 1.8 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        # Assign role to node
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['compute'],
+             'slave-03': ['cinder'],
+             'slave-04': ['cinder-vmware'],
+             'slave-05': ['compute-vmware']
+             }
+        )
+
+        logger.info('Configure VMware vCenter Settings.')
+        target_node_2 = self.node_name('slave-05')
+        self.fuel_web.vcenter_configure(
+            cluster_id,
+            target_node_2=target_node_2,
+            multiclusters=True
+        )
+
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'])
+
+        # Create connection to openstack
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # Get default security group
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        logger.info("Create instances for each of hypervisor's type")
+        network = admin.nova.networks.find(label=self.inter_net_name)
+        openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network.id}], vm_count=1,
+            security_groups=[default_sg['name']])
+        openstack.verify_instance_state(admin)
+
+        logger.info("Create 2 volumes each in his own availability zone.")
+        volume_vcenter = openstack.create_volume(admin, 'vcenter-cinder')
+        volume_nova = openstack.create_volume(admin, 'nova')
+        instances = admin.nova.servers.list()
+        instance_vcenter = [
+            inst
+            for inst in instances
+            if inst.to_dict()['OS-EXT-AZ:availability_zone'] == 'vcenter'][0]
+        instance_nova = [
+            inst
+            for inst in instances
+            if inst.to_dict()['OS-EXT-AZ:availability_zone'] == 'nova'][0]
+
+        admin.attach_volume(volume_vcenter, instance_vcenter)
+        admin.attach_volume(volume_nova, instance_nova)
+
+        logger.info('Check that each volume is attached.')
+        assert_true(
+            admin.cinder.volumes.get(volume_nova.id).status == 'in-use')
+
+        assert_true(
+            admin.cinder.volumes.get(volume_vcenter.id).status == 'in-use')
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_connect_default_net"])
+    @log_snapshot_after_test
+    def dvs_connect_default_net(self):
+        """Check connectivity between VMs with same ip in different tenants.
+
+        Scenario:
+            1. Revert snapshot to dvs_vcenter_systest_setup.
+            2. Launch instances with image TestVM
+               and flavor m1.micro in nova availability zone.
+            4. Launch instances with image TestVM-VMDK
+               and flavor m1.micro in vcenter availability zone.
+            5. Verify that instances on different hypervisors
+               should communicate between each other.
+               Send icmp ping from VM_1 instances of vCenter to instances
+               from Qemu/KVM and vice versa.
+
+        Duration 15 min
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        network = admin.nova.networks.find(label=self.inter_net_name)
+
+        # create access point server
+        openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network.id}],
+            vm_count=1,
+            security_groups=[security_group.name, default_sg['name']])
+        openstack.verify_instance_state(admin)
+
+        openstack.create_and_assign_floating_ip(
+            os_conn=admin,
+            srv_list=admin.get_servers())
+
+        access_point = admin.get_servers()[0]
+        access_point_ip = [
+            add['addr']
+            for add in access_point.addresses[access_point.addresses.keys()[0]]
+            if add['OS-EXT-IPS:type'] == 'floating'][0]
+
+        # Launch instances with image TestVM and flavor m1.micro in nova az.
+        # Launch instances with image TestVM-VMDK and flavor m1.micro
+        # in vcenter az.
+
+        openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network.id}],
+            vm_count=1,
+            security_groups=[default_sg['name']])
+        openstack.verify_instance_state(admin)
+
+        # Get ssh to access point
+        instances = [instance
+                     for instance in admin.get_servers()
+                     if instance.id != access_point.id]
+        ips = []
+        for instance in instances:
+            ips.append([add['addr']
+                        for add
+                        in instance.addresses[instance.addresses.keys()[0]]
+                        if add['OS-EXT-IPS:type'] == 'fixed'][0])
+
+        for ip in ips:
+            for ip_2 in ips:
+                if ip_2 != ip:
+                    ping_result = openstack.remote_execute_command(
+                        access_point_ip, ip, "ping -c 5 {}".format(ip_2))
+                    assert_true(
+                        ping_result['exit_code'] == 0,
+                        "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                        )
