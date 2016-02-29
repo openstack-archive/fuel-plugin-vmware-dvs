@@ -181,7 +181,8 @@ htmlhelp_basename = 'FuelVMwareDVSplugindoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_elements = { 'classoptions': ',openany,oneside', 'babel': '\\usepackage[english]{babel}'
+latex_elements = { 'classoptions': ',openany,oneside', 'babel': '\\usepackage[english]{babel}',
+                   'preamble': '\setcounter{tocdepth}{3} \setcounter{secnumdepth}{0}'
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
