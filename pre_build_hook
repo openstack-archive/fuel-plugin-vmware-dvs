@@ -2,7 +2,7 @@
 
 rm repositories/ubuntu/python-vmware-dvs*
 
-git clone git@github.com:Mirantis/vmware-dvs.git
+git clone git@github.com:Mirantis/vmware-dvs.git -b liberty
 cd vmware-dvs
 make
 cp *.deb ../repositories/ubuntu
