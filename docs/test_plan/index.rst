@@ -6,7 +6,7 @@ Testing documents
 
 .. toctree::
    :glob:
-   :maxdepth: 1
+   :maxdepth: 3
 
    source/vmware_dvs_test_plan
    source/test_suite_smoke
