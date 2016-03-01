@@ -12,7 +12,7 @@ advanced network features:
 
 -  Control over IP addressing.
 
--  Ability to insert an configure their own services (e.g., firewall,
+-  Ability to insert and configure their own services (e.g., firewall,
    IPS)
 
 -  VPN/Bridge to remote physical hosting or customer premises.

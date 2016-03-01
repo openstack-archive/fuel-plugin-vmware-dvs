@@ -19,6 +19,8 @@ Create and Configure an environment with VMware DVS plugin
 
    .. image:: _static/net.png
 
+Please, do not uncheck Neutron with VLAN segmenation for that environment
+
 .. raw:: latex
 
    \pagebreak

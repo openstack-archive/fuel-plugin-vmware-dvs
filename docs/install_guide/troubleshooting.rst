@@ -12,7 +12,7 @@ neutron.conf::
   notification_driver=messagingv2
   notification_topics=notifications,vmware_dvs
 
-plugin.in::
+plugin.ini::
 
   [ml2]
   mechanism_drivers =openvswitch,l2population,vmware_dvs

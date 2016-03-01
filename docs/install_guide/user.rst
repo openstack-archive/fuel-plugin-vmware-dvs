@@ -19,7 +19,7 @@ Using advanced neutron's possibilities with VMware DVS plugin
 
 #. You can use Neutron for such instance brand the same way as for KVM-located instances.
 
-#. DVS Security groups functionality differs from KVM implementatin. VMWare DVS does not
+#. DVS Security groups functionality differs from KVM implementation. VMWare DVS does not
    support stateful firewall properties and ICMP types. DVS Plugin realises emulation logic
    to support the similar behavior. It installs reverse traffic rule for each SG rule.
    VMWare DVS plugin state emulation logic uses ephemeral port range filter to rise security
