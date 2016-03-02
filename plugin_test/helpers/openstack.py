@@ -14,7 +14,7 @@
 import paramiko
 import yaml
 
-from netaddr import *
+
 from proboscis.asserts import assert_true
 from devops.helpers.helpers import wait
 from devops.error import TimeoutError
@@ -366,3 +366,35 @@ def create_volume(os_conn, availability_zone, size=1,
     logger.info("Created volume: '{0}', parent image: '{1}'"
                 .format(volume.id, image.id))
     return volume
+
+
+def create_access_point(os_conn, nics, security_groups, vm_count=1):
+        """Creating instance with floating ip as access point to instances
+           with private ip in the same network.
+        :param os_conn: type object, openstack
+        :param vm_count: type interger, count of VMs to create
+        :param nics: type dictionary, neutron networks
+                     to assign to instance
+        :param security_groups: A list of security group names
+        """
+        # get any available host
+        host = os_conn.nova.services.list(binary='nova-compute')[0]
+        # create access point server
+        create_instances(
+            os_conn=os_conn, nics=nics,
+            vm_count=1,
+            security_groups=security_groups,
+            available_hosts=[host])
+        verify_instance_state(os_conn)
+
+        create_and_assign_floating_ip(
+            os_conn=os_conn,
+            srv_list=os_conn.get_servers())
+
+        access_point = os_conn.get_servers()[0]
+        access_point_ip = [
+            add['addr']
+            for add in access_point.addresses[
+                access_point.addresses.keys()[0]]
+            if add['OS-EXT-IPS:type'] == 'floating'][0]
+        return access_point, access_point_ip
