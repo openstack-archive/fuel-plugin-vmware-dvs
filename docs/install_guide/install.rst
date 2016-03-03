@@ -9,7 +9,10 @@ Make sure that:
 * all the nodes of your future environment are discovered and functional.
 
 * there is a connectivity to correctly configured vCenter with VDS and clusters created. Please,
-  see the `Mirantis OpenStack Planning Guide <https://docs.mirantis.com/openstack/fuel/fuel-8.0/planning-guide.html#vcenter-plan>`_, `User Guide <https://docs.mirantis.com/openstack/fuel/fuel-8/user-guide.html#vmware-integration-notes>`_ and `this plugin's specification <https://github.com/openstack/fuel-plugin-vmware-dvs/blob/master/specs/fuel-plugin-vmware-dvs.rst>`_ for information on configuring vCenter.
+  see the `Mirantis OpenStack Planning Guide <https://docs.mirantis.com/openstack/fuel/fuel-8.0/mos-planning-guide.html#plan-the-vsphere-integration>`_,
+  `User Guide <https://docs.mirantis.com/openstack/fuel/fuel-8.0/user-guide.html#vmware-integration-notes>`_ and
+  `this plugin's specification <https://github.com/openstack/fuel-plugin-vmware-dvs/blob/stable/8.0-agentless/specs/fuel-plugin-vmware-dvs.rst>`_
+  for information on configuring vCenter.
 
 #. Download the plugin from the
    `Fuel Plugin Catalog <https://www.mirantis.com/products/openstack-drivers-and-plugins/fuel-plugins/>`__.
