@@ -1,16 +1,17 @@
-#    Copyright 2014 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+"""Copyright 2016 Mirantis, Inc.
+
+   Licensed under the Apache License, Version 2.0 (the "License"); you may
+   not use this file except in compliance with the License. You may obtain
+   a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+   License for the specific language governing permissions and limitations
+   under the License.
+"""
 import time
 
 
@@ -35,12 +36,16 @@ from helpers import openstack
 
 
 @test(groups=["plugins", 'dvs_vcenter_system'])
-class TestDVSPlugin(TestBasic):
+class TestDVSSystem(TestBasic):
+    """The goal of integration and system testing is to ensure that new or
+       modified components of Fuel and MOS work effectively with Fuel VMware
+       DVS plugin without gaps in dataflow.
+    """
+    def node_name(self, name_node):
+        """Get node by name."""
+        return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     # constants
-    node_name = lambda self, name_node: self.fuel_web. \
-        get_nailgun_node_by_name(name_node)['hostname']
-
     net_data = [{'net_1': '192.168.112.0/24'},
                 {'net_2': '192.168.113.0/24'}]
 
@@ -944,10 +949,12 @@ class TestDVSPlugin(TestBasic):
         Duration 1.8 hours
 
         """
+        self.show_step(1)
+        self.show_step(2)
         self.env.revert_snapshot("ready_with_5_slaves")
-
         plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
 
+        self.show_step(3)
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
@@ -958,7 +965,9 @@ class TestDVSPlugin(TestBasic):
         )
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
-        # Assign role to node
+        self.show_step(4)
+        self.show_step(5)
+        self.show_step(6)
         self.fuel_web.update_nodes(
             cluster_id,
             {'slave-01': ['controller'],
@@ -969,6 +978,7 @@ class TestDVSPlugin(TestBasic):
              }
         )
 
+        self.show_step(8)
         logger.info('Configure VMware vCenter Settings.')
         target_node_2 = self.node_name('slave-05')
         self.fuel_web.vcenter_configure(
@@ -977,6 +987,7 @@ class TestDVSPlugin(TestBasic):
             multiclusters=True
         )
 
+        self.show_step(10)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.fuel_web.run_ostf(
@@ -996,14 +1007,14 @@ class TestDVSPlugin(TestBasic):
             if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
             if sg['name'] == 'default'][0]
 
-        logger.info("Create instances for each of hypervisor's type")
+        self.show_step(11)
         network = admin.nova.networks.find(label=self.inter_net_name)
         openstack.create_instances(
             os_conn=admin, nics=[{'net-id': network.id}], vm_count=1,
             security_groups=[default_sg['name']])
         openstack.verify_instance_state(admin)
 
-        logger.info("Create 2 volumes each in his own availability zone.")
+        self.show_step(12)
         volume_vcenter = openstack.create_volume(admin, 'vcenter-cinder')
         volume_nova = openstack.create_volume(admin, 'nova')
         instances = admin.nova.servers.list()
@@ -1016,10 +1027,11 @@ class TestDVSPlugin(TestBasic):
             for inst in instances
             if inst.to_dict()['OS-EXT-AZ:availability_zone'] == 'nova'][0]
 
+        self.show_step(13)
         admin.attach_volume(volume_vcenter, instance_vcenter)
         admin.attach_volume(volume_nova, instance_nova)
 
-        logger.info('Check that each volume is attached.')
+        self.show_step(14)
         assert_true(
             admin.cinder.volumes.get(volume_nova.id).status == 'in-use')
 
@@ -1036,9 +1048,9 @@ class TestDVSPlugin(TestBasic):
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Launch instances with image TestVM
                and flavor m1.micro in nova availability zone.
-            4. Launch instances with image TestVM-VMDK
+            3. Launch instances with image TestVM-VMDK
                and flavor m1.micro in vcenter availability zone.
-            5. Verify that instances on different hypervisors
+            4. Verify that instances on different hypervisors
                should communicate between each other.
                Send icmp ping from VM_1 instances of vCenter to instances
                from Qemu/KVM and vice versa.
@@ -1047,6 +1059,7 @@ class TestDVSPlugin(TestBasic):
 
         """
 
+        self.show_step(1)
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1069,14 +1082,11 @@ class TestDVSPlugin(TestBasic):
 
         # create access point server
         access_point, access_point_ip = openstack.create_access_point(
-            os_conn=admin, nics=[{'net-id': network['id']}],
+            os_conn=admin, nics=[{'net-id': network.id}],
             security_groups=[security_group.name, default_sg['name']])
 
-        logger.info("""Launch instances with image TestVM and flavor m1.micro
-            in nova az.
-            Launch instances with image TestVM-VMDK and flavor m1.micro
-            in vcenter az.""")
-
+        self.show_step(2)
+        self.show_step(3)
         openstack.create_instances(
             os_conn=admin, nics=[{'net-id': network.id}],
             vm_count=1,
@@ -1089,11 +1099,9 @@ class TestDVSPlugin(TestBasic):
                      if instance.id != access_point.id]
         ips = []
         for instance in instances:
-            ips.append([add['addr']
-                        for add
-                        in instance.addresses[instance.addresses.keys()[0]]
-                        if add['OS-EXT-IPS:type'] == 'fixed'][0])
-
+            ips.append(admin.get_nova_instance_ip(
+                instance, net_name=self.inter_net_name))
+        self.show_step(4)
         for ip in ips:
             for ip_2 in ips:
                 if ip_2 != ip:
@@ -1124,6 +1132,7 @@ class TestDVSPlugin(TestBasic):
 
         """
 
+        self.show_step(1)
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1132,6 +1141,8 @@ class TestDVSPlugin(TestBasic):
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
+
+        tenant = admin.get_tenant(SERVTEST_TENANT)
 
         # create security group with rules for ssh and ping
         security_group = admin.create_sec_group_for_ssh()
@@ -1142,20 +1153,17 @@ class TestDVSPlugin(TestBasic):
             if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
             if sg['name'] == 'default'][0]
 
-        # Create non default network with subnet.
+        self.show_step(2)
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = openstack.create_network(
-            admin,
-            self.net_data[0].keys()[0], tenant_name=SERVTEST_TENANT
-        )
+        network = admin.create_network(
+            network_name=self.net_data[0].keys()[0],
+            tenant_id=tenant.id)['network']
 
-        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
-        subnet = openstack.create_subnet(
-            admin,
-            network,
-            self.net_data[0][self.net_data[0].keys()[0]],
-            tenant_name=SERVTEST_TENANT
-        )
+        subnet = admin.create_subnet(
+            subnet_name=network['name'],
+            network_id=network['id'],
+            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            ip_version=4)
 
         # Check that network are created.
         assert_true(
@@ -1163,23 +1171,21 @@ class TestDVSPlugin(TestBasic):
         )
         # Create Router_01, set gateway and add interface
         # to external network.
-        router_1 = openstack.add_router(
-            admin,
-            'router_1')
+        router_1 = admin.create_router(
+            'router_1',
+            tenant=tenant)
 
         # Add net_1 to router_1
-        openstack.add_subnet_to_router(
-            admin,
-            router_1['id'], subnet['id'])
+        admin.add_router_interface(
+            router_id=router_1["id"],
+            subnet_id=subnet["id"])
 
         access_point, access_point_ip = openstack.create_access_point(
             os_conn=admin, nics=[{'net-id': network['id']}],
             security_groups=[security_group.name, default_sg['name']])
 
-        logger.info("""Launch instances with image TestVM and flavor m1.micro
-            in nova az. Launch instances with image TestVM-VMDK and flavor
-            m1.micro in vcenter az.""")
-
+        self.show_step(3)
+        self.show_step(4)
         openstack.create_instances(
             os_conn=admin, nics=[{'net-id': network['id']}],
             vm_count=1,
@@ -1192,13 +1198,10 @@ class TestDVSPlugin(TestBasic):
                      if instance.id != access_point.id]
         ips = []
         for instance in instances:
-            ips.append([add['addr']
-                        for add
-                        in instance.addresses[instance.addresses.keys()[0]]
-                        if add['OS-EXT-IPS:type'] == 'fixed'][0])
+            ips.append(admin.get_nova_instance_ip(
+                instance, net_name=network['name']))
 
-        logger.info("""Verify that instances on different hypervisors
-               should communicate between each other.""")
+        self.show_step(5)
         for ip in ips:
             for ip_2 in ips:
                 if ip_2 != ip:
@@ -1219,8 +1222,7 @@ class TestDVSPlugin(TestBasic):
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Create private networks net01 with subnet.
             3. Add one  subnet (net01_subnet01: 192.168.101.0/24
-            4. Create Router_01, set gateway and add interface
-               to external network.
+            4. Create Router_01, set gateway and add interface to external net.
             5. Launch instances VM_1 and VM_2 in the net01
                with image TestVM and flavor m1.micro in nova az.
             6. Launch instances VM_3 and VM_4 in the net01
@@ -1232,6 +1234,7 @@ class TestDVSPlugin(TestBasic):
 
         """
 
+        self.show_step(1)
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1240,6 +1243,8 @@ class TestDVSPlugin(TestBasic):
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
+
+        tenant = admin.get_tenant(SERVTEST_TENANT)
 
         # create security group with rules for ssh and ping
         security_group = admin.create_sec_group_for_ssh()
@@ -1250,20 +1255,18 @@ class TestDVSPlugin(TestBasic):
             if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
             if sg['name'] == 'default'][0]
 
-        # Create non default network with subnet.
+        self.show_step(2)
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = openstack.create_network(
-            admin,
-            self.net_data[0].keys()[0], tenant_name=SERVTEST_TENANT
-        )
+        network = admin.create_network(
+            network_name=self.net_data[0].keys()[0],
+            tenant_id=tenant.id)['network']
 
-        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
-        subnet = openstack.create_subnet(
-            admin,
-            network,
-            self.net_data[0][self.net_data[0].keys()[0]],
-            tenant_name=SERVTEST_TENANT
-        )
+        self.show_step(3)
+        subnet = admin.create_subnet(
+            subnet_name=network['name'],
+            network_id=network['id'],
+            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            ip_version=4)
 
         # Check that network are created.
         assert_true(
@@ -1271,24 +1274,21 @@ class TestDVSPlugin(TestBasic):
         )
         # Create Router_01, set gateway and add interface
         # to external network.
-        router_1 = openstack.add_router(
-            admin,
-            'router_1')
+        router_1 = admin.create_router(
+            'router_1',
+            tenant=tenant)
 
-        # Add net_1 to router_1
-        openstack.add_subnet_to_router(
-            admin,
-            router_1['id'], subnet['id'])
+        self.show_step(4)
+        admin.add_router_interface(
+            router_id=router_1["id"],
+            subnet_id=subnet["id"])
 
         access_point, access_point_ip = openstack.create_access_point(
             os_conn=admin, nics=[{'net-id': network['id']}],
             security_groups=[security_group.name, default_sg['name']])
 
-        logger.info("""Launch instances with image TestVM and flavor
-            m1.micro in nova az.
-            Launch instances with image TestVM-VMDK and
-            flavor m1.micro in vcenter az.""")
-
+        self.show_step(5)
+        self.show_step(6)
         openstack.create_instances(
             os_conn=admin, nics=[{'net-id': network['id']}],
             vm_count=1,
@@ -1301,13 +1301,10 @@ class TestDVSPlugin(TestBasic):
                      if instance.id != access_point.id]
         ips = []
         for instance in instances:
-            ips.append([add['addr']
-                        for add
-                        in instance.addresses[instance.addresses.keys()[0]]
-                        if add['OS-EXT-IPS:type'] == 'fixed'][0])
+            ips.append(admin.get_nova_instance_ip(
+                instance, net_name=network['name']))
 
-        logger.info("""Send ping from instances to 8.8.8.8
-            or other outside ip.""")
+        self.show_step(7)
         ip_2 = '8.8.8.8'
         for ip in ips:
             ping_result = openstack.remote_execute_command(
@@ -1316,3 +1313,180 @@ class TestDVSPlugin(TestBasic):
                 ping_result['exit_code'] == 0,
                 "Ping isn't available from {0} to {1}".format(ip, ip_2)
                 )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_different_networks"])
+    @log_snapshot_after_test
+    def dvs_different_networks(self):
+        """Check connectivity between instances from different networks
+        Scenario:
+            1. Revert snapshot to dvs_vcenter_systest_setup.
+            2. Create private networks net01 and net02 with subnets.
+            3. Create Router_01, set gateway and add interface to
+               external network.
+            4. Create Router_02, set gateway and add interface to
+               external network.
+            5. Attach private networks to Router_01.
+            6. Attach private networks to Router_02.
+            7. Launch instances in the net01
+               with image TestVM and flavor m1.micro in nova az.
+            8. Launch instances in the net01
+               with image TestVM-VMDK and flavor m1.micro in vcenter az.
+            9. Launch instances in the net02
+               with image TestVM and flavor m1.micro in nova az.
+            10. Launch instances in the net02
+                with image TestVM-VMDK and flavor m1.micro in vcenter az.
+            11. Verify that instances of same networks should communicate
+                between each other via private ip.
+                Send icmp ping between instances.
+            12. Verify that instances of different networks should not
+                communicate between each other via private ip.
+            13. Delete net_02 from Router_02 and add it to the Router_01.
+            14. Verify that instances of different networks should communicate
+                between each other via private ip.
+                Send icmp ping between instances.
+
+        Duration 15 min
+
+        """
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        tenant = admin.get_tenant(SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        instances_group = []
+        networks = []
+        map_router_subnet = []
+        step = 2
+        self.show_step(step)
+        for net in self.net_data:
+            network = admin.create_network(
+                network_name=net.keys()[0],
+                tenant_id=tenant.id)['network']
+
+            logger.info('Create subnet {}'.format(net.keys()[0]))
+            subnet = admin.create_subnet(
+                subnet_name=net.keys()[0],
+                network_id=network['id'],
+                cidr=net[net.keys()[0]],
+                ip_version=4)
+
+            # Check that network are created.
+            assert_true(
+                admin.get_network(network['name'])['id'] == network['id']
+            )
+            self.show_step(step + 1)
+            router = admin.create_router(
+                'router_0{}'.format(self.net_data.index(net) + 1),
+                tenant=tenant)
+
+            self.show_step(step + 3)
+            admin.add_router_interface(
+                router_id=router["id"],
+                subnet_id=subnet["id"])
+
+            access_point, access_point_ip = openstack.create_access_point(
+                os_conn=admin, nics=[{'net-id': network['id']}],
+                security_groups=[security_group.name, default_sg['name']])
+            if step == 3:
+                step += 1
+            self.show_step(step + 5)
+            self.show_step(step + 6)
+            openstack.create_instances(
+                os_conn=admin, nics=[{'net-id': network['id']}],
+                vm_count=1,
+                security_groups=[default_sg['name']])
+            openstack.verify_instance_state(admin)
+
+            instances = [
+                instance for instance in admin.get_servers()
+                if network['name'] == instance.networks.keys()[0]
+                if instance.id != access_point.id]
+
+            private_ips = []
+            for instance in instances:
+                private_ips.append(admin.get_nova_instance_ip(
+                    instance, net_name=net.keys()[0]))
+
+            instances_group.append(
+                {'access_point': access_point,
+                 'access_point_ip': access_point_ip,
+                 'private_ips': private_ips}
+            )
+
+            networks.append(network)
+            map_router_subnet.append(
+                {'subnet': subnet['id'], 'router': router['id']})
+            step = 3
+        self.show_step(11)
+
+        for group in instances_group:
+            for ip in group['private_ips']:
+                for ip_2 in group['private_ips']:
+                    if ip_2 != ip:
+                        ping_result = openstack.remote_execute_command(
+                            group['access_point_ip'],
+                            ip, "ping -c 5 {}".format(ip_2))
+                        assert_true(
+                            ping_result['exit_code'] == 0,
+                            "Ping isn't available from {0} to {1}".format(
+                                ip, ip_2)
+                            )
+
+        self.show_step(12)
+        for ip in instances_group[0]['private_ips']:
+            for ip_2 in instances_group[1]['private_ips']:
+                ping_result = openstack.remote_execute_command(
+                    instances_group[0]['access_point_ip'],
+                    ip, "ping -c 5 {}".format(ip_2))
+                assert_true(
+                    ping_result['exit_code'] == 1,
+                    "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                    )
+
+        self.show_step(13)
+
+        access_point_fip = instances_group[1]['access_point_ip']
+        fip_id = [
+            fip['id']
+            for fip in admin.neutron.list_floatingips()['floatingips']
+            if fip['floating_ip_address'] == access_point_fip][0]
+
+        admin.neutron.delete_floatingip(fip_id)
+
+        admin.neutron.remove_interface_router(
+            map_router_subnet[1]['router'],
+            {"subnet_id": map_router_subnet[1]['subnet']})
+
+        openstack.add_subnet_to_router(
+            admin,
+            map_router_subnet[0]['router'],
+            map_router_subnet[1]['subnet'])
+        time.sleep(20)  # need wait to port state update
+        self.show_step(14)
+        for ip in instances_group[1]['private_ips']:
+            for ip_2 in instances_group[0]['private_ips']:
+                ping_result = openstack.remote_execute_command(
+                    instances_group[0]['access_point_ip'],
+                    ip, "ping -c 5 {}".format(ip_2))
+                assert_true(
+                    ping_result['exit_code'] == 0,
+                    "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                    )
