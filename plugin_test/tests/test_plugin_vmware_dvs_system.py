@@ -201,7 +201,7 @@ class TestDVSPlugin(TestBasic):
 
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
-            2. Create private networks net01 with sunet.
+            2. Create private networks net01 with subnet.
             3. Add one  subnet (net01_subnet01: 192.168.101.0/24
             4. Create Router_01, set gateway and add interface
                to external network.
@@ -757,10 +757,10 @@ class TestDVSPlugin(TestBasic):
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Create non-admin tenant.
-            3. Create private network net01 with sunet in non-admin tenant.
+            3. Create private network net01 with subnet in non-admin tenant.
             4. Create Router_01, set gateway and add interface
                to external network.
-            5. Create private network net01 with sunet in default admin tenant
+            5. Create private network net01 with subnet in default admin tenant
             6. Create Router_01, set gateway and add interface
                to external network.
             7. Launch instances VM_1 and VM_2
@@ -1068,25 +1068,14 @@ class TestDVSPlugin(TestBasic):
         network = admin.nova.networks.find(label=self.inter_net_name)
 
         # create access point server
-        openstack.create_instances(
-            os_conn=admin, nics=[{'net-id': network.id}],
-            vm_count=1,
+        access_point, access_point_ip = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network['id']}],
             security_groups=[security_group.name, default_sg['name']])
-        openstack.verify_instance_state(admin)
 
-        openstack.create_and_assign_floating_ip(
-            os_conn=admin,
-            srv_list=admin.get_servers())
-
-        access_point = admin.get_servers()[0]
-        access_point_ip = [
-            add['addr']
-            for add in access_point.addresses[access_point.addresses.keys()[0]]
-            if add['OS-EXT-IPS:type'] == 'floating'][0]
-
-        # Launch instances with image TestVM and flavor m1.micro in nova az.
-        # Launch instances with image TestVM-VMDK and flavor m1.micro
-        # in vcenter az.
+        logger.info("""Launch instances with image TestVM and flavor m1.micro
+            in nova az.
+            Launch instances with image TestVM-VMDK and flavor m1.micro
+            in vcenter az.""")
 
         openstack.create_instances(
             os_conn=admin, nics=[{'net-id': network.id}],
@@ -1094,7 +1083,7 @@ class TestDVSPlugin(TestBasic):
             security_groups=[default_sg['name']])
         openstack.verify_instance_state(admin)
 
-        # Get ssh to access point
+        # Get private ips of instances
         instances = [instance
                      for instance in admin.get_servers()
                      if instance.id != access_point.id]
@@ -1114,3 +1103,216 @@ class TestDVSPlugin(TestBasic):
                         ping_result['exit_code'] == 0,
                         "Ping isn't available from {0} to {1}".format(ip, ip_2)
                         )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_connect_nodefault_net"])
+    @log_snapshot_after_test
+    def dvs_connect_nodefault_net(self):
+        """Check connectivity between VMs with same ip in different tenants.
+
+            Scenario:
+            1. Revert snapshot to dvs_vcenter_systest_setup.
+            2. Create tenant net_01 with subnet.
+            3. Launch instances with image TestVM
+               and flavor m1.micro in nova availability zone in net_01.
+            4. Launch instances with image TestVM-VMDK
+               and flavor m1.micro in vcenter availability zone in net_01.
+            5. Verify that instances on different hypervisors
+               should communicate between each other.
+               Send icmp ping from VM_1 instances of vCenter to instances
+               from Qemu/KVM and vice versa.
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        # Create non default network with subnet.
+        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
+        network = openstack.create_network(
+            admin,
+            self.net_data[0].keys()[0], tenant_name=SERVTEST_TENANT
+        )
+
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        subnet = openstack.create_subnet(
+            admin,
+            network,
+            self.net_data[0][self.net_data[0].keys()[0]],
+            tenant_name=SERVTEST_TENANT
+        )
+
+        # Check that network are created.
+        assert_true(
+            admin.get_network(network['name'])['id'] == network['id']
+        )
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = openstack.add_router(
+            admin,
+            'router_1')
+
+        # Add net_1 to router_1
+        openstack.add_subnet_to_router(
+            admin,
+            router_1['id'], subnet['id'])
+
+        access_point, access_point_ip = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            security_groups=[security_group.name, default_sg['name']])
+
+        logger.info("""Launch instances with image TestVM and flavor m1.micro
+            in nova az. Launch instances with image TestVM-VMDK and flavor
+            m1.micro in vcenter az.""")
+
+        openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[default_sg['name']])
+        openstack.verify_instance_state(admin)
+
+        # Get private ips of instances
+        instances = [instance
+                     for instance in admin.get_servers()
+                     if instance.id != access_point.id]
+        ips = []
+        for instance in instances:
+            ips.append([add['addr']
+                        for add
+                        in instance.addresses[instance.addresses.keys()[0]]
+                        if add['OS-EXT-IPS:type'] == 'fixed'][0])
+
+        logger.info("""Verify that instances on different hypervisors
+               should communicate between each other.""")
+        for ip in ips:
+            for ip_2 in ips:
+                if ip_2 != ip:
+                    ping_result = openstack.remote_execute_command(
+                        access_point_ip, ip, "ping -c 5 {}".format(ip_2))
+                    assert_true(
+                        ping_result['exit_code'] == 0,
+                        "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                        )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_ping_without_fip"])
+    @log_snapshot_after_test
+    def dvs_ping_without_fip(self):
+        """Check connectivity instances to public network without floating ip.
+
+        Scenario:
+            1. Revert snapshot to dvs_vcenter_systest_setup.
+            2. Create private networks net01 with subnet.
+            3. Add one  subnet (net01_subnet01: 192.168.101.0/24
+            4. Create Router_01, set gateway and add interface
+               to external network.
+            5. Launch instances VM_1 and VM_2 in the net01
+               with image TestVM and flavor m1.micro in nova az.
+            6. Launch instances VM_3 and VM_4 in the net01
+               with image TestVM-VMDK and flavor m1.micro in vcenter az.
+            7. Send ping from instances to 8.8.8.8
+               or other outside ip.
+
+        Duration 15 min
+
+        """
+
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        # Create non default network with subnet.
+        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
+        network = openstack.create_network(
+            admin,
+            self.net_data[0].keys()[0], tenant_name=SERVTEST_TENANT
+        )
+
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        subnet = openstack.create_subnet(
+            admin,
+            network,
+            self.net_data[0][self.net_data[0].keys()[0]],
+            tenant_name=SERVTEST_TENANT
+        )
+
+        # Check that network are created.
+        assert_true(
+            admin.get_network(network['name'])['id'] == network['id']
+        )
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = openstack.add_router(
+            admin,
+            'router_1')
+
+        # Add net_1 to router_1
+        openstack.add_subnet_to_router(
+            admin,
+            router_1['id'], subnet['id'])
+
+        access_point, access_point_ip = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            security_groups=[security_group.name, default_sg['name']])
+
+        logger.info("""Launch instances with image TestVM and flavor
+            m1.micro in nova az.
+            Launch instances with image TestVM-VMDK and
+            flavor m1.micro in vcenter az.""")
+
+        openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[default_sg['name']])
+        openstack.verify_instance_state(admin)
+
+        # Get private ips of instances
+        instances = [instance
+                     for instance in admin.get_servers()
+                     if instance.id != access_point.id]
+        ips = []
+        for instance in instances:
+            ips.append([add['addr']
+                        for add
+                        in instance.addresses[instance.addresses.keys()[0]]
+                        if add['OS-EXT-IPS:type'] == 'fixed'][0])
+
+        logger.info("""Send ping from instances to 8.8.8.8
+            or other outside ip.""")
+        ip_2 = '8.8.8.8'
+        for ip in ips:
+            ping_result = openstack.remote_execute_command(
+                access_point_ip, ip, "ping -c 5 {}".format(ip_2))
+            assert_true(
+                ping_result['exit_code'] == 0,
+                "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                )
