@@ -305,7 +305,7 @@ Check connectivity between instances attached to different networks with and wit
 ID
 ##
 
-dvs_connectivity_diff_networks
+dvs_different_networks
 
 
 Description
@@ -324,20 +324,21 @@ Steps
 #####
 
     1. Setup for system tests.
-    2. Log in to Horizon Dashboard.
-    3. Add two private networks (net01, and net02).
-    4. Add one  subnet (net01_subnet01: 192.168.101.0/24, net02_subnet01, 192.168.102.0/24) to each network.
-    5. Navigate to Project ->  Compute -> Instances
-    6. Launch instances VM_1 and VM_2 in the network 192.168.101.0/24 with image TestVM and flavor m1.micro in nova availability zone.
-    7. Launch instances VM_3 and VM_4 in the 192.168.102.0/24 with image TestVM-VMDK and flavor m1.micro in vcenter availability zone.
-    8. Verify that instances of  same networks should communicate between each other. Send icmp ping from VM_1  to VM_2,  VM_3  to VM_4 and vice versa.
-    9. Verify that instances of  different networks should not communicate between each other. Send icmp ping from VM_1  to VM_3, VM_4 to VM_2  and vice versa.
-    10. Create Router_01, set gateway and add interface to external network.
-    11. Attach private networks to Router_01.
-    12. Verify that instances of  different networks should communicate between each other. Send icmp ping from VM_1  to VM_3, VM_4 to VM_2)  and vice versa.
-    13. Add new Router_02, set gateway and add interface to external network.
-    14. Delete net_02 from Router_01 and add it to the Router_02.
-    15. Verify that instances of different networks should not communicate between each other. Send icmp ping from VM_1  to VM_3, VM_4 to VM_2  and vice versa.
+    2. Create private networks net01 and net02 with subnets.
+    3. Create Router_01, set gateway and add interface to external network.
+    4. Create Router_02, set gateway and add interface to external network.
+    5. Attach private networks to Router_01.
+    6. Attach private networks to Router_02.
+    7. Launch instances in the net01 with image TestVM and flavor m1.micro in nova az.
+    8. Launch instances in the net01 with image TestVM-VMDK and flavor m1.micro in vcenter az.
+    9. Launch instances in the net02 with image TestVM and flavor m1.micro in nova az.
+    10. Launch instances in the net02 with image TestVM-VMDK and flavor m1.micro in vcenter az.
+    11. Verify that instances of same networks should communicate between each other via private ip.
+        Send icmp ping between instances.
+    12. Verify that instances of different networks should not communicate between each other via private ip.
+    13. Delete net_02 from Router_02 and add it to the Router_01.
+    14. Verify that instances of different networks should communicate between each other via private ip.
+        Send icmp ping between instances.
 
 
 Expected result
