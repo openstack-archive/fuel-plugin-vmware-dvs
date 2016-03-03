@@ -1,16 +1,17 @@
-#    Copyright 2014 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+"""Copyright 2016 Mirantis, Inc.
+
+   Licensed under the Apache License, Version 2.0 (the "License"); you may
+   not use this file except in compliance with the License. You may obtain
+   a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+   License for the specific language governing permissions and limitations
+   under the License.
+"""
 import time
 
 
@@ -35,12 +36,16 @@ from helpers import openstack
 
 
 @test(groups=["plugins", 'dvs_vcenter_system'])
-class TestDVSPlugin(TestBasic):
+class TestDVSSystem(TestBasic):
+    """The goal of integration and system testing is to ensure that new or
+       modified components of Fuel and MOS work effectively with Fuel VMware
+       DVS plugin without gaps in dataflow.
+    """
+    def node_name(self, name_node):
+        """Get node by name."""
+        return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     # constants
-    node_name = lambda self, name_node: self.fuel_web. \
-        get_nailgun_node_by_name(name_node)['hostname']
-
     net_data = [{'net_1': '192.168.112.0/24'},
                 {'net_2': '192.168.113.0/24'}]
 
@@ -1316,3 +1321,185 @@ class TestDVSPlugin(TestBasic):
                 ping_result['exit_code'] == 0,
                 "Ping isn't available from {0} to {1}".format(ip, ip_2)
                 )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_different_networks"])
+    @log_snapshot_after_test
+    def dvs_different_networks(self):
+        """Check connectivity between instances from different networks
+        Scenario:
+            1. Revert snapshot to dvs_vcenter_systest_setup.
+            2. Create private networks net01 and net02 with subnets.
+            3. Create Router_01, set gateway and add interface to\
+               external network.
+            4. Create Router_02, set gateway and add interface to\
+               external network.
+            5. Attach private networks to Router_01.
+            6. Attach private networks to Router_02.
+            7. Launch instances in the net01\
+               with image TestVM and flavor m1.micro in nova az.
+            8. Launch instances in the net01\
+               with image TestVM-VMDK and flavor m1.micro in vcenter az.
+            9. Launch instances in the net02\
+               with image TestVM and flavor m1.micro in nova az.
+            10. Launch instances in the net02\
+                with image TestVM-VMDK and flavor m1.micro in vcenter az.
+            11. Verify that instances of same networks should communicate\
+                between each other via private ip.
+                Send icmp ping between instances.
+            12. Verify that instances of different networks should not\
+                communicate between each other via private ip.
+            13. Delete net_02 from Router_02 and add it to the Router_01.
+            14. Verify that instances of different networks should communicate\
+                between each other via private ip.\
+                Send icmp ping between instances.
+
+        Duration 15 min
+
+        """
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        instances_group = []
+        networks = []
+        map_router_subnet = []
+
+        for net in self.net_data:
+            self.show_step(2)
+            network = openstack.create_network(
+                admin,
+                net.keys()[0], tenant_name=SERVTEST_TENANT
+            )
+
+            logger.info('Create subnet {}'.format(net.keys()[0]))
+            subnet = openstack.create_subnet(
+                admin,
+                network,
+                net[net.keys()[0]],
+                tenant_name=SERVTEST_TENANT
+            )
+
+            # Check that network are created.
+            assert_true(
+                admin.get_network(network['name'])['id'] == network['id']
+            )
+            self.show_step(3)
+            self.show_step(4)
+            router = openstack.add_router(
+                admin,
+                'router_0{}'.format(self.net_data.index(net) + 1))
+
+            self.show_step(5)
+            self.show_step(6)
+            openstack.add_subnet_to_router(
+                admin,
+                router['id'], subnet['id'])
+
+            access_point, access_point_ip = openstack.create_access_point(
+                os_conn=admin, nics=[{'net-id': network['id']}],
+                security_groups=[security_group.name, default_sg['name']])
+
+            self.show_step(7)
+            self.show_step(8)
+            self.show_step(9)
+            self.show_step(10)
+            openstack.create_instances(
+                os_conn=admin, nics=[{'net-id': network['id']}],
+                vm_count=1,
+                security_groups=[default_sg['name']])
+            openstack.verify_instance_state(admin)
+
+            instances = [
+                instance for instance in admin.get_servers()
+                if network['name'] == instance.networks.keys()[0]
+                if instance.id != access_point.id]
+
+            private_ips = []
+            for instance in instances:
+                private_ips.append([
+                    add['addr']
+                    for add
+                    in instance.addresses[instance.addresses.keys()[0]]
+                    if add['OS-EXT-IPS:type'] == 'fixed'][0])
+
+            instances_group.append(
+                {'access_point': access_point,
+                 'access_point_ip': access_point_ip,
+                 'private_ips': private_ips}
+            )
+
+            networks.append(network)
+            map_router_subnet.append(
+                {'subnet': subnet['id'], 'router': router['id']})
+
+        self.show_step(11)
+
+        for group in instances_group:
+            for ip in group['private_ips']:
+                for ip_2 in group['private_ips']:
+                    if ip_2 != ip:
+                        ping_result = openstack.remote_execute_command(
+                            group['access_point_ip'],
+                            ip, "ping -c 5 {}".format(ip_2))
+                        assert_true(
+                            ping_result['exit_code'] == 0,
+                            "Ping isn't available from {0} to {1}".format(
+                                ip, ip_2)
+                            )
+
+        self.show_step(12)
+        for ip in instances_group[0]['private_ips']:
+            for ip_2 in instances_group[1]['private_ips']:
+                ping_result = openstack.remote_execute_command(
+                    instances_group[0]['access_point_ip'],
+                    ip, "ping -c 5 {}".format(ip_2))
+                assert_true(
+                    ping_result['exit_code'] == 1,
+                    "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                    )
+
+        self.show_step(13)
+        access_point_fip = instances_group[1]['access_point_ip']
+        fip_id = [
+            fip['id']
+            for fip in admin.neutron.list_floatingips()['floatingips']
+            if fip['floating_ip_address'] == access_point_fip][0]
+
+        admin.neutron.delete_floatingip(fip_id)
+
+        admin.neutron.remove_interface_router(
+            map_router_subnet[1]['router'],
+            {"subnet_id": map_router_subnet[1]['subnet']})
+
+        openstack.add_subnet_to_router(
+            admin,
+            map_router_subnet[0]['router'],
+            map_router_subnet[1]['subnet'])
+
+        self.show_step(14)
+        for ip in instances_group[1]['private_ips']:
+            for ip_2 in instances_group[0]['private_ips']:
+                ping_result = openstack.remote_execute_command(
+                    instances_group[1]['access_point_ip'],
+                    ip, "ping -c 5 {}".format(ip_2))
+                assert_true(
+                    ping_result['exit_code'] == 1,
+                    "Ping isn't available from {0} to {1}".format(ip, ip_2)
+                    )
