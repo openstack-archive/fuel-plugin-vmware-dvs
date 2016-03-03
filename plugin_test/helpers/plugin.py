@@ -1,26 +1,25 @@
-#    Copyright 2015 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+"""Copyright 2016 Mirantis, Inc.
 
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this file except in compliance with the License. You may obtain
+copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+"""
 import os
 
 
-from proboscis.asserts import assert_true
-
-
 from fuelweb_test.helpers import checkers
+
 from fuelweb_test import logger
 
+from proboscis.asserts import assert_true
 
 # constants
 DVS_PLUGIN_PATH = os.environ.get('DVS_PLUGIN_PATH')
@@ -48,7 +47,7 @@ def install_dvs_plugin(master_node):
 
 def enable_plugin(
     cluster_id, fuel_web_client, multiclusters=True):
-    """Enable DVS plugin on cluster
+    """Enable DVS plugin on cluster.
 
     """
     assert_true(

@@ -1,39 +1,46 @@
-#    Copyright 2014 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+"""Copyright 2016 Mirantis, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this file except in compliance with the License. You may obtain
+copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+"""
 import os
 import yaml
 
-from proboscis import test
 
 from fuelweb_test import logger
+
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
+
 from fuelweb_test.tests.base_test_case import SetupEnvironment
-from fuelweb_test.tests.test_net_templates_base import TestNetworkTemplatesBase
 from fuelweb_test.tests.base_test_case import TestBasic
 
+from fuelweb_test.tests.test_net_templates_base import TestNetworkTemplatesBase
+
 from helpers import plugin
+
+from proboscis import test
 
 
 @test(groups=["dvs_vcenter_net_template"])
 class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
-    """TestNetworkTemplates."""  # TODO documentation
 
-    # constants
-    node_name = lambda self, name_node: self.fuel_web. \
-        get_nailgun_node_by_name(name_node)['hostname']
+    """TestNetworkTemplates."""
+
+    def node_name(self, name_node):
+        """Get node by name."""
+        return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     def get_network_template(self, template_name):
         template = 'plugin_test/templates/{0}.yaml'.format(template_name)
@@ -46,7 +53,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
           groups=["dvs_vcenter_net_template"])
     @log_snapshot_after_test
     def dvs_vcenter_net_template(self):
-        """Deploy cluster with DVS plugin, Neutron, Ceph and network template
+        """Deploy cluster with DVS plugin, Neutron, Ceph and network template.
 
         Scenario:
             1. Upload plugins to the master node.
@@ -69,7 +76,6 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         Duration 180m
         Snapshot deploy_cinder_net_tmpl
         """
-
         self.env.revert_snapshot("ready_with_9_slaves")
 
         plugin.install_dvs_plugin(
