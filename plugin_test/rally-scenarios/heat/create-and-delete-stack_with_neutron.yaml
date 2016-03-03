@@ -3,6 +3,8 @@
     -
       args:
         template_path: "{{ current_path }}/templates/server_with_ports.yml.template"
+        parameters:
+          public_net: "{{ floating_net }}"
       runner:
         type: "constant"
         times: {{ compute }}

@@ -76,6 +76,7 @@ def create_instances(os_conn, nics, vm_count=1,
     """
 
     # Get list of available images,flavors and hipervisors
+    instances = []
     images_list = os_conn.nova.images.list()
     flavors = os_conn.nova.flavors.list()
     flavor = [f for f in flavors if f.name == 'm1.micro'][0]
@@ -85,20 +86,21 @@ def create_instances(os_conn, nics, vm_count=1,
         image = [image for image
                  in images_list
                  if image.name == zone_image_maps[host.zone]][0]
-        os_conn.nova.servers.create(
+        instance = os_conn.nova.servers.create(
             flavor=flavor,
             name='test_{0}'.format(image.name),
             image=image, min_count=vm_count,
             availability_zone='{0}:{1}'.format(host.zone, host.host),
             nics=nics, security_groups=security_groups
         )
+        instances.append(instance)
+    return instances
 
 
 def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
                          result_of_command=0,
                          destination_ip=None):
-    """Check network connectivity between instancea and destination ip
-       with ping
+    """Check network connectivity between instances
     :param os_conn: type object, openstack
     :param srv_list: type list, instances
     :param packets: type int, packets count of icmp reply
@@ -380,21 +382,21 @@ def create_access_point(os_conn, nics, security_groups, vm_count=1):
         # get any available host
         host = os_conn.nova.services.list(binary='nova-compute')[0]
         # create access point server
-        create_instances(
+        access_point = create_instances(
             os_conn=os_conn, nics=nics,
             vm_count=1,
             security_groups=security_groups,
             available_hosts=[host])
+
         verify_instance_state(os_conn)
 
         create_and_assign_floating_ip(
             os_conn=os_conn,
-            srv_list=os_conn.get_servers())
+            srv_list=access_point)
 
-        access_point = os_conn.get_servers()[0]
         access_point_ip = [
             add['addr']
-            for add in access_point.addresses[
-                access_point.addresses.keys()[0]]
+            for add in access_point[0].addresses[
+                access_point[0].addresses.keys()[0]]
             if add['OS-EXT-IPS:type'] == 'floating'][0]
-        return access_point, access_point_ip
+        return access_point[0], access_point_ip
