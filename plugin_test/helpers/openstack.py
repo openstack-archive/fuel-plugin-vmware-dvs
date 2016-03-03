@@ -1,27 +1,32 @@
-#    Copyright 2015 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-import paramiko
+"""Copyright 2016 Mirantis, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this file except in compliance with the License. You may obtain
+copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+"""
+
 import yaml
 
 
-from proboscis.asserts import assert_true
-from devops.helpers.helpers import wait
 from devops.error import TimeoutError
 
+from devops.helpers.helpers import wait
+
+from fuelweb_test import logger
 
 from fuelweb_test.settings import SERVTEST_TENANT
-from fuelweb_test import logger
+
+import paramiko
+
+from proboscis.asserts import assert_true
 
 
 def get_defaults():
@@ -40,7 +45,8 @@ instance_creds = (
 
 def verify_instance_state(os_conn, instances=None, expected_state='ACTIVE',
                           boot_timeout=300):
-    """Verify that current state of each instance/s is expected
+    """Verify that current state of each instance/s is expected.
+
     :param os_conn: type object, openstack
     :param instances: type list, list of created instances
     :param expected_state: type string, expected state of instance
@@ -66,7 +72,8 @@ def verify_instance_state(os_conn, instances=None, expected_state='ACTIVE',
 
 def create_instances(os_conn, nics, vm_count=1,
                      security_groups=None, available_hosts=None):
-    """Create Vms on available hypervisors
+    """Create Vms on available hypervisors.
+
     :param os_conn: type object, openstack
     :param vm_count: type interger, count of VMs to create
     :param nics: type dictionary, neutron networks
@@ -74,8 +81,8 @@ def create_instances(os_conn, nics, vm_count=1,
     :param security_groups: A list of security group names
     :param available_hosts: available hosts for creating instances
     """
-
     # Get list of available images,flavors and hipervisors
+    instances = []
     images_list = os_conn.nova.images.list()
     flavors = os_conn.nova.flavors.list()
     flavor = [f for f in flavors if f.name == 'm1.micro'][0]
@@ -85,20 +92,22 @@ def create_instances(os_conn, nics, vm_count=1,
         image = [image for image
                  in images_list
                  if image.name == zone_image_maps[host.zone]][0]
-        os_conn.nova.servers.create(
+        instance = os_conn.nova.servers.create(
             flavor=flavor,
             name='test_{0}'.format(image.name),
             image=image, min_count=vm_count,
             availability_zone='{0}:{1}'.format(host.zone, host.host),
             nics=nics, security_groups=security_groups
         )
+        instances.append(instance)
+    return instances
 
 
 def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
                          result_of_command=0,
                          destination_ip=None):
-    """Check network connectivity between instancea and destination ip
-       with ping
+    """Check network connectivity between instances.
+
     :param os_conn: type object, openstack
     :param srv_list: type list, instances
     :param packets: type int, packets count of icmp reply
@@ -106,7 +115,6 @@ def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
     :param destination_ip: type list, remote destination ip to
                            check by ping
     """
-
     commands = {
         "pingv4": "ping -c 5 {}",
         "pingv6": "ping6 -c 5 {}",
@@ -156,11 +164,11 @@ def get_ssh_connection(ip, username, userpassword, timeout=30, port=22):
 
 
 def check_ssh_between_instances(instance1_ip, instance2_ip):
-    """Check ssh conection between instances
+    """Check ssh conection between instances.
+
     :param instance1: string, instance ip connect from
     :param instance2: string, instance ip connect to
     """
-
     ssh = get_ssh_connection(instance1_ip, instance_creds[0],
                              instance_creds[1], timeout=30)
 
@@ -184,7 +192,8 @@ def check_ssh_between_instances(instance1_ip, instance2_ip):
 
 
 def remote_execute_command(instance1_ip, instance2_ip, command):
-    """Check execute remote command
+    """Check execute remote command.
+
     :param instance1: string, instance ip connect from
     :param instance2: string, instance ip connect to
     :param command: string, remote command
@@ -230,13 +239,13 @@ def remote_execute_command(instance1_ip, instance2_ip, command):
 
 def create_and_assign_floating_ip(os_conn, srv_list=None,
                                   ext_net=None, tenant_id=None):
-    """Create Vms on available hypervisors
+    """Create Vms on available hypervisors.
+
     :param os_conn: type object, openstack
     :param srv_list: type list, objects of created instances
     :param ext_net: type object, neutron external network
     :param tenant_id: type string, tenant id
     """
-
     if not ext_net:
         ext_net = [net for net
                    in os_conn.neutron.list_networks()["networks"]
@@ -258,12 +267,12 @@ def create_and_assign_floating_ip(os_conn, srv_list=None,
 
 def add_router(os_conn, router_name, ext_net_name=external_net_name,
                tenant_name=SERVTEST_TENANT):
-    """Create router with gateway
+    """Create router with gateway.
+
     :param router_name: type string
     :param ext_net_name: type string
     :param tenant_name: type string
     """
-
     ext_net = [net for net
                in os_conn.neutron.list_networks()["networks"]
                if net['name'] == ext_net_name][0]
@@ -329,7 +338,8 @@ def add_role_to_user(os_conn, user_name, role_name, tenant_name):
 
 
 def check_service(ssh, commands):
-        """Check that required nova services are running on controller
+        """Check that required nova services are running on controller.
+
         :param ssh: SSHClient
         :param commands: type list, nova commands to execute on controller,
                          example of commands:
@@ -345,7 +355,8 @@ def check_service(ssh, commands):
 
 def create_volume(os_conn, availability_zone, size=1,
                   expected_state="available"):
-    """Verify that current state of each instance/s is expected
+    """Create volume.
+
     :param os_conn: type object, openstack
     :param availability_zone: type string,
      availability_zone where volume will be created
@@ -368,9 +379,12 @@ def create_volume(os_conn, availability_zone, size=1,
     return volume
 
 
-def create_access_point(os_conn, nics, security_groups, vm_count=1):
-        """Creating instance with floating ip as access point to instances
-           with private ip in the same network.
+def create_access_point(os_conn, nics, security_groups):
+        """Create access point.
+
+        Creating instance with floating ip as access point to instances
+        with private ip in the same network.
+
         :param os_conn: type object, openstack
         :param vm_count: type interger, count of VMs to create
         :param nics: type dictionary, neutron networks
@@ -380,21 +394,14 @@ def create_access_point(os_conn, nics, security_groups, vm_count=1):
         # get any available host
         host = os_conn.nova.services.list(binary='nova-compute')[0]
         # create access point server
-        create_instances(
+        access_point = create_instances(
             os_conn=os_conn, nics=nics,
             vm_count=1,
             security_groups=security_groups,
-            available_hosts=[host])
+            available_hosts=[host]).pop()
+
         verify_instance_state(os_conn)
 
-        create_and_assign_floating_ip(
-            os_conn=os_conn,
-            srv_list=os_conn.get_servers())
-
-        access_point = os_conn.get_servers()[0]
-        access_point_ip = [
-            add['addr']
-            for add in access_point.addresses[
-                access_point.addresses.keys()[0]]
-            if add['OS-EXT-IPS:type'] == 'floating'][0]
+        access_point_ip = os_conn.assign_floating_ip(
+            access_point, use_neutron=True)['floating_ip_address']
         return access_point, access_point_ip

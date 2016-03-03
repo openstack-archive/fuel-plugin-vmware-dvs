@@ -1,46 +1,60 @@
-#    Copyright 2014 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
+"""Copyright 2016 Mirantis, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this file except in compliance with the License. You may obtain
+copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+"""
+
 import time
 
-
-from proboscis import test
-from proboscis.asserts import assert_true
 from devops.helpers.helpers import wait
 
-
-from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test import logger
-from fuelweb_test.settings import DEPLOYMENT_MODE
-from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
-from fuelweb_test.settings import SERVTEST_USERNAME
-from fuelweb_test.settings import SERVTEST_PASSWORD
-from fuelweb_test.settings import SERVTEST_TENANT
-from fuelweb_test.tests.base_test_case import SetupEnvironment
-from fuelweb_test.tests.base_test_case import TestBasic
+
 from fuelweb_test.helpers import os_actions
 
+from fuelweb_test.helpers.decorators import log_snapshot_after_test
 
-from helpers import plugin
+from fuelweb_test.settings import DEPLOYMENT_MODE
+from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
+from fuelweb_test.settings import SERVTEST_PASSWORD
+from fuelweb_test.settings import SERVTEST_TENANT
+from fuelweb_test.settings import SERVTEST_USERNAME
+
+from fuelweb_test.tests.base_test_case import SetupEnvironment
+from fuelweb_test.tests.base_test_case import TestBasic
+
+
 from helpers import openstack
+from helpers import plugin
+
+from proboscis import test
+
+from proboscis.asserts import assert_true
 
 
 @test(groups=["plugins", 'dvs_vcenter_plugin', 'dvs_vcenter_system'])
-class TestDVSPlugin(TestBasic):
+class TestDVSDestructive(TestBasic):
 
-    # constants
-    node_name = lambda self, name_node: self.fuel_web. \
-        get_nailgun_node_by_name(name_node)['hostname']
+    """Failover test suite.
+
+    Destructive(Failover) and recovery testing ensures that the
+    target-of-test can successfully failover and recover from a variety of
+    hardware, software, or network malfunctions with undue loss of data or
+    data integrity.
+    """
+
+    def node_name(self, name_node):
+        """Get node by name."""
+        return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     # defaults
     inter_net_name = openstack.get_defaults()['networks']['internal']['name']
@@ -49,7 +63,7 @@ class TestDVSPlugin(TestBasic):
           groups=["dvs_vcenter_destructive_setup", "dvs_vcenter_plugin"])
     @log_snapshot_after_test
     def dvs_vcenter_destructive_setup(self):
-        """Deploy cluster with plugin and vmware datastore backend
+        """Deploy cluster with plugin and vmware datastore backend.
 
         Scenario:
             1. Upload plugins to the master node
@@ -61,7 +75,7 @@ class TestDVSPlugin(TestBasic):
             7. Deploy the cluster.
             8. Run OSTF.
 
-        Duration 1.8 hours
+        Duration: 1.8 hours
 
         """
         self.env.revert_snapshot("ready_with_5_slaves")
@@ -110,24 +124,20 @@ class TestDVSPlugin(TestBasic):
           groups=["dvs_vcenter_uninstall", 'dvs_vcenter_system'])
     @log_snapshot_after_test
     def dvs_vcenter_uninstall(self):
-        """Verify that it is not possibility to uninstall
-           of Fuel DVS plugin with deployed environment.
+        """Negative uninstall of Fuel DVS plugin with deployed environment.
 
         Scenario:
-            1. Revert snapshot to dvs_vcenter_destructive_setup
+            1. Revert snapshot to dvs_vcenter_destructive_setup.
             2. Try to uninstall dvs plugin.
 
-        Duration 1.8 hours
+        Duration: 1.8 hours
 
         """
-
-        plugin_name = "fuel-plugin-vmware-dvs"
-
         self.env.revert_snapshot("dvs_vcenter_destructive_setup")
 
         # Try to uninstall dvs plugin
         cmd = 'fuel plugins --remove {0}=={1}'.format(
-            plugin_name, plugin.DVS_PLUGIN_VERSION)
+            plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
         self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
 
@@ -144,8 +154,7 @@ class TestDVSPlugin(TestBasic):
           groups=["dvs_vcenter_bind_port", "dvs_vcenter_destructive_setup"])
     @log_snapshot_after_test
     def dvs_vcenter_bind_port(self):
-        """Check abilities to bind port on DVS to VM,
-           disable and enable this port.
+        """Check abilities to bind port on DVS to VM, disable/enable this port.
 
         Scenario:
             1. Revert snapshot to dvs_vcenter_destructive_setup
@@ -161,10 +170,9 @@ class TestDVSPlugin(TestBasic):
                Send icmp ping between instances.
 
 
-        Duration 1,5 hours
+        Duration: 1,5 hours
 
         """
-
         self.env.revert_snapshot("dvs_vcenter_destructive_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
@@ -264,7 +272,7 @@ class TestDVSPlugin(TestBasic):
             11. Verify connection between instances.
                 Send ping, check that ping get reply
 
-        Duration 1.8 hours
+        Duration: 1.8 hours
 
         """
         self.env.revert_snapshot("ready_with_5_slaves")
@@ -373,7 +381,7 @@ class TestDVSPlugin(TestBasic):
             11. Verify connection between instances.
                 Send ping, check that ping get reply
 
-        Duration 1.8 hours
+        Duration: 1.8 hours
 
         """
         self.env.revert_snapshot("ready_with_5_slaves")
