@@ -4,13 +4,12 @@ parameters:
   # set all correct defaults for parameters before launch test
   public_net:
     type: string
-    default: net04_ext
   image:
     type: string
     default: TestVM-VMDK
   flavor:
     type: string
-    default: m1.tiny
+    default: m1.nano
   cidr:
     type: string
     default: 11.11.11.0/24
