@@ -25,6 +25,8 @@ from helpers import plugin
 
 from proboscis import test
 
+from proboscis.asserts import assert_true
+
 
 @test(groups=["plugins", 'dvs_vcenter_plugin'])
 class TestDVSSmoke(TestBasic):
@@ -182,3 +184,74 @@ class TestDVSSmoke(TestBasic):
 
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_1],
+          groups=["dvs_install", "dvs_vcenter_plugin"])
+    @log_snapshot_after_test
+    def dvs_install(self):
+        """Check that plugin can be installed.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Ensure that plugin is installed successfully using cli,
+               run command 'fuel plugins'. Check name, version of plugin.
+
+        Duration: 30 min
+
+        """
+        self.env.revert_snapshot("ready_with_1_slaves")
+
+        self.show_step(1)
+        self.show_step(2)
+        plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
+
+        cmd = 'fuel plugins list'
+
+        output = list(self.env.d_env.get_admin_remote().execute(
+            cmd)['stdout']).pop().split(' ')
+
+        # check name
+        assert_true(
+            plugin.plugin_name in output,
+            "Plugin  {} is not installed.".format(plugin.plugin_name)
+        )
+        # check version
+        assert_true(
+            plugin.DVS_PLUGIN_VERSION in output,
+            "Plugin  {} is not installed.".format(plugin.plugin_name)
+        )
+        self.env.make_snapshot("dvs_install", is_make=True)
+
+    @test(depends_on=[dvs_install],
+          groups=["dvs_uninstall", "dvs_vcenter_plugin"])
+    @log_snapshot_after_test
+    def dvs_uninstall(self):
+        """Check that plugin can be removed.
+
+        Scenario:
+            1. Revert to snapshot 'dvs_install'.
+            2. Remove plugin.
+            3. Verify that plugin is removed, run command 'fuel plugins'.
+
+
+        Duration: 5 min
+
+        """
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_install")
+
+        self.show_step(2)
+        cmd = 'fuel plugins --remove {0}=={1}'.format(
+            plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
+
+        self.show_step(3)
+        cmd = 'fuel plugins list'
+        output = list(self.env.d_env.get_admin_remote().execute(
+            cmd)['stdout']).pop().split(' ')
+
+        assert_true(
+            plugin.plugin_name not in output,
+            "Plugin is removed {}".format(plugin.plugin_name)
+        )
