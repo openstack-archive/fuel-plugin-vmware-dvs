@@ -86,6 +86,7 @@ define vmware_dvs::agent(
       refreshonly => true,
     }
   }
+  Exec['apply-nova-patch']<| |> ~> Service['nova-compute']
 
   file {$agent_config:
     ensure  => present,
