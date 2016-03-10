@@ -62,6 +62,18 @@
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
 
+# explicit restart nova-compute on controllers
+- id: vmware-dvs-restart-nova-compute
+  version: 2.0.0
+  groups: ['primary-controller','controller']
+  required_for: [deploy_end]
+  requires: [vmware-vcenter]
+  type: puppet
+  parameters:
+    puppet_manifest: puppet/manifests/restart-nova-compute.pp
+    puppet_modules:  puppet/modules:/etc/puppet/modules
+    timeout: 720
+
 # Anchor (empty task) for another tasks, say 'tenant network FW setup starting'
 - id: vmware-dvs-network-start
   type: skipped
