@@ -15,7 +15,6 @@ under the License.
 
 import time
 
-
 from fuelweb_test import logger
 
 from fuelweb_test.helpers import os_actions
