@@ -15,6 +15,10 @@ under the License.
 
 import time
 
+from devops.error import TimeoutError
+
+from devops.helpers.helpers import wait
+
 from fuelweb_test import logger
 
 from fuelweb_test.helpers import os_actions
@@ -1482,3 +1486,57 @@ class TestDVSSystem(TestBasic):
                     ping_result['exit_code'] == 0,
                     "Ping isn't available from {0} to {1}".format(ip, ip_2)
                 )
+
+    @test(depends_on=[dvs_vcenter_systest_setup],
+          groups=["dvs_heat"])
+    @log_snapshot_after_test
+    def dvs_heat(self):
+        """Check connectivity between instances from different networks.
+
+        Scenario:
+            1. Revert snapshot to dvs_vcenter_systest_setup.
+            2. Create stack with heat template.
+            3. Check that stack was created.
+
+        Duration: 15 min
+
+        """
+        # constants
+        expect_state = 'CREATE_COMPLETE'
+        boot_timeout = 300
+        template_path = 'plugin_test/templates/dvs_stack.yaml'
+
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        os_conn = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        with open(template_path) as f:
+            template = f.read()
+
+        self.show_step(2)
+        stack_id = os_conn.heat.stacks.create(
+            stack_name='dvs_stack',
+            template=template,
+            disable_rollback=True
+        )['stack']['id']
+
+        self.show_step(3)
+        try:
+            wait(
+                lambda:
+                os_conn.heat.stacks.get(stack_id).stack_status == expect_state,
+                timeout=boot_timeout)
+        except TimeoutError:
+            current_state = os_conn.heat.stacks.get(stack_id).stack_status
+            assert_true(
+                current_state == expect_state,
+                "Timeout is reached. Current state of stack is {}".format(
+                    current_state)
+            )
