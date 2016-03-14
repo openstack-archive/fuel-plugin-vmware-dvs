@@ -21,17 +21,14 @@ from fuelweb_test.helpers import os_actions
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 
-from fuelweb_test.settings import DEPLOYMENT_MODE
-from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
 
-from fuelweb_test.tests.base_test_case import SetupEnvironment
 from fuelweb_test.tests.base_test_case import TestBasic
+from tests.test_plugin_vmware_dvs_smoke import TestDVSSmoke
 
 from helpers import openstack
-from helpers import plugin
 
 from proboscis import test
 
@@ -54,7 +51,7 @@ class TestDVSMaintenance(TestBasic):
         """Get node by name."""
         return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
-    @test(depends_on=[SetupEnvironment.prepare_slaves_9],
+    @test(depends_on=[TestDVSSmoke.dvs_vcenter_bvt],
           groups=["dvs_regression"])
     @log_snapshot_after_test
     def dvs_regression(self):
@@ -64,9 +61,9 @@ class TestDVSMaintenance(TestBasic):
             1. Upload plugins to the master node
             2. Install plugin.
             3. Create cluster with vcenter.
-            4. Add 3 node with controller+mongo+cinder-vmware role.
-            5. Add 2 node with compute role.
-            6. Add 1 node with compute-vmware role.
+            4. Add 3 node with controller role.
+            5. Add 2 node with compute + ceph role.
+            6. Add 1 node with compute-vmware + cinder vmware role.
             7. Deploy the cluster.
             8. Run OSTF.
             9. Create non default network.
@@ -77,69 +74,38 @@ class TestDVSMaintenance(TestBasic):
 
         Duration: 1.8 hours
         """
-        self.env.revert_snapshot("ready_with_9_slaves")
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
-        # Configure cluster with 2 vcenter clusters and vcenter glance
-        cluster_id = self.fuel_web.create_cluster(
-            name=self.__class__.__name__,
-            mode=DEPLOYMENT_MODE,
-            settings={
-                "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                "images_vcenter": True
-            }
-        )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
-        # Assign role to node
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller', 'mongo', 'cinder-vmware'],
-             'slave-02': ['controller', 'mongo', 'cinder-vmware'],
-             'slave-03': ['controller', 'mongo', 'cinder-vmware'],
-             'slave-04': ['compute'],
-             'slave-05': ['compute'],
-             'slave-06': ['compute-vmware']}
-        )
-        # Configure VMWare vCenter settings
-        target_node_2 = self.node_name('slave-06')
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            target_node_2=target_node_2,
-            multiclusters=True,
-            vc_glance=True
-        )
-        self.fuel_web.deploy_cluster_wait(cluster_id)
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke', 'tests_platform'])
+        self.env.revert_snapshot("dvs_bvt")
+
+        cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
+
+        tenant = os_conn.get_tenant(SERVTEST_TENANT)
         # Create non default network with subnet.
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = openstack.create_network(
-            os_conn,
-            self.net_data[0].keys()[0],
-            tenant_name=SERVTEST_TENANT
-        )
-        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
-        subnet = openstack.create_subnet(
-            os_conn,
-            network,
-            self.net_data[0][self.net_data[0].keys()[0]],
-            tenant_name=SERVTEST_TENANT
-        )
+        network = os_conn.create_network(
+            network_name=self.net_data[0].keys()[0],
+            tenant_id=tenant.id)['network']
+
+        subnet = os_conn.create_subnet(
+            subnet_name=network['name'],
+            network_id=network['id'],
+            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            ip_version=4)
+
         # Check that network are created.
         assert_true(
             os_conn.get_network(network['name'])['id'] == network['id']
         )
         # Add net_1 to default router
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
-        openstack.add_subnet_to_router(
-            os_conn,
-            router['id'], subnet['id'])
+        os_conn.add_router_interface(
+            router_id=router["id"],
+            subnet_id=subnet["id"])
         # Launch instance 2 VMs of vcenter and 2 VMs of nova
         # in the tenant network net_01
         openstack.create_instances(
@@ -149,11 +115,11 @@ class TestDVSMaintenance(TestBasic):
         # Launch instance 2 VMs of vcenter and 2 VMs of nova
         # in the default network
         network = os_conn.nova.networks.find(label=self.inter_net_name)
-        openstack.create_instances(
+        instances = openstack.create_instances(
             os_conn=os_conn, vm_count=1,
             nics=[{'net-id': network.id}])
         openstack.verify_instance_state(os_conn)
-        openstack.create_and_assign_floating_ip(os_conn=os_conn)
+
         # Create security groups SG_1 to allow ICMP traffic.
         # Add Ingress rule for ICMP protocol to SG_1
         # Create security groups SG_2 to allow TCP traffic 22 port.
@@ -192,11 +158,12 @@ class TestDVSMaintenance(TestBasic):
             srv.add_security_group(sg1.id)
             srv.add_security_group(sg2.id)
         time.sleep(20)  # need wait to update rules on dvs
+        fip = openstack.create_and_assign_floating_ips(os_conn, instances)
         # Check ping between VMs
         controller = self.fuel_web.get_nailgun_primary_node(
             self.env.d_env.nodes().slaves[0]
         )
         with self.fuel_web.get_ssh_for_node(controller.name) as ssh_controller:
             openstack.check_connection_vms(
-                os_conn=os_conn, srv_list=srv_list,
-                remote=ssh_controller)
+                os_conn, fip, remote=ssh_controller,
+                command='pingv4')
