@@ -15,6 +15,9 @@ under the License.
 
 import time
 
+from devops.helpers.helpers import icmp_ping
+from devops.helpers.helpers import wait
+
 from fuelweb_test import logger
 
 from fuelweb_test.helpers import os_actions
@@ -45,6 +48,8 @@ class TestDVSMaintenance(TestBasic):
     # constants
     net_data = [{'net_1': '192.168.112.0/24'},
                 {'net_2': '192.168.113.0/24'}]
+
+    long_deployment_timeout = 9000
 
     # defaults
     ext_net_name = openstack.get_defaults()['networks']['floating']['name']
@@ -108,7 +113,8 @@ class TestDVSMaintenance(TestBasic):
             multiclusters=True,
             vc_glance=True
         )
-        self.fuel_web.deploy_cluster_wait(cluster_id)
+        self.fuel_web.deploy_cluster_wait(
+            cluster_id, timeout=self.long_deployment_timeout)
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke', 'tests_platform'])
 
@@ -117,29 +123,29 @@ class TestDVSMaintenance(TestBasic):
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
+
+        tenant = os_conn.get_tenant(SERVTEST_TENANT)
         # Create non default network with subnet.
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = openstack.create_network(
-            os_conn,
-            self.net_data[0].keys()[0],
-            tenant_name=SERVTEST_TENANT
-        )
-        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
-        subnet = openstack.create_subnet(
-            os_conn,
-            network,
-            self.net_data[0][self.net_data[0].keys()[0]],
-            tenant_name=SERVTEST_TENANT
-        )
+        network = os_conn.create_network(
+            network_name=self.net_data[0].keys()[0],
+            tenant_id=tenant.id)['network']
+
+        subnet = os_conn.create_subnet(
+            subnet_name=network['name'],
+            network_id=network['id'],
+            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            ip_version=4)
+
         # Check that network are created.
         assert_true(
             os_conn.get_network(network['name'])['id'] == network['id']
         )
         # Add net_1 to default router
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
-        openstack.add_subnet_to_router(
-            os_conn,
-            router['id'], subnet['id'])
+        os_conn.add_router_interface(
+            router_id=router["id"],
+            subnet_id=subnet["id"])
         # Launch instance 2 VMs of vcenter and 2 VMs of nova
         # in the tenant network net_01
         openstack.create_instances(
@@ -149,11 +155,16 @@ class TestDVSMaintenance(TestBasic):
         # Launch instance 2 VMs of vcenter and 2 VMs of nova
         # in the default network
         network = os_conn.nova.networks.find(label=self.inter_net_name)
-        openstack.create_instances(
+        instances = openstack.create_instances(
             os_conn=os_conn, vm_count=1,
             nics=[{'net-id': network.id}])
         openstack.verify_instance_state(os_conn)
-        openstack.create_and_assign_floating_ip(os_conn=os_conn)
+        fip = []
+        for instance in instances:
+            ip = os_conn.assign_floating_ip(
+                instance, use_neutron=True)['floating_ip_address']
+            fip.append(ip)
+            wait(lambda: icmp_ping(ip, timeout=60 * 15))
         # Create security groups SG_1 to allow ICMP traffic.
         # Add Ingress rule for ICMP protocol to SG_1
         # Create security groups SG_2 to allow TCP traffic 22 port.
@@ -198,5 +209,5 @@ class TestDVSMaintenance(TestBasic):
         )
         with self.fuel_web.get_ssh_for_node(controller.name) as ssh_controller:
             openstack.check_connection_vms(
-                os_conn=os_conn, srv_list=srv_list,
-                remote=ssh_controller)
+                os_conn, fip, remote=ssh_controller,
+                command='pingv4')
