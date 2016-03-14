@@ -208,6 +208,7 @@ Steps
         * Controller
         * Compute + CephOSD
         * Compute + CephOSD
+        * Compute + CephOSD
         * CinderVMware + ComputeVMware
     4. Configure interfaces on nodes.
     5. Configure network settings.
