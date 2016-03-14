@@ -119,11 +119,10 @@ class TestDVSSmoke(TestBasic):
                 * Controller
                 * Controller
                 * Controller
-                * Compute
-                * CephOSD
-                * CephOSD
-                * CinderVMware
-                * ComputeVMware
+                * Compute + CephOSD
+                * Compute + CephOSD
+                * Compute + CephOSD
+                * CinderVMware + ComputeVMware
             5. Configure interfaces on nodes.
             6. Configure network settings.
             7. Enable and configure DVS plugin.
@@ -163,16 +162,14 @@ class TestDVSSmoke(TestBasic):
             {'slave-01': ['controller'],
              'slave-02': ['controller'],
              'slave-03': ['controller'],
-             'slave-04': ['compute'],
-             'slave-05': ['compute-vmware'],
-             'slave-06': ['cinder-vmware'],
-             'slave-07': ['ceph-osd'],
-             'slave-08': ['ceph-osd'],
-             'slave-09': ['ceph-osd']}
+             'slave-04': ['compute', 'ceph-osd'],
+             'slave-05': ['compute', 'ceph-osd'],
+             'slave-06': ['compute', 'ceph-osd'],
+             'slave-07': ['compute-vmware', 'cinder-vmware']}
         )
 
         # Configure VMWare vCenter settings
-        target_node_2 = self.node_name('slave-05')
+        target_node_2 = self.node_name('slave-07')
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_2=target_node_2,
@@ -180,10 +177,12 @@ class TestDVSSmoke(TestBasic):
         )
 
         self.fuel_web.verify_network(cluster_id, timeout=60 * 15)
-        self.fuel_web.deploy_cluster_wait(cluster_id)
+        self.fuel_web.deploy_cluster_wait(cluster_id, timeout=3600 * 3)
 
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
+
+        self.env.make_snapshot("dvs_bvt", is_make=True)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_1],
           groups=["dvs_install", "dvs_vcenter_plugin"])
@@ -246,6 +245,8 @@ class TestDVSSmoke(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
+        self.env.d_env.get_admin_remote().execute(cmd) == 0
+
         self.show_step(3)
         cmd = 'fuel plugins list'
         output = list(self.env.d_env.get_admin_remote().execute(
@@ -253,5 +254,5 @@ class TestDVSSmoke(TestBasic):
 
         assert_true(
             plugin.plugin_name not in output,
-            "Plugin is removed {}".format(plugin.plugin_name)
+            "Plugin is not removed {}".format(plugin.plugin_name)
         )
