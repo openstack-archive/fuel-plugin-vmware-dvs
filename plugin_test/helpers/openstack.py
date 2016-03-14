@@ -19,8 +19,6 @@ from devops.helpers.helpers import wait
 
 from fuelweb_test import logger
 
-from fuelweb_test.settings import SERVTEST_TENANT
-
 import paramiko
 
 from proboscis.asserts import assert_true
@@ -29,6 +27,7 @@ import yaml
 
 
 def get_defaults():
+    """Get default parameters from config.yaml."""
     with open('plugin_test/helpers/config.yaml') as config:
         defaults = yaml.load(config.read())
         logger.info(''.format(defaults))
@@ -102,7 +101,7 @@ def create_instances(os_conn, nics, vm_count=1,
     return instances
 
 
-def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
+def check_connection_vms(os_conn, fip, remote, command='pingv4',
                          result_of_command=0,
                          destination_ip=None):
     """Check network connectivity between instances.
@@ -119,40 +118,39 @@ def check_connection_vms(os_conn, srv_list, remote, command='pingv4',
         "pingv6": "ping6 -c 5 {}",
         "arping": "sudo arping -I eth0 {}"}
 
-    for srv in srv_list:
-        addresses = srv.addresses[srv.addresses.keys()[0]]
-        fip = [
-            add['addr']
-            for add in addresses
-            if add['OS-EXT-IPS:type'] == 'floating'][0]
+    if not destination_ip:
+        ip_pair = [
+            (ip_1, ip_2)
+            for ip_1 in fip
+            for ip_2 in fip
+            if ip_1 != ip_2]
+    else:
+        ip_pair = [
+            (ip_1, ip_2)
+            for ip_1 in fip
+            for ip_2 in destination_ip]
+    for ips in ip_pair:
+        logger.info("Connect to VM {0}".format(ips[0]))
+        command_result = os_conn.execute_through_host(
+            remote, ips[0],
+            commands[command].format(ips[1]), instance_creds)
 
-        if not destination_ip:
-            destination_ip = [s.networks[s.networks.keys()[0]][0]
-                              for s in srv_list if s != srv]
-
-        for ip in destination_ip:
-            if ip != srv.networks[srv.networks.keys()[0]][0]:
-                logger.info("Connect to VM {0}".format(fip))
-                command_result = os_conn.execute_through_host(
-                    remote, fip,
-                    commands[command].format(ip), instance_creds)
-                logger.info("Command result: \n"
-                            "{0}\n"
-                            "{1}\n"
-                            "exit_code={2}"
-                            .format(command_result['stdout'],
-                                    command_result['stderr'],
-                                    command_result['exit_code']))
-                assert_true(
-                    result_of_command == command_result['exit_code'],
-                    " Command {0} from Vm {1},"
-                    " executed with code {2}".format(
-                        commands[command].format(ip),
-                        fip, command_result)
-                )
+        assert_true(
+            result_of_command == command_result['exit_code'],
+            " Command {0} from Vm {1},"
+            " executed with code {2}".format(
+                commands[command].format(ips[1]),
+                ips[0], command_result)
+        )
 
 
 def get_ssh_connection(ip, username, userpassword, timeout=30, port=22):
+    """Get ssh to host.
+
+    :param ip: string, host ip
+    :param username: string, host username
+    :param userpassword: string, host password
+    """
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(
@@ -160,34 +158,6 @@ def get_ssh_connection(ip, username, userpassword, timeout=30, port=22):
         password=userpassword, timeout=timeout
     )
     return ssh
-
-
-def check_ssh_between_instances(instance1_ip, instance2_ip):
-    """Check ssh conection between instances.
-
-    :param instance1: string, instance ip connect from
-    :param instance2: string, instance ip connect to
-    """
-    ssh = get_ssh_connection(instance1_ip, instance_creds[0],
-                             instance_creds[1], timeout=30)
-
-    interm_transp = ssh.get_transport()
-    logger.info("Opening channel to VM")
-    logger.info('{0}, {1}'.format(instance2_ip, instance1_ip))
-    interm_chan = interm_transp.open_channel('direct-tcpip',
-                                             (instance2_ip, 22),
-                                             (instance1_ip, 0))
-    logger.info("Opening paramiko transport")
-    transport = paramiko.Transport(interm_chan)
-    logger.info("Starting client")
-    transport.start_client()
-    logger.info("Passing authentication to VM")
-    transport.auth_password(
-        instance_creds[0], instance_creds[1])
-    channel = transport.open_session()
-    assert_true(channel.send_ready())
-    logger.debug("Closing channel")
-    channel.close()
 
 
 def remote_execute_command(instance1_ip, instance2_ip, command):
@@ -236,92 +206,8 @@ def remote_execute_command(instance1_ip, instance2_ip, command):
     return result
 
 
-def create_and_assign_floating_ip(os_conn, srv_list=None,
-                                  ext_net=None, tenant_id=None):
-    """Create Vms on available hypervisors.
-
-    :param os_conn: type object, openstack
-    :param srv_list: type list, objects of created instances
-    :param ext_net: type object, neutron external network
-    :param tenant_id: type string, tenant id
-    """
-    if not ext_net:
-        ext_net = [net for net
-                   in os_conn.neutron.list_networks()["networks"]
-                   if net['name'] == external_net_name][0]
-    if not tenant_id:
-        tenant_id = os_conn.get_tenant(SERVTEST_TENANT).id
-
-    if not srv_list:
-        srv_list = os_conn.get_servers()
-    for srv in srv_list:
-        fip = os_conn.neutron.create_floatingip(
-            {'floatingip': {
-                'floating_network_id': ext_net['id'],
-                'tenant_id': tenant_id}})
-        os_conn.nova.servers.add_floating_ip(
-            srv, fip['floatingip']['floating_ip_address']
-        )
-
-
-def add_router(os_conn, router_name, ext_net_name=external_net_name,
-               tenant_name=SERVTEST_TENANT):
-    """Create router with gateway.
-
-    :param router_name: type string
-    :param ext_net_name: type string
-    :param tenant_name: type string
-    """
-    ext_net = [net for net
-               in os_conn.neutron.list_networks()["networks"]
-               if net['name'] == ext_net_name][0]
-
-    gateway = {"network_id": ext_net["id"],
-               "enable_snat": True
-               }
-    tenant_id = os_conn.get_tenant(tenant_name).id
-    router_param = {'router': {'name': router_name,
-                               'external_gateway_info': gateway,
-                               'tenant_id': tenant_id}}
-    router = os_conn.neutron.create_router(body=router_param)['router']
-    return router
-
-
-def add_subnet_to_router(os_conn, router_id, sub_id):
-    os_conn.neutron.add_interface_router(
-        router_id,
-        {'subnet_id': sub_id}
-    )
-
-
-def create_network(os_conn, name,
-                   tenant_name=SERVTEST_TENANT):
-    tenant_id = os_conn.get_tenant(tenant_name).id
-
-    net_body = {"network": {"name": name,
-                            "tenant_id": tenant_id
-                            }
-                }
-    network = os_conn.neutron.create_network(net_body)['network']
-    return network
-
-
-def create_subnet(os_conn, network,
-                  cidr, tenant_name=SERVTEST_TENANT):
-    tenant_id = os_conn.get_tenant(tenant_name).id
-    subnet_body = {"subnet": {"network_id": network['id'],
-                              "ip_version": 4,
-                              "cidr": cidr,
-                              "name": 'subnet_{}'.format(
-                                  network['name'][-1]),
-                              "tenant_id": tenant_id
-                              }
-                   }
-    subnet = os_conn.neutron.create_subnet(subnet_body)['subnet']
-    return subnet
-
-
 def get_role(os_conn, role_name):
+    """Get role by name."""
     role_list = os_conn.keystone.roles.list()
     for role in role_list:
         if role.name == role_name:
@@ -330,6 +216,13 @@ def get_role(os_conn, role_name):
 
 
 def add_role_to_user(os_conn, user_name, role_name, tenant_name):
+    """Assign role to user.
+
+    :param os_conn: type object
+    :param user_name: type string,
+    :param role_name: type string
+    :param tenant_name: type string
+    """
     tenant_id = os_conn.get_tenant(tenant_name).id
     user_id = os_conn.get_user(user_name).id
     role_id = get_role(os_conn, role_name).id
