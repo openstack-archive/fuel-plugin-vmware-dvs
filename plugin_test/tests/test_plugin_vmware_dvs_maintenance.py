@@ -59,17 +59,27 @@ class TestDVSMaintenance(TestBasic):
         Scenario:
             1. Upload plugins to the master node
             2. Install plugin.
-            3. Create cluster with vcenter.
-            4. Add 3 node with controller+mongo+cinder-vmware role.
-            5. Add 2 node with compute role.
-            6. Add 1 node with compute-vmware role.
-            7. Deploy the cluster.
-            8. Run OSTF.
-            9. Create non default network.
-            10. Create Security groups
-            11. Launch instances with created network in nova and vcenter az.
-            12. Attached created security groups to instances.
-            13. Check connection between instances from different az.
+            3. Create a new environment with following parameters:
+                * Compute: KVM/QEMU with vCenter
+                * Networking: Neutron with VLAN segmentation
+                * Storage: ceph
+                * Additional services: default
+            4. Add nodes with following roles:
+                * Controller
+                * Controller
+                * Controller
+                * Compute + CephOSD
+                * Compute + CephOSD
+                * Compute + CephOSD
+                * CinderVMware + ComputeVMware
+            5. Check network verification.
+            6. Deploy the cluster.
+            7. Run OSTF.
+            8. Create non default network.
+            9. Create Security groups
+            10. Launch instances with created network in nova and vcenter az.
+            11. Attached created security groups to instances.
+            12. Check connection between instances from different az.
         Duration 1.8 hours
         """
         self.env.revert_snapshot("ready_with_9_slaves")
@@ -81,28 +91,31 @@ class TestDVSMaintenance(TestBasic):
             settings={
                 "net_provider": 'neutron',
                 "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                "images_vcenter": True
+                'images_ceph': True,
+                'volumes_ceph': True,
+                'objects_ceph': True,
+                'volumes_lvm': False
             }
         )
         plugin.enable_plugin(cluster_id, self.fuel_web)
         # Assign role to node
         self.fuel_web.update_nodes(
             cluster_id,
-            {'slave-01': ['controller', 'mongo', 'cinder-vmware'],
-             'slave-02': ['controller', 'mongo', 'cinder-vmware'],
-             'slave-03': ['controller', 'mongo', 'cinder-vmware'],
-             'slave-04': ['compute'],
-             'slave-05': ['compute'],
-             'slave-06': ['compute-vmware']}
+            {'slave-01': ['controller'],
+             'slave-02': ['controller'],
+             'slave-03': ['controller'],
+             'slave-04': ['compute', 'ceph-osd'],
+             'slave-05': ['compute', 'ceph-osd'],
+             'slave-06': ['compute', 'ceph-osd'],
+             'slave-07': ['compute-vmware', 'cinder-vmware']}
         )
         # Configure VMWare vCenter settings
-        target_node_2 = self.node_name('slave-06')
+        target_node_2 = self.node_name('slave-07')
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_2=target_node_2,
-            multiclusters=True,
-            vc_glance=True
-        )
+            multiclusters=True
+            )
         self.fuel_web.deploy_cluster_wait(cluster_id)
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke', 'tests_platform'])
