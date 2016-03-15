@@ -2,9 +2,6 @@
 Test Plan for VMware DVS plugin version 2.1.0
 =============================================
 
-.. contents:: Table of contents
-   :depth: 3
-
 ************
 Introduction
 ************
@@ -272,4 +269,3 @@ Test cases
 .. include:: test_suite_smoke.rst
 .. include:: test_suite_system.rst
 .. include:: test_suite_failover.rst
-.. include:: test_suite_upgrade.rst
