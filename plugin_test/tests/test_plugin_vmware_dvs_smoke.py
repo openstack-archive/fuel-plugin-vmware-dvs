@@ -165,7 +165,9 @@ class TestDVSPlugin(TestBasic):
         )
 
         self.fuel_web.verify_network(cluster_id)
-        self.fuel_web.deploy_cluster_wait(cluster_id)
+        self.fuel_web.deploy_cluster_wait(cluster_id, timeout=3600 * 3)
 
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
+
+        self.env.make_snapshot("dvs_bvt", is_make=True)
