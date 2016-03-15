@@ -1,4 +1,3 @@
-=====
 Smoke
 =====
 
@@ -108,7 +107,6 @@ Steps
     3. Go to  Network tab -> Other subtub and check that section of  DVS  plugin is displayed with all required GUI elements:
        'Neutron VMware DVS ML2 plugin' check box
        "Use the VMware DVS firewall driver" check box
-       "Neutron VMware DVS ML2 plugin" check box
        "Enter the cluster to dvSwitch mapping." text field with description 'List of ClusterName:SwitchName pairs, separated by semicolon. '
        'Versions' radio button with <plugin version>
     4. Verify that check box "Neutron VMware DVS ML2 plugin" is enabled by default.
@@ -226,3 +224,4 @@ Expected result
 ###############
 
 Cluster should be deployed and all OSTF test cases should be passed.
+

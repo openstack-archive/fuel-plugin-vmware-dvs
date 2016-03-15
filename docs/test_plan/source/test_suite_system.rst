@@ -1,4 +1,3 @@
-======
 System
 ======
 
@@ -265,7 +264,7 @@ Check connection between instances in one non default network.
 ID
 ##
 
-dvs_connectivity_diff_az_non_default_tenant
+dvs_connect_nodefault_net
 
 
 Description
@@ -334,17 +333,17 @@ Steps
     9. Launch instances in the net02 with image TestVM and flavor m1.micro in nova az.
     10. Launch instances in the net02 with image TestVM-VMDK and flavor m1.micro in vcenter az.
     11. Verify that instances of same networks should communicate between each other via private ip.
-        Send icmp ping between instances.
+         Send icmp ping between instances.
     12. Verify that instances of different networks should not communicate between each other via private ip.
     13. Delete net_02 from Router_02 and add it to the Router_01.
     14. Verify that instances of different networks should communicate between each other via private ip.
-        Send icmp ping between instances.
+         Send icmp ping between instances.
 
 
 Expected result
 ###############
 
-Network connectivity must conform to each of the scenarios.
+
 
 
 Check isolation between instances in different tenants.
@@ -400,7 +399,7 @@ Check connectivity instances to public network without floating ip.
 ID
 ##
 
-dvs_connectivity_public_net_without_floating_ip
+dvs_ping_without_fip
 
 
 Description
@@ -717,7 +716,7 @@ Check abilities to create stack heat from template.
 ID
 ##
 
-dvs_vcenter_heat
+dvs_heat
 
 
 Description
@@ -1092,5 +1091,4 @@ Steps
 
 Expected result
 ###############
-
 

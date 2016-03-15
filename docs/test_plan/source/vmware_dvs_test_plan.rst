@@ -2,9 +2,6 @@
 Test Plan for VMware DVS plugin version 2.1.0
 =============================================
 
-.. contents:: Table of contents
-   :depth: 3
-
 ************
 Introduction
 ************
