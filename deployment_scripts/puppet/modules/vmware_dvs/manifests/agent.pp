@@ -32,8 +32,17 @@
 # [*neutron_url_timeout*]
 #   (required) String. This is the timeout for neutron.
 #
+# [*use_fw_driver*]
+#   (optional) Boolean. Use firewall driver or mock.
+#
 # [*py_root*]
-#   (required) String. Path for python's dist-packages.
+#   (optional) String. Path for python's dist-packages.
+#
+# [*ha_enabled*]
+#   (optional) Boolean. True for Corosync using.
+#
+# [*primary*]
+#   (optional) Boolean. Parameter for using that cs_service.
 
 
 define vmware_dvs::agent(
@@ -121,29 +130,67 @@ define vmware_dvs::agent(
       }
     }
 
-    service {$agent_name: }
-
-    cluster::corosync::cs_service{$agent_name:
-      ocf_script       => $ocf_dvs_name,
-      csr_complex_type => 'clone',
-      csr_ms_metadata  => {
-        'interleave' => true
-      },
-      csr_parameters   => {
-        'plugin_config'         => $ml2_conf,
-        'additional_parameters' => "--config-file=${agent_config}",
-        'log_file'              => $agent_log,
-        'pid'                   => $ocf_pid,
-      },
-      csr_mon_intr     => '20',
-      csr_mon_timeout  => '10',
-      csr_timeout      => '80',
-      service_name     => $agent_name,
-      package_name     => $agent_name,
-      service_title    => $agent_name,
-      primary          => $primary,
-      hasrestart       => false,
+    $primitive_name     = "p_neutron_plugin_vmware_dvs_agent_${host}"
+    $metadata           = {
+      'resource-stickiness' => '1'
     }
+    $parameters         = {
+      'plugin_config'         => $ml2_conf,
+      'additional_parameters' => "--config-file=${agent_config}",
+      'log_file'              => $agent_log,
+      'pid'                   => $ocf_pid,
+    }
+    $operations         = {
+      'monitor'  => {
+        'timeout' => '10',
+        'interval' => '20',
+      },
+      'start'    => {
+        'timeout' => '30',
+        },
+        'stop'     => {
+          'timeout' => '30',
+        }
+      }
+    pacemaker::service { $primitive_name :
+      prefix             => false,
+      primitive_class    => 'ocf',
+      primitive_provider => 'fuel',
+      primitive_type     => $ocf_dvs_name,
+      metadata           => $metadata,
+      parameters         => $parameters,
+      operations         => $operations,
+    }
+
+    service { $primitive_name :
+      ensure => 'running',
+      enable => true,
+    }
+
+    File[$agent_config]->
+    File[$ocf_dvs_res]->
+    Pcmk_resource[$primitive_name]->
+    Service[$primitive_name]
+
+#    service {$agent_name: }
+#
+#    cluster::corosync::cs_service{$agent_name:
+#      ocf_script      => $ocf_dvs_name,
+#      csr_parameters  => {
+#        'plugin_config'         => $ml2_conf,
+#        'additional_parameters' => "--config-file=${agent_config}",
+#        'log_file'              => $agent_log,
+#        'pid'                   => $ocf_pid,
+#      },
+#      csr_mon_intr    => '20',
+#      csr_mon_timeout => '10',
+#      csr_timeout     => '80',
+#      service_name    => $agent_name,
+#      package_name    => $agent_name,
+#      service_title   => $agent_name,
+#      primary         => $primary,
+#      hasrestart      => false,
+#    }
   }
   else {
       exec {"start_${agent_name}":

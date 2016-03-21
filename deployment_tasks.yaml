@@ -1,8 +1,12 @@
+# PRE_DEPLOYMENT TASKS
+
+# DEPLYMENT TASKS
+
 - id: vmware-dvs-override-hiera
   version: 2.0.0
-  groups: ['primary-controller','controller', 'compute-vmware']
+  role: ['primary-controller','controller', 'compute-vmware']
   required_for: [openstack-network-server-config, vmware-dvs-network-common-config]
-  requires: [override_configuration]
+  requires: [deploy_start]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/override_hiera.pp
@@ -13,7 +17,7 @@
   version: 2.0.0
   groups: ['primary-controller','controller', 'compute-vmware']
   required_for: [primary-openstack-network-plugins-l2,openstack-network-plugins-l2,vmware-dvs-network-plugins-l2]
-  requires: [openstack-network-common-config, vmware-dvs-network-common-config, vmware-dvs-override-hiera]
+  requires: [openstack-network-common-config, vmware-dvs-network-common-config]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp
@@ -128,24 +132,24 @@
   requires: []
 
 # POST_DEPLOYMENT TASKS
-- id: vmware-dvs-property-hypervisor_type
-  version: 2.0.0
-  role: ['primary-controller']
-  required_for: [post_deployment_end]
-  requires: [disable_keystone_service_token]
-  type: shell
-  parameters:
-    cmd: bash add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
-    timeout: 240
+#- id: vmware-dvs-property-hypervisor_type
+#  version: 2.0.0
+#  role: ['primary-controller']
+#  required_for: [post_deployment_end]
+#  requires: [disable_keystone_service_token]
+#  type: shell
+#  parameters:
+#    cmd: bash add_hyperv_type.sh 2>&1 | tee -a /tmp/add_hyper_type.log
+#    timeout: 240
 
 # explicit restart nova-compute #1557980
-- id: vmware-dvs-restart-nova-compute
-  version: 2.0.0
-  role: [primary-controller, controller, compute-vmware]
-  requires: [post_deployment_start]
-  required_for: [post_deployment_end]
-  type: puppet
-  parameters:
-    puppet_manifest: puppet/manifests/restart-nova-compute.pp
-    puppet_modules:  puppet/modules:/etc/puppet/modules
-    timeout: 720
+#- id: vmware-dvs-restart-nova-compute
+#  version: 2.0.0
+#  role: [primary-controller, controller, compute-vmware]
+#  requires: [post_deployment_start]
+#  required_for: [post_deployment_end]
+#  type: puppet
+#  parameters:
+#    puppet_manifest: puppet/manifests/restart-nova-compute.pp
+#    puppet_modules:  puppet/modules:/etc/puppet/modules
+#    timeout: 720

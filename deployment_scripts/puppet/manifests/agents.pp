@@ -14,7 +14,7 @@
 
 notice('MODULAR: fuel-plugin-vmware-dvs/agent')
 
-$vcenter    = hiera('vcenter', {})
+$vcenter    = hiera_hash('vcenter', {})
 $vmware_dvs = hiera_hash('fuel-plugin-vmware-dvs', {})
 $neutron    = hiera_hash('neutron_config', {})
 $n_fqdn     = hiera('fqdn')
