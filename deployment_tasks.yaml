@@ -1,7 +1,8 @@
+# PRE_DEPLOYMENT TASKS
 - id: vmware-dvs-override-hiera
   version: 2.0.0
-  groups: ['primary-controller','controller', 'compute-vmware']
-  required_for: [openstack-network-server-config, vmware-dvs-network-common-config]
+  role: ['primary-controller','controller', 'compute-vmware']
+  required_for: [pre_deployment_end]
   requires: [override_configuration]
   type: puppet
   parameters:
@@ -9,11 +10,13 @@
     puppet_modules:  puppet/modules:/etc/puppet/modules
     timeout: 720
 
+# DEPLYMENT TASKS
+
 - id: vmware-dvs-setup-neutron-plugin
   version: 2.0.0
   groups: ['primary-controller','controller', 'compute-vmware']
   required_for: [primary-openstack-network-plugins-l2,openstack-network-plugins-l2,vmware-dvs-network-plugins-l2]
-  requires: [openstack-network-common-config, vmware-dvs-network-common-config, vmware-dvs-override-hiera]
+  requires: [openstack-network-common-config, vmware-dvs-network-common-config]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/site.pp
