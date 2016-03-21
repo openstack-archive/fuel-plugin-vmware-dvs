@@ -32,8 +32,17 @@
 # [*neutron_url_timeout*]
 #   (required) String. This is the timeout for neutron.
 #
+# [*use_fw_driver*]
+#   (optional) Boolean. Use firewall driver or mock.
+#
 # [*py_root*]
-#   (required) String. Path for python's dist-packages.
+#   (optional) String. Path for python's dist-packages.
+#
+# [*ha_enabled*]
+#   (optional) Boolean. True for Corosync using.
+#
+# [*primary*]
+#   (optional) Boolean. Parameter for using that cs_service.
 
 
 define vmware_dvs::agent(
@@ -124,25 +133,21 @@ define vmware_dvs::agent(
     service {$agent_name: }
 
     cluster::corosync::cs_service{$agent_name:
-      ocf_script       => $ocf_dvs_name,
-      csr_complex_type => 'clone',
-      csr_ms_metadata  => {
-        'interleave' => true
-      },
-      csr_parameters   => {
+      ocf_script      => $ocf_dvs_name,
+      csr_parameters  => {
         'plugin_config'         => $ml2_conf,
         'additional_parameters' => "--config-file=${agent_config}",
         'log_file'              => $agent_log,
         'pid'                   => $ocf_pid,
       },
-      csr_mon_intr     => '20',
-      csr_mon_timeout  => '10',
-      csr_timeout      => '80',
-      service_name     => $agent_name,
-      package_name     => $agent_name,
-      service_title    => $agent_name,
-      primary          => $primary,
-      hasrestart       => false,
+      csr_mon_intr    => '20',
+      csr_mon_timeout => '10',
+      csr_timeout     => '80',
+      service_name    => $agent_name,
+      package_name    => $agent_name,
+      service_title   => $agent_name,
+      primary         => $primary,
+      hasrestart      => false,
     }
   }
   else {

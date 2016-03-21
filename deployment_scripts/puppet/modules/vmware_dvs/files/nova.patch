@@ -2,12 +2,12 @@ diff --git a/nova/virt/vmwareapi/vif.py b/nova/virt/vmwareapi/vif.py
 index 3d228d7..d513a74 100644
 --- a/nova/virt/vmwareapi/vif.py
 +++ b/nova/virt/vmwareapi/vif.py
-@@ -155,6 +155,10 @@ def get_network_ref(session, cluster, vif, is_neutron):
-         network_name = (vif['network']['bridge'] or
-                         CONF.vmware.integration_bridge)
-         network_ref = get_neutron_network(session, network_name, cluster, vif)
+@@ -146,6 +146,10 @@
+ def get_network_ref(session, cluster, vif, is_neutron):
+     if is_neutron:
+         network_ref = _get_neutron_network(session, cluster, vif)
 +        try:
-+            network_ref['dvs_port_key']=vif['details']['dvs_port_key']
++            network_ref['dvs_port_key'] = vif['details']['dvs_port_key']
 +        except KeyError:
 +            pass
      else:
