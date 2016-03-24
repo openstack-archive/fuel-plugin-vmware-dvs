@@ -26,13 +26,14 @@ from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
 
 from fuelweb_test.tests.base_test_case import TestBasic
-from tests.test_plugin_vmware_dvs_smoke import TestDVSSmoke
 
 from helpers import openstack
 
 from proboscis import test
 
 from proboscis.asserts import assert_true
+
+from tests.test_plugin_vmware_dvs_smoke import TestDVSSmoke
 
 
 @test(groups=["plugins"])
