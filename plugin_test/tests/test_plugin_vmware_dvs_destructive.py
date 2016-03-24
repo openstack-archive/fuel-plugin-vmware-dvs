@@ -13,8 +13,10 @@ License for the specific language governing permissions and limitations
 under the License.
 """
 
+import os
 import time
 
+from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import wait
 
 from fuelweb_test import logger
@@ -35,6 +37,7 @@ from tests.test_plugin_vmware_dvs_system import TestDVSSystem
 
 from helpers import openstack
 from helpers import plugin
+from helpers import vmrun
 
 from proboscis import test
 
@@ -64,6 +67,90 @@ class TestDVSDestructive(TestBasic):
     # defaults
     inter_net_name = openstack.get_defaults()['networks']['internal']['name']
     ext_net_name = openstack.get_defaults()['networks']['floating']['name']
+    host_type = 'ws-shared'
+    path_to_vmx_file = '"[standard] {0}/{0}.vmx"'
+    host_name = 'https://localhost:443/sdk'
+    WORKSTATION_NODES = os.environ.get('WORKSTATION_NODES').split(' ')
+    WORKSTATION_USERNAME = os.environ.get('WORKSTATION_USERNAME')
+    WORKSTATION_PASSWORD = os.environ.get('WORKSTATION_PASSWORD')
+
+    def extended_tests_reset_vcenter(self, openstack_ip):
+        """Common verification of dvs_reboot_vcenter* test cases.
+
+        :param openstack_ip: type string, openstack ip
+        """
+        admin = os_actions.OpenStackActions(
+            openstack_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        default_sg = [
+            sg
+            for sg in admin.neutron.list_security_groups()['security_groups']
+            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
+            if sg['name'] == 'default'][0]
+
+        network = admin.nova.networks.find(label=self.inter_net_name)
+
+        # create access point server
+        access_point, access_point_ip = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network.id}],
+            security_groups=[security_group.name, default_sg['name']])
+
+        self.show_step(13)
+        self.show_step(14)
+        instances = openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network.id}],
+            vm_count=1,
+            security_groups=[default_sg['name']])
+        openstack.verify_instance_state(admin)
+
+        # Get private ips of instances
+        ips = []
+        for instance in instances:
+            ips.append(admin.get_nova_instance_ip(
+                instance, net_name=self.inter_net_name))
+        time.sleep(30)
+        self.show_step(15)
+        for ip in ips:
+            ping_result = openstack.remote_execute_command(
+                access_point_ip, ip, "ping -c 5 {}".format(ip))
+            assert_true(
+                ping_result['exit_code'] == 0,
+                "Ping isn't available from {0} to {1}".format(ip, ip)
+            )
+
+        self.show_step(16)
+        for node_name in self.WORKSTATION_NODES:
+            node = vmrun.Vmrun(
+                self.host_type,
+                self.path_to_vmx_file.format(node_name),
+                host_name=self.host_name,
+                username=self.WORKSTATION_USERNAME,
+                password=self.WORKSTATION_PASSWORD)
+            node.reset()
+
+        self.show_step(17)
+        wait(lambda: not icmp_ping(
+            self.VCENTER_IP), interval=1, timeout=10,
+            timeout_msg='Vcenter is still availabled.')
+
+        self.show_step(18)
+        wait(lambda: icmp_ping(
+            self.VCENTER_IP), interval=5, timeout=120,
+            timeout_msg='Vcenter is not availabled.')
+
+        self.show_step(20)
+        for ip in ips:
+            ping_result = openstack.remote_execute_command(
+                access_point_ip, ip, "ping -c 5 {}".format(ip))
+            assert_true(
+                ping_result['exit_code'] == 0,
+                "Ping isn't available from {0} to {1}".format(ip, ip)
+            )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_uninstall", 'dvs_vcenter_system'])
@@ -388,7 +475,7 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.warm_shutdown_nodes(
             [self.fuel_web.environment.d_env.get_node(
                 name=controllers[0].name)])
-
+        time.sleep(30)
         # Verify connection between instances.
         # Send ping Check that ping get reply.
         with self.fuel_web.get_ssh_for_node(controllers[1].name) as ssh_contr:
@@ -396,3 +483,191 @@ class TestDVSDestructive(TestBasic):
             openstack.check_connection_vms(
                 os_conn, floating_ip, remote=ssh_contr,
                 command='pingv4')
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_reboot_vcenter_1", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_reboot_vcenter_1(self):
+        """Verify that vmclusters should be migrate after reset controller.
+
+        Scenario:
+            1. Install DVS plugin on master node.
+            2. Create a new environment with following parameters:
+                * Compute: KVM/QEMU with vCenter
+                * Networking: Neutron with VLAN segmentation
+                * Storage: default
+                * Additional services: default
+            3. Add nodes with following roles:
+                * Controller
+                * Compute
+                * Cinder
+                * CinderVMware
+            4. Configure interfaces on nodes.
+            5. Configure network settings.
+            6. Enable and configure DVS plugin.
+            7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+            8. Configure VMware vCenter Settings. Add 2 vSphere clusters
+               and configure Nova Compute instances on conrollers.
+            9. Configure Glance credentials on VMware tab.
+            10. Verify networks.
+            11. Deploy cluster.
+            12. Run OSTF.
+            13. Launch instance VM_1 with image TestVM, availability zone nova
+                and flavor m1.micro.
+            14. Launch instance VM_2 with image TestVM-VMDK, availability zone
+                vcenter and flavor m1.micro.
+            15. Check connection between instances, send ping from VM_1 to VM_2
+                and vice verse.
+            16. Reboot vcenter.
+            17. Check that controller lost connection with vCenter.
+            18. Wait for vCenter.
+            19. Ensure that all instances from vCenter displayed in dashboard.
+            20. Ensure connectivity between instances.
+            21. Run OSTF.
+
+
+        Duration: 2.5 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        self.show_step(1)
+        plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
+
+        self.show_step(2)
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE,
+                'images_vcenter': True
+            }
+        )
+
+        self.show_step(3)
+        self.show_step(4)
+        self.show_step(5)
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['compute'],
+             'slave-03': ['cinder-vmware'],
+             'slave-04': ['cinder']}
+        )
+
+        self.show_step(6)
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        self.show_step(7)
+        self.show_step(8)
+        self.show_step(9)
+        self.fuel_web.vcenter_configure(
+            cluster_id,
+            multiclusters=True,
+            vc_glance=True
+        )
+
+        self.show_step(10)
+        self.fuel_web.verify_network(cluster_id)
+
+        self.show_step(11)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        self.show_step(12)
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'])
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        self.extended_tests_reset_vcenter(os_ip)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_reboot_vcenter_2", 'dvs_vcenter_system'])
+    @log_snapshot_after_test
+    def dvs_reboot_vcenter_2(self):
+        """Verify that vmclusters should be migrate after reset controller.
+
+        Scenario:
+            1. Install DVS plugin on master node.
+            2. Create a new environment with following parameters:
+                * Compute: KVM/QEMU with vCenter
+                * Networking: Neutron with VLAN segmentation
+                * Storage: default
+                * Additional services: default
+            3. Add nodes with following roles:
+                * Controller
+                * Compute
+                * Cinder
+                * CinderVMware
+                * ComputeVMware
+            4. Configure interfaces on nodes.
+            5. Configure network settings.
+            6. Enable and configure DVS plugin.
+            7. Enable VMWare vCenter/ESXi datastore for images (Glance).
+            8. Configure VMware vCenter Settings. Add 1 vSphere clusters and
+               configure Nova Compute instances on compute-vmware.
+            9. Configure Glance credentials on VMware tab.
+            10. Verify networks.
+            11. Deploy cluster.
+            12. Run OSTF.
+            13. Launch instance VM_1 with image TestVM, availability zone nova
+                and flavor m1.micro.
+            14. Launch instance VM_2 with image TestVM-VMDK, availability zone
+                vcenter and flavor m1.micro.
+            15. Check connection between instances, send ping from VM_1 to VM_2
+                and vice verse.
+            16. Reboot vcenter.
+            17. Check that controller lost connection with vCenter.
+            18. Wait for vCenter.
+            19. Ensure that all instances from vCenter displayed in dashboard.
+            20. Ensure connectivity between instances.
+            21. Run OSTF.
+
+
+        Duration: 2.5 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        plugin.install_dvs_plugin(
+            self.env.d_env.get_admin_remote())
+
+        # Configure cluster with 2 vcenter clusters and vcenter glance
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE,
+                'images_vcenter': True
+            }
+        )
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        # Assign role to node
+        self.fuel_web.update_nodes(
+            cluster_id,
+            {'slave-01': ['controller'],
+             'slave-02': ['compute'],
+             'slave-03': ['cinder-vmware'],
+             'slave-04': ['cinder'],
+             'slave-05': ['compute-vmware']}
+        )
+
+        # Configure VMWare vCenter settings
+        target_node_1 = self.node_name('slave-05')
+        self.fuel_web.vcenter_configure(
+            cluster_id,
+            target_node_1=target_node_1,
+            multiclusters=False,
+            vc_glance=True
+        )
+
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'])
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        self.extended_tests_reset_vcenter(os_ip)
