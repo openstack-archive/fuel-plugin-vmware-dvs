@@ -22,7 +22,7 @@
         agent["vsphere_password"] = vc["vc_password"]
         cluster = vc["vc_cluster"]
         if netmaps.include? ':'
-          vds = netmaps.split(";").collect{|k| k.split(":")}.select{|x| x[0] == cluster}.collect{|x| x[1]}[0]
+          vds = netmaps.delete(' ').split(";").collect{|k| k.split(":")}.select{|x| x[0] == cluster}.collect{|x| x[1]}[0]
         else
           vds = netmaps
         end
