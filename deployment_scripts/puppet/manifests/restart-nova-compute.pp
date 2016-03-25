@@ -14,7 +14,7 @@
 
 notice('MODULAR: fuel-plugin-vmware-dvs/restart-nova-compute')
 
-$vcenter    = hiera('vcenter_hash')
+$vcenter    = hiera_hash('vcenter')
 $vc_setting = parse_vcenter_settings($vcenter['computes'])
 
 $defaults   = {

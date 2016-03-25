@@ -49,13 +49,13 @@ class vmware_dvs::compute(
   include ::nova::params
 
   class {'::nova::network::neutron':
-    neutron_admin_password    => $admin_password,
-    neutron_admin_tenant_name => $admin_tenant_name,
-    neutron_region_name       => $region_name,
-    neutron_admin_username    => $admin_username,
-    neutron_admin_auth_url    => $admin_auth_url,
-    neutron_url               => $neutron_url,
-    neutron_url_timeout       => $neutron_url_timeout,
+    neutron_password     => $admin_password,
+    neutron_project_name => $admin_tenant_name,
+    neutron_region_name  => $region_name,
+    neutron_username     => $admin_username,
+    neutron_auth_url     => $admin_auth_url,
+    neutron_url          => $neutron_url,
+    neutron_url_timeout  => $neutron_url_timeout,
   }
 
   augeas { 'sysctl-net.bridge.bridge-nf-call-arptables':

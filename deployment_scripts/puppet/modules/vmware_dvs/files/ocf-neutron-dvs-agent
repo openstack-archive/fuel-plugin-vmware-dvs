@@ -163,14 +163,6 @@ The debug flag for  OpenStack Vmware DVS Service (${OCF_RESKEY_binary}) instance
 END
 }
 
-get_worker_pid() {
-    local options
-    local pid
-    options='falo'
-    pid=`pgrep -u ${OCF_RESKEY_user} -${options} ${OCF_RESKEY_binary} | awk '{print $1}'`
-    echo $pid
-}
-
 #######################################################################
 # Functions invoked by resource manager actions
 
@@ -203,7 +195,6 @@ neutron_dvs_agent_validate() {
 
 neutron_dvs_agent_status() {
     local pid
-    local f_pid
     local rc
 
     # check and make PID file dir
@@ -215,40 +206,27 @@ neutron_dvs_agent_status() {
         chmod 755 "${PID_DIR}"
     fi
 
-    pid=`get_worker_pid`
-    if [ "xxx$pid" == "xxx" ] ; then
+    if [ ! -f $OCF_RESKEY_pid ]; then
         ocf_log warn "OpenStack Neutron agent '$OCF_RESKEY_binary' not running."
         return $OCF_NOT_RUNNING
+    else
+        pid=`cat $OCF_RESKEY_pid`
     fi
-    #ocf_log debug "PID='$pid'"
 
-    # Check PID file and create if need
-    if [ ! -f $OCF_RESKEY_pid ] ; then
-        ocf_log warn "OpenStack Neutron agent (${OCF_RESKEY_binary}) was run, but no PID file found."
-        ocf_log warn "Writing PID='$pid' to '$OCF_RESKEY_pid' for '${OCF_RESKEY_binary}' worker..."
-        echo $pid > $OCF_RESKEY_pid
+    if [ -n "${pid}" ]; then
+      ocf_run -warn kill -s 0 $pid
+      rc=$?
+    else
+      ocf_log err "PID file ${OCF_RESKEY_pid} is empty!"
+      return $OCF_ERR_GENERIC
+    fi
+
+    if [ $rc -eq 0 ]; then
         return $OCF_SUCCESS
+    else
+        ocf_log info "Old PID file found, but OpenStack VMware DVS agent ('$OCF_RESKEY_binary') is not running"
+        return $OCF_NOT_RUNNING
     fi
-
-    # compare PID from file with PID from `pgrep...`
-    f_pid=`cat $OCF_RESKEY_pid | tr '\n' ' ' | awk '{print $1}'`
-    if [ "xxx$pid" == "xxx$f_pid" ]; then
-        return $OCF_SUCCESS
-    fi
-
-    # at this point we have PID file and PID from it
-    # defferents with PID from `pgrep...`
-    if [ ! -d "/proc/$f_pid" ] || [ "xxx$f_pid" == "xxx" ] ; then
-        # process with PID from PID-file not found
-        ocf_log warn "Old PID file $OCF_RESKEY_pid found, but no running processes with PID=$f_pid found."
-        ocf_log warn "PID-file will be re-created (with PID=$pid)."
-        echo $pid > $OCF_RESKEY_pid
-        return $OCF_SUCCESS
-    fi
-
-    # at this point we have alien PID-file and running prosess with this PID.
-    ocf_log warn "Another daemon (with PID=$f_pid) running with PID file '$OCF_RESKEY_pid'. My PID=$pid"
-    return $OCF_ERR_GENERIC
 }
 
 
@@ -273,7 +251,7 @@ neutron_dvs_agent_start() {
     # Don't use ocf_run as we're sending the tool's output
     su ${OCF_RESKEY_user} -s /bin/sh -c "${OCF_RESKEY_binary} --config-file=$OCF_RESKEY_config \
         --config-file=$OCF_RESKEY_plugin_config --log-file=$OCF_RESKEY_log_file $OCF_RESKEY_additional_parameters \
-        >> /dev/null"' 2>&1 & echo \$! > $OCF_RESKEY_pid'
+        >> /dev/null"' 2>&1 & echo $! > $OCF_RESKEY_pid'
     ocf_log debug "Create pid file: ${OCF_RESKEY_pid} with content $(cat ${OCF_RESKEY_pid})"
 
     # Spin waiting for the server to come up.
@@ -310,7 +288,7 @@ neutron_dvs_agent_stop() {
 
     # Try SIGTERM
 
-    pid=`get_worker_pid`
+    pid=`cat $OCF_RESKEY_pid`
     proc_stop "${pid}" "${OCF_RESKEY_binary}" $shutdown_timeout
     rc=$?
     if [ "${rc}" -eq "${OCF_ERR_GENERIC}" ]; then

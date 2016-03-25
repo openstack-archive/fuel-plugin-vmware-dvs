@@ -56,7 +56,7 @@ class vmware_dvs(
     source => 'puppet:///modules/vmware_dvs/dvs_neutron_agent.py',
   }
   neutron_config {
-    'DEFAULT/notification_driver': value => 'messagingv2';
+    'oslo_messaging_notifications/driver': value => 'messagingv2';
   }
   neutron_plugin_ml2 {
     'ml2_vmware/vsphere_hostname': value => $vsphere_hostname;
