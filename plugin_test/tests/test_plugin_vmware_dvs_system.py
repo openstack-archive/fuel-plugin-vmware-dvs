@@ -65,6 +65,25 @@ class TestDVSSystem(TestBasic):
     instance_creds = (
         openstack.get_defaults()['os_credentials']['cirros']['user'],
         openstack.get_defaults()['os_credentials']['cirros']['password'])
+    # security group rules
+    tcp = {
+        "security_group_rule":
+            {"direction": "ingress",
+             "port_range_min": "22",
+             "ethertype": "IPv4",
+             "port_range_max": "22",
+             "protocol": "TCP",
+             "security_group_id": "",
+             "remote_group_id": "",
+             "remote_ip_prefix": ""}}
+    icmp = {
+        "security_group_rule":
+            {"direction": "ingress",
+             "ethertype": "IPv4",
+             "protocol": "icmp",
+             "security_group_id": "",
+             "remote_group_id": "",
+             "remote_ip_prefix": ""}}
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_systest_setup", 'dvs_vcenter_system'])
@@ -425,22 +444,6 @@ class TestDVSSystem(TestBasic):
         Duration: 30 min
 
         """
-        # security group rules
-        tcp = {
-            "security_group_rule":
-                {"direction": "ingress",
-                 "port_range_min": "22",
-                 "ethertype": "IPv4",
-                 "port_range_max": "22",
-                 "protocol": "TCP",
-                 "security_group_id": ""}}
-        icmp = {
-            "security_group_rule":
-                {"direction": "ingress",
-                 "ethertype": "IPv4",
-                 "protocol": "icmp",
-                 "security_group_id": ""}}
-
         self.show_step(1)
         self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
@@ -500,19 +503,18 @@ class TestDVSSystem(TestBasic):
         os_conn.goodbye_security()
 
         self.show_step(5)
-        sec_name = ['SG1', 'SG2']
         sg1 = os_conn.nova.security_groups.create(
-            sec_name[0], "descr")
+            'SG1', "descr")
         self.show_step(6)
-        tcp["security_group_rule"]["security_group_id"] = sg1.id
-        os_conn.neutron.create_security_group_rule(tcp)
+        self.tcp["security_group_rule"]["security_group_id"] = sg1.id
+        os_conn.neutron.create_security_group_rule(self.tcp)
 
         self.show_step(7)
         sg2 = os_conn.nova.security_groups.create(
-            sec_name[1], "descr")
+            'SG2', "descr")
         self.show_step(8)
-        icmp["security_group_rule"]["security_group_id"] = sg2.id
-        os_conn.neutron.create_security_group_rule(icmp)
+        self.icmp["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(self.icmp)
 
         logger.info("""Attach SG_1 and SG2 to instances""")
         for srv in srv_list:
@@ -540,48 +542,52 @@ class TestDVSSystem(TestBasic):
             for ips in ip_pair:
                 openstack.remote_execute_command(ips[0], ips[1], ' ')
 
-            self.show_step(11)
-            sg_rules = os_conn.neutron.list_security_group_rules()[
+        self.show_step(11)
+        sg_rules = [
+            sg_rule for sg_rule
+            in os_conn.neutron.list_security_group_rules()[
                 'security_group_rules']
-            sg_rules = [
-                sg_rule for sg_rule
-                in os_conn.neutron.list_security_group_rules()[
-                    'security_group_rules']
-                if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
-            for rule in sg_rules:
-                os_conn.neutron.delete_security_group_rule(rule['id'])
+            if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
+        for rule in sg_rules:
+            os_conn.neutron.delete_security_group_rule(rule['id'])
 
-            self.show_step(12)
-            for ip in floating_ip:
-                try:
-                    openstack.get_ssh_connection(
-                        ip, self.instance_creds[0],
-                        self.instance_creds[1])
-                except Exception as e:
-                    logger.info('{}'.format(e))
+        time.sleep(20)  # need wait to update rules on dvs
 
-            self.show_step(13)
-            tcp["security_group_rule"]["security_group_id"] = sg2.id
-            os_conn.neutron.create_security_group_rule(tcp)
-            tcp["security_group_rule"]["direction"] = "egress"
-            os_conn.neutron.create_security_group_rule(tcp)
+        self.show_step(12)
+        for ip in floating_ip:
+            try:
+                openstack.get_ssh_connection(
+                    ip, self.instance_creds[0],
+                    self.instance_creds[1])
+            except Exception as e:
+                logger.info('{}'.format(e))
 
-            self.show_step(14)
-            for ips in ip_pair:
-                wait(
-                    lambda: openstack.remote_execute_command(
-                        ips[0], ips[1], ' '), timeout=30, interval=5)
+        self.show_step(13)
+        self.tcp["security_group_rule"]["security_group_id"] = sg2.id
+        os_conn.neutron.create_security_group_rule(self.tcp)
+        self.tcp["security_group_rule"]["direction"] = "egress"
+        os_conn.neutron.create_security_group_rule(self.tcp)
 
-            self.show_step(15)
+        time.sleep(20)  # need wait to update rules on dvs ports
+
+        self.show_step(14)
+        for ips in ip_pair:
+            openstack.remote_execute_command(ips[0], ips[1], ' ')
+
+        self.show_step(15)
+        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_contr:
+
             openstack.check_connection_vms(
                 os_conn, floating_ip, remote=ssh_contr,
                 command='pingv4', result_of_command=1)
 
             self.show_step(16)
-            icmp["security_group_rule"]["security_group_id"] = sg1.id
-            os_conn.neutron.create_security_group_rule(icmp)
-            icmp["security_group_rule"]["direction"] = "egress"
-            os_conn.neutron.create_security_group_rule(icmp)
+            logger.info(
+                "Add Ingress and egress rules for ICMP protocol to SG_1")
+            self.icmp["security_group_rule"]["security_group_id"] = sg1.id
+            os_conn.neutron.create_security_group_rule(self.icmp)
+            self.icmp["security_group_rule"]["direction"] = "egress"
+            os_conn.neutron.create_security_group_rule(self.icmp)
 
             time.sleep(30)  # need wait to update rules on dvs ports
             self.show_step(17)
@@ -590,15 +596,23 @@ class TestDVSSystem(TestBasic):
                 command='pingv4')
 
             self.show_step(21)
+            self.show_step(22)
             srv_list = os_conn.get_servers()
             for srv in srv_list:
                 for sg in srv.security_groups:
                     srv.remove_security_group(sg['name'])
-            self.show_step(22)
-            for srv in srv_list:
                 srv.add_security_group('default')
+            # need add tcp rule for ssh to instances
+            self.tcp["security_group_rule"]["security_group_id"] = \
+                [sg['id']
+                 for sg in os_conn.neutron.list_security_groups()[
+                     'security_groups']
+                 if sg['tenant_id'] == os_conn.get_tenant(SERVTEST_TENANT).id
+                 if sg['name'] == 'default'][0]
+            self.tcp["security_group_rule"]["direction"] = "ingress"
+            os_conn.neutron.create_security_group_rule(self.tcp)
+            time.sleep(20)  # need wait to update rules on dvs ports
 
-            time.sleep(30)  # need wait to update rules on dvs ports
             self.show_step(23)
             openstack.check_connection_vms(
                 os_conn, floating_ip, remote=ssh_contr,
@@ -1481,3 +1495,344 @@ class TestDVSSystem(TestBasic):
                 "Timeout is reached. Current state of stack is {}".format(
                     current_state)
             )
+
+    @test(depends_on=['dvs_vcenter_systest_setup'],
+          groups=["dvs_remote_sg_simple"])
+    @log_snapshot_after_test
+    def dvs_remote_sg_simple(self):
+        """Check connectivity between VMs with same ip in different tenants.
+
+        Scenario:
+            1. Setup for system tests.
+            2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to
+               the router01.
+            3. Create security groups: SG1, SG2
+            4. Delete all defaults egress rules of SG1 and SG2.
+            5. Add icmp rule to SG1:
+               Ingress rule with ip protocol 'icmp ', port range any, SG group
+               'SG1'
+               Egress rule with ip protocol 'icmp ', port range any, SG group
+               'SG1'
+            6. Add icmp rule to SG2:
+               Ingress rule with ip protocol 'icmp ', port range any, SG group
+               'SG2'
+               Egress rule with ip protocol 'icmp ', port range any, SG group
+               'SG2'
+            7. Launch 2 instance of vcenter az with SG1 in net1.
+               Launch 2 instance of nova az with SG1 in net1.
+            8. Launch 2 instance of vcenter az with SG2 in net1.
+               Launch 2 instance of nova az with SG2 in net1.
+            9. Verify that icmp ping is enabled between VMs from SG1.
+            10. Verify that icmp ping is enabled between instances from SG2.
+            11. Verify that icmp ping is not enabled between instances from SG1
+                and VMs from SG2..
+
+        """
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        tenant = admin.get_tenant(SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        self.show_step(2)
+        network = admin.create_network(
+            network_name=self.net_data[0].keys()[0],
+            tenant_id=tenant.id)['network']
+
+        subnet = admin.create_subnet(
+            subnet_name=network['name'],
+            network_id=network['id'],
+            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            ip_version=4)
+
+        # Check that network are created.
+        assert_true(
+            admin.get_network(network['name'])['id'] == network['id']
+        )
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = admin.create_router(
+            'router_1',
+            tenant=tenant)
+
+        # Add net_1 to router_1
+        admin.add_router_interface(
+            router_id=router_1["id"],
+            subnet_id=subnet["id"])
+
+        self.show_step(3)
+        sg1 = admin.nova.security_groups.create(
+            'SG1', "descr")
+        sg2 = admin.nova.security_groups.create(
+            'SG2', "descr")
+
+        self.show_step(4)
+        sg_rules = [
+            sg_rule for sg_rule
+            in admin.neutron.list_security_group_rules()[
+                'security_group_rules']
+            if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
+        for rule in sg_rules:
+            admin.neutron.delete_security_group_rule(rule['id'])
+        self.show_step(5)
+        self.show_step(6)
+        for sg in [sg1, sg2]:
+            self.icmp["security_group_rule"]["security_group_id"] = sg.id
+            self.icmp["security_group_rule"]["remote_group_id"] = sg.id
+            self.icmp["security_group_rule"]["direction"] = "ingress"
+            admin.neutron.create_security_group_rule(self.icmp)
+            self.icmp["security_group_rule"]["direction"] = "egress"
+            admin.neutron.create_security_group_rule(self.icmp)
+            # add ssh rule for access to instances from access point
+            self.tcp["security_group_rule"]["security_group_id"] = sg.id
+            self.tcp["security_group_rule"]["direction"] = "ingress"
+            admin.neutron.create_security_group_rule(self.tcp)
+            self.tcp["security_group_rule"]["direction"] = "egress"
+            admin.neutron.create_security_group_rule(self.tcp)
+
+        access_point, access_point_ip = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            security_groups=[security_group.name, sg1.name, sg2.name])
+
+        self.show_step(7)
+        istances_sg1 = openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[sg1.name])
+
+        self.show_step(8)
+        istances_sg2 = openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[sg2.name])
+        openstack.verify_instance_state(admin)
+
+        # Get private ips of instances
+        ips = {}
+        ips['SG1'] = [
+            admin.get_nova_instance_ip(instance, net_name=network['name'])
+            for instance in istances_sg1]
+        ips['SG2'] = [
+            admin.get_nova_instance_ip(instance, net_name=network['name'])
+            for instance in istances_sg2]
+
+        self.show_step(9)
+        self.show_step(10)
+        for group in ips:
+            for ip_1 in ips[group]:
+                for ip_2 in ips[group]:
+                    if ip_2 != ip_1:
+                        ping_result = openstack.remote_execute_command(
+                            access_point_ip, ip_1, "ping -c 5 {}".format(ip_2),
+                            wait=60 * 4)
+                        assert_true(
+                            ping_result['exit_code'] == 0,
+                            "Ping isn't available from {0} to {1}".format(
+                                ip_1, ip_2)
+                        )
+
+        self.show_step(11)
+        for ip_1 in ips['SG1']:
+            for ip_2 in ips['SG2']:
+                ping_result = openstack.remote_execute_command(
+                    access_point_ip, ip_1, "ping -c 5 {}".format(ip_2))
+                assert_true(
+                    ping_result['exit_code'] == 1,
+                    "Ping isn't available from {0} to {1}".format(ip_1, ip_2)
+                )
+
+    @test(depends_on=['dvs_vcenter_systest_setup'],
+          groups=["dvs_remote_ip_prefix"])
+    @log_snapshot_after_test
+    def dvs_remote_ip_prefix(self):
+        """Check connectivity between VMs with same ip in different tenants.
+
+        Scenario:
+            1. Setup for system tests.
+            2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to
+               the router01.
+            3. Create instance 'VM1' of any availability zone in the
+               default internal network. Associate floating ip.
+            4. Create instance 'VM2' of any availability zone in the
+               default internal network. Associate floating ip.
+            5. Create security groups: SG1 SG2
+            6. Delete all defaults egress rules of SG1 and SG2.
+            7. Add icmp rule to SG1:
+               Ingress rule with ip protocol 'icmp ', port range any,
+               remote ip prefix <floating ip of VM1>
+               Egress rule with ip protocol 'icmp ', port range any,
+               remote ip prefix <floating ip of VM1>
+            8. Add ssh rule to SG2:
+               Ingress rule with ip protocol tcp ', port range any,
+               <internal ip of VM2>
+               Egress rule with ip protocol 'tcp ', port range any,
+               <internal ip of VM2>
+            9. Launch 2 instance 'VM3' and 'VM4' of vcenter az with SG1 and
+               SG2 in net1.
+               Launch 2 instance 'VM5' and 'VM6' of nova az with SG1 and SG2
+               in net1.
+            10. Verify that icmp ping is enabled from 'VM3', 'VM4', 'VM5' and
+               'VM6' to VM1 and vice versa.
+            11. Verify that icmp ping is blocked between 'VM3', 'VM4', 'VM5'
+                and 'VM6' and vice versa.
+            12. Verify that ssh is enabled from 'VM3', 'VM4', 'VM5' and 'VM6'
+                to VM2 and vice versa.
+            13. Verify that ssh is blocked between 'VM3', 'VM4', 'VM5' and
+                'VM6' and vice versa.
+
+        """
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        cluster_id = self.fuel_web.get_last_created_cluster()
+
+        os_ip = self.fuel_web.get_public_vip(cluster_id)
+        admin = os_actions.OpenStackActions(
+            os_ip, SERVTEST_USERNAME,
+            SERVTEST_PASSWORD,
+            SERVTEST_TENANT)
+
+        tenant = admin.get_tenant(SERVTEST_TENANT)
+
+        # create security group with rules for ssh and ping
+        security_group = admin.create_sec_group_for_ssh()
+
+        self.show_step(2)
+        network = admin.create_network(
+            network_name=self.net_data[0].keys()[0],
+            tenant_id=tenant.id)['network']
+
+        subnet = admin.create_subnet(
+            subnet_name=network['name'],
+            network_id=network['id'],
+            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            ip_version=4)
+
+        # Check that network are created.
+        assert_true(
+            admin.get_network(network['name'])['id'] == network['id']
+        )
+        # Create Router_01, set gateway and add interface
+        # to external network.
+        router_1 = admin.create_router(
+            'router_1',
+            tenant=tenant)
+
+        # Add net_1 to router_1
+        admin.add_router_interface(
+            router_id=router_1["id"],
+            subnet_id=subnet["id"])
+
+        self.show_step(5)
+        sg1 = admin.nova.security_groups.create(
+            'SG1', "descr")
+        sg2 = admin.nova.security_groups.create(
+            'SG2', "descr")
+
+        self.show_step(3)
+        access_point_1, access_point_ip_1 = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            security_groups=[security_group.name, sg1.name])
+
+        self.show_step(4)
+        access_point_2, access_point_ip_2 = openstack.create_access_point(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            security_groups=[security_group.name, sg2.name])
+
+        self.show_step(6)
+        sg_rules = [
+            sg_rule for sg_rule
+            in admin.neutron.list_security_group_rules()[
+                'security_group_rules']
+            if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
+        for rule in sg_rules:
+            admin.neutron.delete_security_group_rule(rule['id'])
+
+        self.show_step(7)
+        self.icmp["security_group_rule"]["security_group_id"] = sg1.id
+        self.icmp["security_group_rule"]["remote_ip_prefix"] =\
+            access_point_ip_1
+        # add ssh rule for access to instances from access point
+        self.tcp["security_group_rule"]["security_group_id"] = sg1.id
+        self.tcp["security_group_rule"]["remote_ip_prefix"] = access_point_ip_1
+        admin.neutron.create_security_group_rule(self.tcp)
+        admin.neutron.create_security_group_rule(self.icmp)
+        self.tcp["security_group_rule"]["direction"] = "egress"
+        self.icmp["security_group_rule"]["direction"] = "egress"
+        admin.neutron.create_security_group_rule(self.tcp)
+        admin.neutron.create_security_group_rule(self.icmp)
+
+        # get private ip of access_point_2
+        private_ip = admin.get_nova_instance_ip(
+            access_point_2, net_name=network['name'])
+
+        self.show_step(8)
+        self.tcp["security_group_rule"]["security_group_id"] = sg2.id
+        self.tcp["security_group_rule"]["remote_ip_prefix"] = private_ip
+        admin.neutron.create_security_group_rule(self.tcp)
+        self.tcp["security_group_rule"]["direction"] = "ingress"
+        admin.neutron.create_security_group_rule(self.tcp)
+
+        self.show_step(9)
+        istances_sg1 = openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[sg1.name])
+
+        istances_sg2 = openstack.create_instances(
+            os_conn=admin, nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[sg2.name])
+        openstack.verify_instance_state(admin)
+
+        # Get private ips of instances
+        ips = {}
+        ips['SG1'] = [
+            admin.assign_floating_ip(instance).ip
+            for instance in istances_sg1]
+        ips['SG2'] = [
+            admin.get_nova_instance_ip(instance, net_name=network['name'])
+            for instance in istances_sg2]
+
+        self.show_step(10)
+        for ip in ips['SG1']:
+            ping_result = openstack.remote_execute_command(
+                access_point_ip_1, ip, "ping -c 5 {}".format(
+                    access_point_ip_1), wait=60 * 4)
+            assert_true(
+                ping_result['exit_code'] == 0,
+                "Ping isn't available from {0} to {1}".format(
+                    ip, access_point_ip_1)
+            )
+
+        self.show_step(11)
+        for ip_1 in ips['SG1']:
+            for ip_2 in ips['SG1']:
+                if ip_1 != ip_2:
+                    ping_result = openstack.remote_execute_command(
+                        access_point_ip_1, ip_1, "ping -c 5 {}".format(ip_2))
+                    assert_true(
+                        ping_result['exit_code'] == 1,
+                        "Ping is available from {0} to {1}".format(
+                            ip_1, ip_2)
+                    )
+
+        self.show_step(12)
+        self.show_step(13)
+        for ip_1 in ips['SG2']:
+            for ip_2 in ips['SG2']:
+                if ip_1 != ip_2:
+                    try:
+                        openstack.remote_execute_command(
+                            access_point_ip_2, ip_1,
+                            " ")
+                    except Exception as e:
+                        logger.info('{}'.format(e))

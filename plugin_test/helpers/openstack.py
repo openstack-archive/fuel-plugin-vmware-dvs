@@ -12,6 +12,7 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations
 under the License.
 """
+import time
 
 from devops.error import TimeoutError
 
@@ -124,30 +125,26 @@ def check_connection_vms(os_conn, fip, remote, command='pingv4',
         "pingv6": "ping6 -c 5 {}",
         "arping": "sudo arping -I eth0 {}"}
 
-    if not destination_ip:
-        ip_pair = [
-            (ip_1, ip_2)
-            for ip_1 in fip
-            for ip_2 in fip
-            if ip_1 != ip_2]
-    else:
-        ip_pair = [
-            (ip_1, ip_2)
-            for ip_1 in fip
-            for ip_2 in destination_ip]
-    for ips in ip_pair:
-        logger.info("Connect to VM {0}".format(ips[0]))
-        command_result = os_conn.execute_through_host(
-            remote, ips[0],
-            commands[command].format(ips[1]), instance_creds)
+    ip_pair = dict.fromkeys(fip)
+    for key in ip_pair:
+        if destination_ip:
+            ip_pair[key] = [destination_ip]
+        else:
+            ip_pair[key] = [value for value in fip if key != value]
+    for ip_from in ip_pair:
+        logger.info("Connect to VM {0}".format(ip_from))
+        for ip_to in ip_pair[ip_from]:
+            command_result = os_conn.execute_through_host(
+                remote, ip_from,
+                commands[command].format(ip_to), instance_creds)
 
-        assert_true(
-            result_of_command == command_result['exit_code'],
-            " Command {0} from Vm {1},"
-            " executed with code {2}".format(
-                commands[command].format(ips[1]),
-                ips[0], command_result)
-        )
+            assert_true(
+                result_of_command == command_result['exit_code'],
+                " Command {0} from Vm {1},"
+                " executed with code {2}".format(
+                    commands[command].format(ip_to),
+                    ip_to, command_result)
+            )
 
 
 def create_and_assign_floating_ips(os_conn, instances_list):
@@ -161,7 +158,7 @@ def create_and_assign_floating_ips(os_conn, instances_list):
             ip = os_conn.assign_floating_ip(
                 instance).ip
             fips.append(ip)
-            wait(lambda: icmp_ping(ip), timeout=60 * 3, interval=5)
+            wait(lambda: icmp_ping(ip), timeout=60 * 5, interval=5)
     return fips
 
 
@@ -183,21 +180,32 @@ def get_ssh_connection(ip, username, userpassword, timeout=30, port=22):
     return ssh
 
 
-def remote_execute_command(instance1_ip, instance2_ip, command):
+def remote_execute_command(instance1_ip, instance2_ip, command, wait=30):
     """Check execute remote command.
 
     :param instance1: string, instance ip connect from
     :param instance2: string, instance ip connect to
     :param command: string, remote command
+    :param wait: integer, time to wait available ip of instances
     """
     ssh = get_ssh_connection(instance1_ip, instance_creds[0],
                              instance_creds[1], timeout=30)
 
     interm_transp = ssh.get_transport()
-    logger.info("Opening channel to VM")
-    interm_chan = interm_transp.open_channel('direct-tcpip',
-                                             (instance2_ip, 22),
-                                             (instance1_ip, 0))
+    try:
+        logger.info("Opening channel between VMs {0} and {1}".format(
+        instance1_ip, instance2_ip))
+        interm_chan = interm_transp.open_channel('direct-tcpip',
+                                                 (instance2_ip, 22),
+                                                 (instance1_ip, 0))
+    except Exception as e:
+        logger.info(
+            "{}. Wait to update sg rules and try to open channel again".format(
+                e))
+        time.sleep(wait)
+        interm_chan = interm_transp.open_channel('direct-tcpip',
+                                                 (instance2_ip, 22),
+                                                 (instance1_ip, 0))
     logger.info("Opening paramiko transport")
     transport = paramiko.Transport(interm_chan)
     logger.info("Starting client")
