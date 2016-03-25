@@ -16,9 +16,7 @@ under the License.
 import os
 
 from fuelweb_test import logger
-
 from fuelweb_test.helpers import checkers
-
 from proboscis.asserts import assert_true
 
 # constants
