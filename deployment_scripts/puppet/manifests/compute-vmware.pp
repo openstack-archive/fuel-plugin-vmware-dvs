@@ -26,7 +26,7 @@ $admin_tenant_name  = try_get_value($neutron_config,
 $admin_username     = try_get_value($neutron_config,
                                   'keystone/admin_user', 'neutron')
 $region_name        = hiera('region', 'RegionOne')
-$auth_api_version   = 'v2.0'
+$auth_api_version   = 'v3'
 $admin_identity_uri = "http://${service_endpoint}:35357"
 $admin_auth_url     = "${admin_identity_uri}/${auth_api_version}"
 $neutron_url        = "http://${neutron_endpoint}:9696"
