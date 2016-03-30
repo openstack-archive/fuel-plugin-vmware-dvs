@@ -71,10 +71,10 @@ define vmware_dvs::agent(
   $ocf_pid      = "${ocf_pid_dir}/${agent_name}.pid"
 
   if $use_fw_driver {
-    $fw_driver = 'vmware_dvs.agent.firewalls.vcenter_firewall.DVSFirewallDriver'
+    $fw_driver = 'networking_vsphere.agent.firewalls.vcenter_firewall.DVSFirewallDriver'
   }
   else {
-    $fw_driver = 'vmware_dvs.agent.firewalls.noop_firewall.NoopvCenterFirewallDriver'
+    $fw_driver = 'networking_vsphere.agent.firewalls.noop_firewall.NoopvCenterFirewallDriver'
   }
 
 
