@@ -462,7 +462,7 @@ class TestDVSSystem(TestBasic):
         subnet = os_conn.create_subnet(
             subnet_name=network['name'],
             network_id=network['id'],
-            cidr=self.net_data[0][self.net_data[0].keys()[0]],
+            cidr=self.net_data[0]['net_1'],
             ip_version=4)
 
         logger.info("Check that network are created.")
@@ -493,7 +493,12 @@ class TestDVSSystem(TestBasic):
         )
         openstack.verify_instance_state(os_conn)
 
+        # Remove default security group
         srv_list = os_conn.get_servers()
+        for srv in srv_list:
+            srv.remove_security_group(srv.security_groups[0]['name'])
+        os_conn.goodbye_security()
+
         self.show_step(5)
         sec_name = ['SG1', 'SG2']
         sg1 = os_conn.nova.security_groups.create(
@@ -509,11 +514,8 @@ class TestDVSSystem(TestBasic):
         icmp["security_group_rule"]["security_group_id"] = sg2.id
         os_conn.neutron.create_security_group_rule(icmp)
 
-        logger.info("""Remove default security group
-                       and attach SG_1 and SG2 to instances""")
-        srv_list = os_conn.get_servers()
+        logger.info("""Attach SG_1 and SG2 to instances""")
         for srv in srv_list:
-            srv.remove_security_group(srv.security_groups[0]['name'])
             srv.add_security_group(sg1.id)
             srv.add_security_group(sg2.id)
 
@@ -529,98 +531,82 @@ class TestDVSSystem(TestBasic):
                 os_conn, floating_ip, remote=ssh_contr,
                 command='pingv4')
 
-        self.show_step(10)
-        ip_pair = [(ip_1, ip_2)
-                   for ip_1 in floating_ip
-                   for ip_2 in floating_ip
-                   if ip_1 != ip_2]
+            self.show_step(10)
+            ip_pair = [(ip_1, ip_2)
+                       for ip_1 in floating_ip
+                       for ip_2 in floating_ip
+                       if ip_1 != ip_2]
 
-        for ips in ip_pair:
-            openstack.remote_execute_command(ips[0], ips[1], ' ')
+            for ips in ip_pair:
+                openstack.remote_execute_command(ips[0], ips[1], ' ')
 
-        self.show_step(11)
-        sg_rules = os_conn.neutron.list_security_group_rules()[
-            'security_group_rules']
-        sg_rules = [
-            sg_rule for sg_rule
-            in os_conn.neutron.list_security_group_rules()[
+            self.show_step(11)
+            sg_rules = os_conn.neutron.list_security_group_rules()[
                 'security_group_rules']
-            if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
-        for rule in sg_rules:
-            os_conn.neutron.delete_security_group_rule(rule['id'])
+            sg_rules = [
+                sg_rule for sg_rule
+                in os_conn.neutron.list_security_group_rules()[
+                    'security_group_rules']
+                if sg_rule['security_group_id'] in [sg1.id, sg2.id]]
+            for rule in sg_rules:
+                os_conn.neutron.delete_security_group_rule(rule['id'])
 
-        time.sleep(20)  # need wait to update rules on dvs
+            self.show_step(12)
+            for ip in floating_ip:
+                try:
+                    openstack.get_ssh_connection(
+                        ip, self.instance_creds[0],
+                        self.instance_creds[1])
+                except Exception as e:
+                    logger.info('{}'.format(e))
 
-        self.show_step(12)
-        for ip in floating_ip:
-            try:
-                openstack.get_ssh_connection(
-                    ip, self.instance_creds[0],
-                    self.instance_creds[1])
-            except Exception as e:
-                logger.info('{}'.format(e))
+            self.show_step(13)
+            tcp["security_group_rule"]["security_group_id"] = sg2.id
+            os_conn.neutron.create_security_group_rule(tcp)
+            tcp["security_group_rule"]["direction"] = "egress"
+            os_conn.neutron.create_security_group_rule(tcp)
 
-        self.show_step(13)
-        tcp["security_group_rule"]["security_group_id"] = sg2.id
-        os_conn.neutron.create_security_group_rule(tcp)
-        tcp["security_group_rule"]["direction"] = "egress"
-        os_conn.neutron.create_security_group_rule(tcp)
+            self.show_step(14)
+            for ips in ip_pair:
+                wait(
+                    lambda: openstack.remote_execute_command(
+                        ips[0], ips[1], ' '), timeout=30, interval=5)
 
-        time.sleep(20)  # need wait to update rules on dvs ports
-
-        self.show_step(14)
-        for ips in ip_pair:
-            openstack.remote_execute_command(ips[0], ips[1], ' ')
-
-        self.show_step(15)
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_contr:
+            self.show_step(15)
             openstack.check_connection_vms(
                 os_conn, floating_ip, remote=ssh_contr,
                 command='pingv4', result_of_command=1)
 
-        self.show_step(16)
-        logger.info("Add Ingress and egress rules for ICMP protocol to SG_1")
-        icmp["security_group_rule"]["security_group_id"] = sg1.id
-        os_conn.neutron.create_security_group_rule(icmp)
-        icmp["security_group_rule"]["direction"] = "egress"
-        os_conn.neutron.create_security_group_rule(icmp)
+            self.show_step(16)
+            icmp["security_group_rule"]["security_group_id"] = sg1.id
+            os_conn.neutron.create_security_group_rule(icmp)
+            icmp["security_group_rule"]["direction"] = "egress"
+            os_conn.neutron.create_security_group_rule(icmp)
 
-        time.sleep(20)  # need wait to update rules on dvs ports
-
-        self.show_step(17)
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_contr:
+            time.sleep(30)  # need wait to update rules on dvs ports
+            self.show_step(17)
             openstack.check_connection_vms(
                 os_conn, floating_ip, remote=ssh_contr,
                 command='pingv4')
 
-        self.show_step(21)
-        self.show_step(22)
-        srv_list = os_conn.get_servers()
-        for srv in srv_list:
-            for sg in srv.security_groups:
-                srv.remove_security_group(sg['name'])
-            srv.add_security_group('default')
-        # need add tcp rule for ssh to instances
-        tcp["security_group_rule"]["security_group_id"] = \
-            [
-                sg['id']
-                for sg in os_conn.neutron.list_security_groups()[
-                    'security_groups']
-                if sg['tenant_id'] == os_conn.get_tenant(SERVTEST_TENANT).id
-                if sg['name'] == 'default'][0]
-        tcp["security_group_rule"]["direction"] = "ingress"
-        os_conn.neutron.create_security_group_rule(tcp)
-        time.sleep(20)  # need wait to update rules on dvs ports
+            self.show_step(21)
+            srv_list = os_conn.get_servers()
+            for srv in srv_list:
+                for sg in srv.security_groups:
+                    srv.remove_security_group(sg['name'])
+            self.show_step(22)
+            for srv in srv_list:
+                srv.add_security_group('default')
 
-        self.show_step(23)
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_contr:
+            time.sleep(30)  # need wait to update rules on dvs ports
+            self.show_step(23)
             openstack.check_connection_vms(
                 os_conn, floating_ip, remote=ssh_contr,
                 command='pingv4')
 
-        self.show_step(24)
-        for ips in ip_pair:
-            openstack.remote_execute_command(ips[0], ips[1], ' ')
+            self.show_step(24)
+            for ips in ip_pair:
+                openstack.remote_execute_command(ips[0], ips[1], ' ')
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_tenants_isolation", 'dvs_vcenter_system'])
@@ -835,7 +821,7 @@ class TestDVSSystem(TestBasic):
             ip_version=4)
 
         self.show_step(8)
-        router = admin.create_router('router_1', tenant=tenant)
+        router = admin.create_router('router_1', tenant=tenant_admin)
         admin.add_router_interface(
             router_id=router["id"],
             subnet_id=subnet["id"])

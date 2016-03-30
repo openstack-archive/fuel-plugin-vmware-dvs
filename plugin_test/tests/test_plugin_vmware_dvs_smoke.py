@@ -245,7 +245,8 @@ class TestDVSSmoke(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        assert_true(self.env.d_env.get_admin_remote().execute(cmd) == 0,
+        assert_true(
+            self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 0,
             'Can not remove plugin.')
 
         self.show_step(3)
