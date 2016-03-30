@@ -43,12 +43,12 @@ class vmware_dvs(
   $plugin_path      = 'neutron/cmd/eventlet/plugins/dvs_neutron_agent.py',
 )
 {
-  package { ['python-suds','python-vmware-dvs']:
+  package { ['python-suds','python-networking-vsphere']:
     ensure => present,
     }->
-    file {'/usr/lib/python2.7/dist-packages/neutron/plugins/ml2/drivers/vmware_dvs':
+    file {'/usr/lib/python2.7/dist-packages/neutron/plugins/ml2/drivers/networking_vsphere':
       ensure => 'link',
-      target => '/usr/lib/python2.7/dist-packages/vmware_dvs'
+      target => '/usr/lib/python2.7/dist-packages/networking_vsphere'
     }
 
   file {'dvs_neutron_agent.py':
