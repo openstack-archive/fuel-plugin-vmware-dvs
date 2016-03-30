@@ -13,7 +13,7 @@ License for the specific language governing permissions and limitations
 under the License.
 """
 
-import neutron.plugins.ml2.drivers.vmware_dvs.agent.dvs_neutron_agent\
+import neutron.plugins.ml2.drivers.networking_vsphere.agent.dvs_neutron_agent\
     as agent_main
 
 
