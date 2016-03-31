@@ -1,3 +1,4 @@
+=====
 Smoke
 =====
 
@@ -92,7 +93,7 @@ Verify that all elements of DVS plugin section meets the requirements.
 Complexity
 ##########
 
-smoke
+advanced
 
 
 Steps

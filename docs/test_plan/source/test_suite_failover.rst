@@ -1,3 +1,4 @@
+========
 Failover
 ========
 
@@ -104,7 +105,7 @@ Check cluster functionality after reboot vcenter (Nova Compute on controllers).
 ID
 ##
 
-dvs_vcenter_reboot_vcenter
+dvs_reboot_vcenter_1
 
 
 Description
@@ -166,7 +167,7 @@ Check cluster functionality after reboot vcenter (Nova Compute on compute-vmware
 ID
 ##
 
-dvs_vcenter_reboot_vcenter_2
+dvs_reboot_vcenter_2
 
 
 Description
