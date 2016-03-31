@@ -91,8 +91,7 @@ class TestDVSSystem(TestBasic):
 
         self.show_step(1)
         self.show_step(2)
-        plugin.install_dvs_plugin(
-            self.env.d_env.get_admin_remote())
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         self.show_step(3)
         cluster_id = self.fuel_web.create_cluster(
@@ -893,7 +892,7 @@ class TestDVSSystem(TestBasic):
         self.show_step(1)
         self.show_step(2)
         self.env.revert_snapshot("ready_with_5_slaves")
-        plugin.install_dvs_plugin(self.env.d_env.get_admin_remote())
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         self.show_step(3)
         cluster_id = self.fuel_web.create_cluster(
