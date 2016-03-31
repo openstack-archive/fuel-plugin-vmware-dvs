@@ -17,7 +17,7 @@ import os
 
 from fuelweb_test import logger
 
-from fuelweb_test.helpers import checkers
+from fuelweb_test.helpers import utils
 
 from proboscis.asserts import assert_true
 
@@ -33,14 +33,14 @@ plugin_name = "fuel-plugin-vmware-dvs"
 def install_dvs_plugin(master_node):
     """Download and instal DVS plugin on master node."""
     # copy plugins to the master node
-    checkers.upload_tarball(
+    utils.upload_tarball(
         master_node,
         DVS_PLUGIN_PATH, "/var")
 
     # install plugin
-    checkers.install_plugin_check_code(
+    utils.install_plugin_check_code(
         master_node,
-        plugin=os.path.basename(DVS_PLUGIN_PATH))
+        os.path.basename(DVS_PLUGIN_PATH))
 
 
 def enable_plugin(cluster_id, fuel_web_client, multiclusters=True):

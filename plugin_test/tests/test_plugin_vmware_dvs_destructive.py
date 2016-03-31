@@ -317,8 +317,7 @@ class TestDVSDestructive(TestBasic):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
-        plugin.install_dvs_plugin(
-            self.env.d_env.get_admin_remote())
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -534,8 +533,7 @@ class TestDVSDestructive(TestBasic):
         self.env.revert_snapshot("ready_with_5_slaves")
 
         self.show_step(1)
-        plugin.install_dvs_plugin(
-            self.env.d_env.get_admin_remote())
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         self.show_step(2)
         cluster_id = self.fuel_web.create_cluster(
@@ -632,8 +630,7 @@ class TestDVSDestructive(TestBasic):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
-        plugin.install_dvs_plugin(
-            self.env.d_env.get_admin_remote())
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(

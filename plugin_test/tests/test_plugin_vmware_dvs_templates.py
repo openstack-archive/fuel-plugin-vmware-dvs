@@ -83,7 +83,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         self.env.revert_snapshot("ready_with_9_slaves")
 
         plugin.install_dvs_plugin(
-            self.env.d_env.get_admin_remote())
+            self.ssh_manager.admin_ip)
 
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
