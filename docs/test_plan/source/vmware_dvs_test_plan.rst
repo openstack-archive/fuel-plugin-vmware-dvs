@@ -83,7 +83,8 @@ Test environment, infrastructure and tools
 
 Following configuration should be used in the testing:
 
-* 1 physnet to 1 DVS switch (dvSwitch).
+* 1 physnet to 1 DVS switch(dvSwitch)
+* 1 physnet to 2 DVS switches (dvSwitch, dvSwitch2).
 
 Other recommendation you can see in the test cases.
 
