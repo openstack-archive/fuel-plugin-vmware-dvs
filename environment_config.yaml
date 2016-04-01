@@ -11,7 +11,8 @@ attributes:
     label: "Enter the Cluster to dvSwitch mapping."
     description: "List of ClusterName:dvSwitchName pairs, separated by semicolon."
     weight: 25
-    type: "text"
+    type: "textarea
+    editable_for_deployed: true"
     regex:
       source: &non_empty_string '\S'
       error: "Empty name of dvSwitch"

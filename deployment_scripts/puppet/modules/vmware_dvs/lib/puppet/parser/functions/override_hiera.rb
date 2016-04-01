@@ -8,6 +8,7 @@ module Puppet::Parser::Functions
     require 'yaml'
     require 'fileutils'
     file=args[0]
+    netmaps = args[1]
     dir=File.dirname(file)
     # read data
     if File.exists?(file)
@@ -25,7 +26,11 @@ module Puppet::Parser::Functions
         md << ',vmware_dvs'
       end
     end
+    d = {}
+    np = netmaps.split(';').collect{|k| k.split(":")}.select{|x| x.length > 2}
+    np.each{|k| d = d.merge({k[2] => {"bridge" => k[3], "vlan_range" => "2000:2030"}})}
     new_data["neutron_config"]["L2"]["mechanism_drivers"] = md
+    new_data["neutron_config"]["L2"]["phys_nets"] = d
     # write data
     unless File.directory?(dir)
       FileUtils.mkdir_p(dir)
