@@ -1,4 +1,17 @@
- module Puppet::Parser::Functions
+def parse_netmaps(netmaps, cluster, physnet)
+  if netmaps.include? ':'
+    netmaps = netmaps.split(";").select{|x| x.include?(cluster)}[0].split(":")
+    if netmaps.length > 2
+      physnet = netmaps[2]
+      netmaps = netmaps[1]
+    else
+      netmaps = netmaps[1]
+    end
+  end
+  return physnet + ":" + netmaps
+end
+
+module Puppet::Parser::Functions
   newfunction(:get_agents_data, :type => :rvalue,
               :doc => <<-EOS
               Create parameters for the agent resource
@@ -20,13 +33,7 @@
         agent["vsphere_hostname"] = vc["vc_host"]
         agent["vsphere_login"] = vc["vc_user"]
         agent["vsphere_password"] = vc["vc_password"]
-        cluster = vc["vc_cluster"]
-        if netmaps.include? ':'
-          vds = netmaps.split(";").collect{|k| k.split(":")}.select{|x| x[0] == cluster}.collect{|x| x[1]}[0]
-        else
-          vds = netmaps
-        end
-        agent["network_maps"] = physnet + ":" + vds
+        agent["network_maps"] = parse_netmaps(netmaps, vc["vc_cluster"], physnet)
         agent["use_fw_driver"] = use_fw_driver
         agent["ha_enabled"] = controllersp
         agent["primary"] = primaryp
