@@ -114,9 +114,10 @@ Assumptions:
 
   #. All VDS'es must be provisioned by using vCenter firstly and manually.
 
-  #. There must be a mapping between physical network and VDS'es:
+  #. There must be a mapping between physical network and VDS'es. Each VDS can
+     either share a physnet with others or use its own.
 
-  3. VLANs will be used as a tenant network separation by KVM’s OVS and ESXi’s
+  #. VLANs will be used as a tenant network separation by KVM’s OVS and ESXi’s
      VDS (must be the same for tenant network regardless which switch type OVS
      or VDS)
 
@@ -134,7 +135,7 @@ Assumptions:
 
     #. add VM to security groups
 
-  5. Name of driver is vmware_dvs
+  6. Name of driver is vmware_dvs
 
 Limitations:
 ------------
