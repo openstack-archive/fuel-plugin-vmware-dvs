@@ -15,9 +15,9 @@ under the License.
 
 import subprocess
 
-from proboscis.asserts import assert_true
-
 from fuelweb_test import logger
+
+from proboscis.asserts import assert_true
 
 
 class Vmrun(object):
