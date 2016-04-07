@@ -84,8 +84,8 @@ class TestDVSSmoke(TestBasic):
                 'images_vcenter': True
             }
         )
-        plugin.enable_plugin(
-            cluster_id, self.fuel_web, multiclusters=False)
+
+        plugin.enable_plugin(cluster_id, self.fuel_web)
 
         # Assign role to node
         self.fuel_web.update_nodes(
