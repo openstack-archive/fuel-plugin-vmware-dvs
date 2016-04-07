@@ -25,6 +25,7 @@ plugin.ini::
   vsphere_password=<vsphere_password>
 
 vmware_dvs-<vcenter AZ>-<service name>.ini::
+
   [DEFAULT]
   host=<vcenter AZ>-<service name>
 

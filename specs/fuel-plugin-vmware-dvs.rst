@@ -1,6 +1,14 @@
+..
+ This work is licensed under a Creative Commons Attribution 3.0 Unported
+ License.
+
+ http://creativecommons.org/licenses/by/3.0/legalcode
+
 =============================================
 Fuel plugin for Neutron ML2 vmware_dvs driver
 =============================================
+
+https://blueprints.launchpad.net/fuel-plugin-vmware-dvs/+spec/agentful-spec
 
 There is the Fuel plugin which provides Neutron for networking on
 VMware-related MOS environments.
@@ -120,7 +128,7 @@ Assumptions:
      VDS (must be the same for tenant network regardless which switch type OVS
      or VDS)
 
-  #. Each vSphere's Cluster has its own VDS.
+  #. Each vSphere's Cluster has its own VDS with same (as that cluster) name.
 
   #. There must be an ability to:
 
@@ -151,15 +159,13 @@ Use other solution for Neutron and VMware.
 Data model impact
 -----------------
 
-There are serveral changes will appears on the other subtab of Networks tab:
+There are serveral changes will appears on the "Other" subtab of Networks tab:
 
   #. checkbox "Neutron VMware DVS ML2 plugin".
 
   #. radiobutton with plugin's version
 
   #. checkbox "Use the VMware DVS firewall driver"
-
-  #. input field for specification the cluster to VDS mapping.
 
 REST API impact
 ---------------
