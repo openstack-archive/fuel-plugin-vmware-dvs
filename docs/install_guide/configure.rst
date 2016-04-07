@@ -37,7 +37,7 @@ Create and Configure an environment with VMware DVS plugin
    .. image:: _static/nodes-vmware.png
 
 #. Open the *Networks* tab of the Fuel Web UI and chose the *Other* subtab. Select the
-   *Neutron VMware DVS ML2 plugin* checkbox and specify the Cluster to VDS mapping :
+   *Neutron VMware DVS ML2 plugin* checkbox
 
    .. image:: _static/settings.png
 
