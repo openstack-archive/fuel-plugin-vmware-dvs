@@ -1,5 +1,9 @@
 attributes:
+  # Show only if vCenter used
   metadata:
+    restrictions:
+      - condition: "settings:common.use_vcenter.value == false or not ( cluster:net_provider == 'neutron' and networking_parameters:segmentation_type == 'vlan')"
+        action: "hide"
     group: 'network'
   vmware_dvs_fw_driver:
     value: true
