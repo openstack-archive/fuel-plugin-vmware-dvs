@@ -158,13 +158,9 @@ class TestDVSMaintenance(TestBasic):
             srv.remove_security_group(srv.security_groups[0]['name'])
             srv.add_security_group(sg1.id)
             srv.add_security_group(sg2.id)
-        time.sleep(20)  # need wait to update rules on dvs
         fip = openstack.create_and_assign_floating_ips(os_conn, instances)
         # Check ping between VMs
-        controller = self.fuel_web.get_nailgun_primary_node(
-            self.env.d_env.nodes().slaves[0]
-        )
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_controller:
-            openstack.check_connection_vms(
-                os_conn, fip, remote=ssh_controller,
-                command='pingv4')
+        ip_pair = dict.fromkeys(fip)
+        for key in ip_pair:
+            ip_pair[key] = [value for value in fip if key != value]
+        openstack.check_connection_vms(ip_pair)
