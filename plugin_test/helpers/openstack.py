@@ -17,6 +17,7 @@ import time
 from devops.error import TimeoutError
 
 from devops.helpers.helpers import icmp_ping
+from devops.helpers.helpers import tcp_ping
 from devops.helpers.helpers import wait
 
 from fuelweb_test import logger
@@ -105,45 +106,95 @@ def create_instances(os_conn, nics, vm_count=1,
     return instances
 
 
-def check_connection_vms(os_conn, fip, remote, command='pingv4',
+def generate_message(command, result_of_command, ip_from, ip_to):
+    """Generate error message for check connection methods.
+
+    :param command: type string, name of command
+    :param result_of_command: type interger, exite code of command execution
+    :param ip_from: type string, check connection from 'ip_from'
+    :param ip_to: type string, check connection from 'ip_to'
+    """
+    if result_of_command == 0:
+        param = "isn't"
+    else:
+        param = "is"
+    message = "{0} {1} available from {2} to {3}".format(
+        command, param, ip_from, ip_to)
+    return message
+
+
+def check_connection_vms(ip_pair, command='pingv4',
                          result_of_command=0,
-                         destination_ip=None):
+                         timeout=30, interval=5):
     """Check network connectivity between instances.
 
     :param os_conn: type object, openstack
-    :param fip: type list, floating ips of instances
-    :param remote: SSHClient to primary controller
-    :param destination_ip: type list, remote destination ip to
-                           check by ping, by default is None
+    :param ip_pair: type list, pair floating ips of instances
+    :param command: type string, key from dictionary 'commands'
+                    by default is 'pingv4'
+    :param result_of_command: type interger, exite code of command execution
+                              by default is 0
+    :param timeout: wait to get expected result
+    :param interval: interval of executing command
+    """
+    commands = {
+        "pingv4": "ping -c 5 {}",
+        "pingv6": "ping6 -c 5 {}",
+        "arping": "sudo arping -I eth0 {}",
+        "ssh": " "}
+
+    for ip_from in ip_pair:
+        with get_ssh_connection(
+            ip_from, instance_creds[0], instance_creds[1]
+        ) as ssh:
+            for ip_to in ip_pair[ip_from]:
+                message = generate_message(
+                    commands[command], result_of_command, ip_from, ip_to)
+                logger.info("Check connectin from {0} to {1}.".format(
+                    ip_from, ip_to))
+                cmd = commands[command].format(ip_to)
+                wait(lambda: execute(
+                     ssh, cmd)['exit_code'] == result_of_command,
+                     interval=interval,
+                     timeout=timeout,
+                     timeout_msg=message.format(
+                         ip_from, ip_to))
+
+
+def check_connection_through_host(remote, ip_pair, command='pingv4',
+                                  result_of_command=0, timeout=30,
+                                  interval=5):
+    """Check network connectivity between instances.
+
+    :param ip_pair: type list,  ips of instances
+    :param remote: SSHClient to instance
     :param command: type string, key from dictionary 'commands'
                     by default is 'pingv4'
     :param  result_of_command: type interger, exite code of command execution
                                by default is 0
+    :param timeout: wait to get expected result
+    :param interval: interval of executing command
+    :param message: message of failing
     """
     commands = {
         "pingv4": "ping -c 5 {}",
         "pingv6": "ping6 -c 5 {}",
         "arping": "sudo arping -I eth0 {}"}
 
-    ip_pair = dict.fromkeys(fip)
-    for key in ip_pair:
-        if destination_ip:
-            ip_pair[key] = destination_ip
-        else:
-            ip_pair[key] = [value for value in fip if key != value]
     for ip_from in ip_pair:
-        logger.info("Connect to VM {0}".format(ip_from))
         for ip_to in ip_pair[ip_from]:
-            command_result = os_conn.execute_through_host(
-                remote, ip_from,
-                commands[command].format(ip_to), instance_creds)
-
-            assert_true(
-                result_of_command == command_result['exit_code'],
-                " Command {0} from Vm {1},"
-                " executed with code {2}".format(
-                    commands[command].format(ip_to),
-                    ip_to, command_result)
+            message = generate_message(
+                commands[command], result_of_command, ip_from, ip_to)
+            wait(
+                lambda:
+                remote_execute_command(
+                    remote,
+                    ip_from, commands[command].format(ip_to),
+                    wait=timeout)['exit_code'] == result_of_command,
+                interval=interval,
+                timeout=timeout,
+                timeout_msg=message.format(
+                    ip_from, ip_to)
             )
 
 
@@ -180,6 +231,25 @@ def get_ssh_connection(ip, username, userpassword, timeout=30, port=22):
     return ssh
 
 
+def execute(ssh_client, command):
+    """Execute command on remote host.
+
+    :param ssh_client: SSHClient to instance
+    :param command: type string, command to execute
+    """
+    channel = ssh_client.get_transport().open_session()
+    channel.exec_command(command)
+    result = {
+        'stdout': [],
+        'stderr': [],
+        'exit_code': 0
+    }
+    result['exit_code'] = channel.recv_exit_status()
+    result['stdout'] = channel.recv(1024)
+    result['stderr'] = channel.recv_stderr(1024)
+    return result
+
+
 def remote_execute_command(instance1_ip, instance2_ip, command, wait=30):
     """Check execute remote command.
 
@@ -188,53 +258,49 @@ def remote_execute_command(instance1_ip, instance2_ip, command, wait=30):
     :param command: string, remote command
     :param wait: integer, time to wait available ip of instances
     """
-    ssh = get_ssh_connection(instance1_ip, instance_creds[0],
-                             instance_creds[1], timeout=30)
+    with get_ssh_connection(
+        instance1_ip, instance_creds[0], instance_creds[1]
+    ) as ssh:
 
-    interm_transp = ssh.get_transport()
-    try:
-        logger.info("Opening channel between VMs {0} and {1}".format(
-            instance1_ip, instance2_ip))
-        interm_chan = interm_transp.open_channel('direct-tcpip',
-                                                 (instance2_ip, 22),
-                                                 (instance1_ip, 0))
-    except Exception as e:
-        logger.info(
-            "{}. Wait to update sg rules and try to open channel again".format(
-                e))
-        time.sleep(wait)
-        interm_chan = interm_transp.open_channel('direct-tcpip',
-                                                 (instance2_ip, 22),
-                                                 (instance1_ip, 0))
-    logger.info("Opening paramiko transport")
-    transport = paramiko.Transport(interm_chan)
-    logger.info("Starting client")
-    transport.start_client()
-    logger.info("Passing authentication to VM")
-    transport.auth_password(
-        instance_creds[0], instance_creds[1])
-    channel = transport.open_session()
-    channel.get_pty()
-    channel.fileno()
-    channel.exec_command(command)
+        interm_transp = ssh.get_transport()
+        try:
+            logger.info("Opening channel between VMs {0} and {1}".format(
+                instance1_ip, instance2_ip))
+            interm_chan = interm_transp.open_channel('direct-tcpip',
+                                                     (instance2_ip, 22),
+                                                     (instance1_ip, 0))
+        except Exception as e:
+            message = "{} Wait to update sg rules. Try to open channel again"
+            logger.info(message.format(e))
+            time.sleep(wait)
+            interm_chan = interm_transp.open_channel('direct-tcpip',
+                                                     (instance2_ip, 22),
+                                                     (instance1_ip, 0))
+        transport = paramiko.Transport(interm_chan)
+        transport.start_client()
+        logger.info("Passing authentication to VM")
+        transport.auth_password(
+            instance_creds[0], instance_creds[1])
+        channel = transport.open_session()
+        channel.get_pty()
+        channel.fileno()
+        channel.exec_command(command)
 
-    result = {
-        'stdout': [],
-        'stderr': [],
-        'exit_code': 0
-    }
+        result = {
+            'stdout': [],
+            'stderr': [],
+            'exit_code': 0
+        }
+        logger.debug("Receiving exit_code")
+        result['exit_code'] = channel.recv_exit_status()
+        logger.debug("Receiving stdout")
+        result['stdout'] = channel.recv(1024)
+        logger.debug("Receiving stderr")
+        result['stderr'] = channel.recv_stderr(1024)
+        logger.debug("Closing channel")
+        channel.close()
 
-    logger.debug("Receiving exit_code")
-    result['exit_code'] = channel.recv_exit_status()
-    logger.debug("Receiving stdout")
-    result['stdout'] = channel.recv(1024)
-    logger.debug("Receiving stderr")
-    result['stderr'] = channel.recv_stderr(1024)
-
-    logger.debug("Closing channel")
-    channel.close()
-
-    return result
+        return result
 
 
 def get_role(os_conn, role_name):
@@ -326,4 +392,5 @@ def create_access_point(os_conn, nics, security_groups):
 
         access_point_ip = os_conn.assign_floating_ip(
             access_point, use_neutron=True)['floating_ip_address']
+        wait(lambda: tcp_ping(access_point_ip, 22), timeout=60 * 5, interval=5)
         return access_point, access_point_ip
