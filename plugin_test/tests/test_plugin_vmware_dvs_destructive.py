@@ -266,37 +266,32 @@ class TestDVSDestructive(TestBasic):
                 port['id'], {'port': {'admin_state_up': False}}
             )
 
-        controller = self.fuel_web.get_nailgun_primary_node(
-            self.env.d_env.nodes().slaves[0]
-        )
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_controller:
-            # Verify that not connection to instances
-            try:
-                openstack.check_connection_vms(
-                    os_conn, floating_ip, remote=ssh_controller,
-                    command='pingv4')
-            except Exception as e:
+        ip_pair = dict.fromkeys(floating_ip)
+        for key in ip_pair:
+            ip_pair[key] = [value for value in floating_ip if key != value]
+        # Verify that not connection to instances
+        try:
+            openstack.check_connection_vms(ip_pair)
+        except Exception as e:
                 logger.info(str(e))
 
-            # Enable sub_net ports of instances
-            for port in instance_ports:
-                os_conn.neutron.update_port(
-                    port['id'], {'port': {'admin_state_up': True}}
-                )
+        # Enable sub_net ports of instances
+        for port in instance_ports:
+            os_conn.neutron.update_port(
+                port['id'], {'port': {'admin_state_up': True}}
+            )
 
-                instance.reboot()
-                wait(
-                    lambda:
-                    os_conn.get_instance_detail(instance).status == "ACTIVE",
-                    timeout=300)
+            instance.reboot()
+            wait(
+                lambda:
+                os_conn.get_instance_detail(instance).status == "ACTIVE",
+                timeout=300)
 
-            time.sleep(60)  # need time after reboot to get ip by instance
+        time.sleep(60)  # need time after reboot to get ip by instance
 
-            # Verify that instances should communicate between each other.
-            # Send icmp ping between instances
-            openstack.check_connection_vms(
-                os_conn, floating_ip, remote=ssh_controller,
-                command='pingv4')
+        # Verify that instances should communicate between each other.
+        # Send icmp ping between instances
+        openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_destructive_setup_2", 'dvs_vcenter_system'])
@@ -403,14 +398,14 @@ class TestDVSDestructive(TestBasic):
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
                 srv, net_name=self.inter_net_name, type='floating'))
+        ip_pair = dict.fromkeys(floating_ip)
+        for key in ip_pair:
+            ip_pair[key] = [value for value in floating_ip if key != value]
+        openstack.check_connection_vms(ip_pair)
+
         controller = self.fuel_web.get_nailgun_primary_node(
             self.env.d_env.nodes().slaves[0]
         )
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_control:
-            openstack.check_service(ssh=ssh_control, commands=self.cmds)
-            openstack.check_connection_vms(
-                os_conn, floating_ip, remote=ssh_control,
-                command='pingv4')
 
         self.fuel_web.cold_restart_nodes(
             [self.fuel_web.environment.d_env.get_node(name=controller.name)],
@@ -425,9 +420,7 @@ class TestDVSDestructive(TestBasic):
         # Send ping Check that ping get reply.
         with self.fuel_web.get_ssh_for_node(controller.name) as ssh_control:
             openstack.check_service(ssh=ssh_control, commands=self.cmds)
-            openstack.check_connection_vms(
-                os_conn, floating_ip, remote=ssh_control,
-                command='pingv4')
+        openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[dvs_destructive_setup_2],
           groups=["dvs_vcenter_shutdown_controller", 'dvs_vcenter_system'])
@@ -463,6 +456,11 @@ class TestDVSDestructive(TestBasic):
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
                 srv, net_name=self.inter_net_name, type='floating'))
+        ip_pair = dict.fromkeys(floating_ip)
+        for key in ip_pair:
+            ip_pair[key] = [value for value in floating_ip if key != value]
+        openstack.check_connection_vms(ip_pair)
+
         controllers = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
             self.fuel_web.get_nailgun_cluster_nodes_by_roles(
                 cluster_id=cluster_id,
@@ -470,21 +468,19 @@ class TestDVSDestructive(TestBasic):
 
         with self.fuel_web.get_ssh_for_node(controllers[0].name) as ssh_contr:
             openstack.check_service(ssh=ssh_contr, commands=self.cmds)
-            openstack.check_connection_vms(
-                os_conn, floating_ip, remote=ssh_contr,
-                command='pingv4')
+
+        openstack.check_connection_vms(ip_pair)
 
         self.fuel_web.warm_shutdown_nodes(
             [self.fuel_web.environment.d_env.get_node(
                 name=controllers[0].name)])
         time.sleep(30)
+
         # Verify connection between instances.
         # Send ping Check that ping get reply.
         with self.fuel_web.get_ssh_for_node(controllers[1].name) as ssh_contr:
             openstack.check_service(ssh=ssh_contr, commands=self.cmds)
-            openstack.check_connection_vms(
-                os_conn, floating_ip, remote=ssh_contr,
-                command='pingv4')
+        openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_reboot_vcenter_1", 'dvs_vcenter_system'])
