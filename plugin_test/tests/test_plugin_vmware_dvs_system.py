@@ -118,8 +118,7 @@ class TestDVSSystem(TestBasic):
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                'images_vcenter': True
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
         plugin.enable_plugin(cluster_id, self.fuel_web)
@@ -141,8 +140,7 @@ class TestDVSSystem(TestBasic):
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_2=target_node_2,
-            multiclusters=True,
-            vc_glance=True
+            multiclusters=True
         )
 
         self.show_step(7)

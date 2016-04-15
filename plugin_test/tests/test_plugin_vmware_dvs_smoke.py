@@ -80,8 +80,7 @@ class TestDVSSmoke(TestBasic):
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                'images_vcenter': True
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
         plugin.enable_plugin(
@@ -94,7 +93,7 @@ class TestDVSSmoke(TestBasic):
         )
 
         # Configure VMWare vCenter settings
-        self.fuel_web.vcenter_configure(cluster_id, vc_glance=True)
+        self.fuel_web.vcenter_configure(cluster_id)
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
