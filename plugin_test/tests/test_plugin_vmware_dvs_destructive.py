@@ -397,7 +397,7 @@ class TestDVSDestructive(TestBasic):
         floating_ip = []
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
-                srv, net_name=self.inter_net_name, type='floating'))
+                srv, net_name=self.inter_net_name, addrtype='floating'))
         ip_pair = dict.fromkeys(floating_ip)
         for key in ip_pair:
             ip_pair[key] = [value for value in floating_ip if key != value]
@@ -455,7 +455,7 @@ class TestDVSDestructive(TestBasic):
         floating_ip = []
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
-                srv, net_name=self.inter_net_name, type='floating'))
+                srv, net_name=self.inter_net_name, addrtype='floating'))
         ip_pair = dict.fromkeys(floating_ip)
         for key in ip_pair:
             ip_pair[key] = [value for value in floating_ip if key != value]
