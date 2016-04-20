@@ -377,12 +377,8 @@ class TestDVSSystem(TestBasic):
         self.show_step(5)
         for srv in srv_list:
             os_conn.nova.servers.delete(srv)
-
-        logger.info("Check that all instances were deleted.")
-        for srv in srv_list:
-            assert_true(
-                os_conn.verify_srv_deleted(srv),
-                "Verify server was deleted")
+            logger.info("Check that instance was deleted.")
+            os_conn.verify_srv_deleted(srv)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_security", 'dvs_vcenter_system'])
@@ -1991,12 +1987,8 @@ class TestDVSSystem(TestBasic):
             self.show_step(9)
             for instance in instances:
                 os_conn.nova.servers.delete(instance)
-
-            logger.info("Check that all instances were deleted.")
-            for instance in instances:
-                assert_true(
-                    os_conn.verify_srv_deleted(instance),
-                    "Instance hasn't been deleted.")
+                logger.info("Check that instance was deleted.")
+                os_conn.verify_srv_deleted(instance)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_attached_ports"])
