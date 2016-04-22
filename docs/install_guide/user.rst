@@ -2,8 +2,8 @@ Using advanced neutron's possibilities with VMware DVS plugin
 -------------------------------------------------------------
 
 #. Once OpenStack has been deployed, we can start using Neutron for
-   networking. The port group for admin\_internal\_net should appear
-   on the vCenter:
+   networking. The port group for admin\_internal\_net could appear
+   on the vCenter (don't worry if any DVS has missing portgroups):
 
    .. image:: _static/net04pg.png
 
