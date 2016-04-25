@@ -26,7 +26,7 @@ TestBasic = fuelweb_test.tests.base_test_case.TestBasic
 SetupEnvironment = fuelweb_test.tests.base_test_case.SetupEnvironment
 
 
-@test(groups=["plugins", 'dvs_vcenter_plugin'])
+@test(groups=["plugins", 'dvs_vcenter_plugin', 'dvs_vcenter_smoke_all'])
 class TestDVSSmoke(TestBasic):
     """Smoke test suite.
 
@@ -40,7 +40,7 @@ class TestDVSSmoke(TestBasic):
         return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_1],
-          groups=["dvs_vcenter_smoke", "dvs_vcenter_plugin"])
+          groups=["dvs_vcenter_smoke"])
     @log_snapshot_after_test
     def dvs_vcenter_smoke(self):
         """Check deployment with VMware DVS plugin and one controller.
@@ -98,7 +98,7 @@ class TestDVSSmoke(TestBasic):
             cluster_id=cluster_id, test_sets=['smoke'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_9],
-          groups=["dvs_vcenter_bvt", "dvs_vcenter_plugin"])
+          groups=["dvs_vcenter_bvt"])
     @log_snapshot_after_test
     def dvs_vcenter_bvt(self):
         """Deploy cluster with DVS plugin and ceph storage.
@@ -181,7 +181,7 @@ class TestDVSSmoke(TestBasic):
         self.env.make_snapshot("dvs_bvt", is_make=True)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_1],
-          groups=["dvs_install", "dvs_vcenter_plugin"])
+          groups=["dvs_install"])
     @log_snapshot_after_test
     def dvs_install(self):
         """Check that plugin can be installed.
@@ -204,23 +204,24 @@ class TestDVSSmoke(TestBasic):
 
         cmd = 'fuel plugins list'
 
-        output = list(self.env.d_env.get_admin_remote().execute(
-            cmd)['stdout']).pop().split(' ')
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd)['stdout'].pop().split(' ')
 
         # check name
         assert_true(
             plugin.plugin_name in output,
-            "Plugin  {} is not installed.".format(plugin.plugin_name)
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
         )
         # check version
         assert_true(
             plugin.DVS_PLUGIN_VERSION in output,
-            "Plugin  {} is not installed.".format(plugin.plugin_name)
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
         )
         self.env.make_snapshot("dvs_install", is_make=True)
 
     @test(depends_on=[dvs_install],
-          groups=["dvs_uninstall", "dvs_vcenter_plugin"])
+          groups=["dvs_uninstall"])
     @log_snapshot_after_test
     def dvs_uninstall(self):
         """Check that plugin can be removed.
@@ -241,16 +242,18 @@ class TestDVSSmoke(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        assert_true(
-            self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 0,
-            'Can not remove plugin.')
+        self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd,
+            err_msg='Can not remove plugin.'
+        )
 
         self.show_step(3)
-        cmd = 'fuel plugins list'
-        output = list(self.env.d_env.get_admin_remote().execute(
-            cmd)['stdout']).pop().split(' ')
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd='fuel plugins list')['stdout'].pop().split(' ')
 
         assert_true(
             plugin.plugin_name not in output,
-            "Plugin is not removed {}".format(plugin.plugin_name)
+            "Plugin '{0}' is not removed".format(plugin.plugin_name)
         )
