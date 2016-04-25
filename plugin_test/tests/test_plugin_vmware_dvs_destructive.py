@@ -22,7 +22,6 @@ from proboscis import test
 from proboscis.asserts import assert_true
 
 import fuelweb_test.tests.base_test_case
-import fuelweb_test.tests.base_test_case
 from fuelweb_test import logger
 from fuelweb_test.helpers import os_actions
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
@@ -40,7 +39,8 @@ TestBasic = fuelweb_test.tests.base_test_case.TestBasic
 SetupEnvironment = fuelweb_test.tests.base_test_case.SetupEnvironment
 
 
-@test(groups=["plugins", 'dvs_vcenter_plugin', 'dvs_vcenter_system'])
+@test(groups=["plugins", 'dvs_vcenter_plugin', 'dvs_vcenter_system',
+              'dvs_vcenter_destructive'])
 class TestDVSDestructive(TestBasic):
     """Failover test suite.
 
@@ -112,13 +112,17 @@ class TestDVSDestructive(TestBasic):
                 instance, net_name=self.inter_net_name))
         time.sleep(30)
         self.show_step(13)
-        for ip in ips:
-            ping_result = openstack.remote_execute_command(
-                access_point_ip, ip, "ping -c 5 {}".format(ip))
-            assert_true(
-                ping_result['exit_code'] == 0,
-                "Ping isn't available from {0} to {1}".format(ip, ip)
-            )
+        ip_pair = {
+            key: [value for value in ips if key != value] for key in ips}
+        for ip_from in ip_pair:
+            for ip_to in ip_pair[ip_from]:
+                ping_result = openstack.remote_execute_command(
+                    access_point_ip, ip_from, "ping -c 5 {0}".format(ip_to))
+                assert_true(
+                    ping_result['exit_code'] == 0,
+                    "Ping isn't available from {0} to {1}".format(ip_from,
+                                                                  ip_to)
+                )
 
         self.show_step(14)
         vcenter_name = [
@@ -134,24 +138,26 @@ class TestDVSDestructive(TestBasic):
         self.show_step(15)
         wait(lambda: not icmp_ping(
             self.VCENTER_IP), interval=1, timeout=10,
-            timeout_msg='Vcenter is still availabled.')
+            timeout_msg='Vcenter is still available.')
 
         self.show_step(16)
         wait(lambda: icmp_ping(
             self.VCENTER_IP), interval=5, timeout=120,
-            timeout_msg='Vcenter is not availabled.')
+            timeout_msg='Vcenter is not available.')
 
         self.show_step(17)
-        for ip in ips:
-            ping_result = openstack.remote_execute_command(
-                access_point_ip, ip, "ping -c 5 {}".format(ip))
-            assert_true(
-                ping_result['exit_code'] == 0,
-                "Ping isn't available from {0} to {1}".format(ip, ip)
-            )
+        for ip_from in ip_pair:
+            for ip_to in ip_pair[ip_from]:
+                ping_result = openstack.remote_execute_command(
+                    access_point_ip, ip_from, "ping -c 5 {0}".format(ip_to))
+                assert_true(
+                    ping_result['exit_code'] == 0,
+                    "Ping isn't available from {0} to {1}".format(ip_from,
+                                                                  ip_to)
+                )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_uninstall", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_uninstall"])
     @log_snapshot_after_test
     def dvs_vcenter_uninstall(self):
         """Negative uninstall of Fuel DVS plugin with deployed environment.
@@ -163,21 +169,25 @@ class TestDVSDestructive(TestBasic):
         Duration: 1.8 hours
 
         """
-        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         # Try to uninstall dvs plugin
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
+        self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd,
+            assert_ec_equal=[1]
+        )
 
         # Check that plugin is not removed
-        output = list(self.env.d_env.get_admin_remote().execute(
-            'fuel plugins list')['stdout'])
-
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip, cmd='fuel plugins list')['stdout']
         assert_true(
             plugin.plugin_name in output[-1].split(' '),
-            "Plugin is removed {}".format(plugin.plugin_name)
+            "Plugin '{0}' was removed".format(plugin.plugin_name)
         )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
@@ -203,7 +213,8 @@ class TestDVSDestructive(TestBasic):
         Duration: 1,5 hours
 
         """
-        self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -276,20 +287,12 @@ class TestDVSDestructive(TestBasic):
                 port['id'], {'port': {'admin_state_up': True}}
             )
 
-            instance.reboot()
-            wait(
-                lambda:
-                os_conn.get_instance_detail(instance).status == "ACTIVE",
-                timeout=300)
-
-        time.sleep(60)  # need time after reboot to get ip by instance
-
-        # Verify that instances should communicate between each other.
+        # Verify that instances communicate between each other.
         # Send icmp ping between instances
-        openstack.check_connection_vms(ip_pair)
+        openstack.check_connection_vms(ip_pair, timeout=90)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_destructive_setup_2", 'dvs_vcenter_system'])
+          groups=["dvs_destructive_setup_2"])
     @log_snapshot_after_test
     def dvs_destructive_setup_2(self):
         """Verify that vmclusters should be migrate after reset controller.
@@ -360,7 +363,7 @@ class TestDVSDestructive(TestBasic):
         self.env.make_snapshot("dvs_destructive_setup_2", is_make=True)
 
     @test(depends_on=[dvs_destructive_setup_2],
-          groups=["dvs_vcenter_reset_controller", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_reset_controller"])
     @log_snapshot_after_test
     def dvs_vcenter_reset_controller(self):
         """Verify that vmclusters should be migrate after reset controller.
@@ -377,7 +380,8 @@ class TestDVSDestructive(TestBasic):
         Duration: 1.8 hours
 
         """
-        self.env.revert_snapshot("dvs_destructive_setup_2")
+        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.env.revert_snapshot("dvs_destructive_setup_2")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -418,7 +422,7 @@ class TestDVSDestructive(TestBasic):
         openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[dvs_destructive_setup_2],
-          groups=["dvs_vcenter_shutdown_controller", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_shutdown_controller"])
     @log_snapshot_after_test
     def dvs_vcenter_shutdown_controller(self):
         """Verify that vmclusters should be migrate after shutdown controller.
@@ -435,7 +439,8 @@ class TestDVSDestructive(TestBasic):
         Duration: 1.8 hours
 
         """
-        self.env.revert_snapshot("dvs_destructive_setup_2")
+        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.env.revert_snapshot("dvs_destructive_setup_2")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -469,16 +474,15 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.warm_shutdown_nodes(
             [self.fuel_web.environment.d_env.get_node(
                 name=controllers[0].name)])
-        time.sleep(30)
 
         # Verify connection between instances.
         # Send ping Check that ping get reply.
         with self.fuel_web.get_ssh_for_node(controllers[1].name) as ssh_contr:
             openstack.check_service(ssh=ssh_contr, commands=self.cmds)
-        openstack.check_connection_vms(ip_pair)
+        openstack.check_connection_vms(ip_pair, timeout=90)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_reboot_vcenter_1", 'dvs_vcenter_system'])
+          groups=["dvs_reboot_vcenter_1"])
     @log_snapshot_after_test
     def dvs_reboot_vcenter_1(self):
         """Verify that vmclusters should be migrate after reset controller.
@@ -572,7 +576,7 @@ class TestDVSDestructive(TestBasic):
             cluster_id=cluster_id, test_sets=['smoke'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_reboot_vcenter_2", 'dvs_vcenter_system'])
+          groups=["dvs_reboot_vcenter_2"])
     @log_snapshot_after_test
     def dvs_reboot_vcenter_2(self):
         """Verify that vmclusters should be migrate after reset controller.
