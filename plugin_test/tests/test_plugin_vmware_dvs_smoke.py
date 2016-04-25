@@ -26,7 +26,7 @@ TestBasic = fuelweb_test.tests.base_test_case.TestBasic
 SetupEnvironment = fuelweb_test.tests.base_test_case.SetupEnvironment
 
 
-@test(groups=["plugins", 'dvs_vcenter_plugin'])
+@test(groups=["plugins", 'dvs_vcenter_plugin', 'dvs_vcenter_smoke'])
 class TestDVSSmoke(TestBasic):
     """Smoke test suite.
 
@@ -35,12 +35,86 @@ class TestDVSSmoke(TestBasic):
     will be used by QA to accept software builds from Development team.
     """
 
-    def node_name(self, name_node):
-        """Get node by name."""
-        return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
-
     @test(depends_on=[SetupEnvironment.prepare_slaves_1],
-          groups=["dvs_vcenter_smoke", "dvs_vcenter_plugin"])
+          groups=["dvs_install"])
+    @log_snapshot_after_test
+    def dvs_install(self):
+        """Check that plugin can be installed.
+
+        Scenario:
+            1. Upload plugins to the master node
+            2. Install plugin.
+            3. Ensure that plugin is installed successfully using cli,
+               run command 'fuel plugins'. Check name, version of plugin.
+
+        Duration: 30 min
+
+        """
+        self.env.revert_snapshot("ready_with_1_slaves")
+
+        self.show_step(1)
+        self.show_step(2)
+        plugin.install_dvs_plugin(
+            self.ssh_manager.admin_ip)
+
+        cmd = 'fuel plugins list'
+
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd)['stdout'].pop().split(' ')
+
+        # check name
+        assert_true(
+            plugin.plugin_name in output,
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
+        )
+        # check version
+        assert_true(
+            plugin.DVS_PLUGIN_VERSION in output,
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
+        )
+        self.env.make_snapshot("dvs_install", is_make=True)
+
+    @test(depends_on=[dvs_install],
+          groups=["dvs_uninstall"])
+    @log_snapshot_after_test
+    def dvs_uninstall(self):
+        """Check that plugin can be removed.
+
+        Scenario:
+            1. Revert to snapshot 'dvs_install'.
+            2. Remove plugin.
+            3. Verify that plugin is removed, run command 'fuel plugins'.
+
+
+        Duration: 5 min
+
+        """
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_install")
+
+        self.show_step(2)
+        cmd = 'fuel plugins --remove {0}=={1}'.format(
+            plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
+
+        self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd,
+            err_msg='Can not remove plugin.'
+        )
+
+        self.show_step(3)
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd='fuel plugins list')['stdout'].pop().split(' ')
+
+        assert_true(
+            plugin.plugin_name not in output,
+            "Plugin '{0}' is not removed".format(plugin.plugin_name)
+        )
+
+    @test(depends_on=[dvs_install],
+          groups=["dvs_vcenter_smoke"])
     @log_snapshot_after_test
     def dvs_vcenter_smoke(self):
         """Check deployment with VMware DVS plugin and one controller.
@@ -66,10 +140,7 @@ class TestDVSSmoke(TestBasic):
         Duration: 1.8 hours
 
         """
-        self.env.revert_snapshot("ready_with_1_slaves")
-
-        plugin.install_dvs_plugin(
-            self.ssh_manager.admin_ip)
+        self.env.revert_snapshot("dvs_install")
 
         # Configure cluster with 2 vcenter clusters
         cluster_id = self.fuel_web.create_cluster(
@@ -97,8 +168,13 @@ class TestDVSSmoke(TestBasic):
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
+
+@test(groups=["plugins", 'dvs_vcenter_bvt'])
+class TestDVSBVT(TestBasic):
+    """Build verification test."""
+
     @test(depends_on=[SetupEnvironment.prepare_slaves_9],
-          groups=["dvs_vcenter_bvt", "dvs_vcenter_plugin"])
+          groups=["dvs_vcenter_bvt"])
     @log_snapshot_after_test
     def dvs_vcenter_bvt(self):
         """Deploy cluster with DVS plugin and ceph storage.
@@ -165,7 +241,8 @@ class TestDVSSmoke(TestBasic):
         )
 
         # Configure VMWare vCenter settings
-        target_node_2 = self.node_name('slave-07')
+        target_node_2 = self.fuel_web.get_nailgun_node_by_name('slave-07')
+        target_node_2 = target_node_2['hostname']
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_2=target_node_2,
@@ -179,78 +256,3 @@ class TestDVSSmoke(TestBasic):
             cluster_id=cluster_id, test_sets=['smoke'])
 
         self.env.make_snapshot("dvs_bvt", is_make=True)
-
-    @test(depends_on=[SetupEnvironment.prepare_slaves_1],
-          groups=["dvs_install", "dvs_vcenter_plugin"])
-    @log_snapshot_after_test
-    def dvs_install(self):
-        """Check that plugin can be installed.
-
-        Scenario:
-            1. Upload plugins to the master node
-            2. Install plugin.
-            3. Ensure that plugin is installed successfully using cli,
-               run command 'fuel plugins'. Check name, version of plugin.
-
-        Duration: 30 min
-
-        """
-        self.env.revert_snapshot("ready_with_1_slaves")
-
-        self.show_step(1)
-        self.show_step(2)
-        plugin.install_dvs_plugin(
-            self.ssh_manager.admin_ip)
-
-        cmd = 'fuel plugins list'
-
-        output = list(self.env.d_env.get_admin_remote().execute(
-            cmd)['stdout']).pop().split(' ')
-
-        # check name
-        assert_true(
-            plugin.plugin_name in output,
-            "Plugin  {} is not installed.".format(plugin.plugin_name)
-        )
-        # check version
-        assert_true(
-            plugin.DVS_PLUGIN_VERSION in output,
-            "Plugin  {} is not installed.".format(plugin.plugin_name)
-        )
-        self.env.make_snapshot("dvs_install", is_make=True)
-
-    @test(depends_on=[dvs_install],
-          groups=["dvs_uninstall", "dvs_vcenter_plugin"])
-    @log_snapshot_after_test
-    def dvs_uninstall(self):
-        """Check that plugin can be removed.
-
-        Scenario:
-            1. Revert to snapshot 'dvs_install'.
-            2. Remove plugin.
-            3. Verify that plugin is removed, run command 'fuel plugins'.
-
-
-        Duration: 5 min
-
-        """
-        self.show_step(1)
-        self.env.revert_snapshot("dvs_install")
-
-        self.show_step(2)
-        cmd = 'fuel plugins --remove {0}=={1}'.format(
-            plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
-
-        assert_true(
-            self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 0,
-            'Can not remove plugin.')
-
-        self.show_step(3)
-        cmd = 'fuel plugins list'
-        output = list(self.env.d_env.get_admin_remote().execute(
-            cmd)['stdout']).pop().split(' ')
-
-        assert_true(
-            plugin.plugin_name not in output,
-            "Plugin is not removed {}".format(plugin.plugin_name)
-        )
