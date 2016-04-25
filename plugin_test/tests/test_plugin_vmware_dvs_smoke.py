@@ -13,19 +13,15 @@ License for the specific language governing permissions and limitations
 under the License.
 """
 
-from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from proboscis import test
+from proboscis.asserts import assert_true
 
+from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
-
 from fuelweb_test.tests.base_test_case import SetupEnvironment
 from fuelweb_test.tests.base_test_case import TestBasic
-
 from helpers import plugin
-
-from proboscis import test
-
-from proboscis.asserts import assert_true
 
 
 @test(groups=["plugins", 'dvs_vcenter_plugin'])
@@ -207,18 +203,19 @@ class TestDVSSmoke(TestBasic):
 
         cmd = 'fuel plugins list'
 
-        output = list(self.env.d_env.get_admin_remote().execute(
-            cmd)['stdout']).pop().split(' ')
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd)['stdout'].pop().split(' ')
 
         # check name
         assert_true(
             plugin.plugin_name in output,
-            "Plugin  {} is not installed.".format(plugin.plugin_name)
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
         )
         # check version
         assert_true(
             plugin.DVS_PLUGIN_VERSION in output,
-            "Plugin  {} is not installed.".format(plugin.plugin_name)
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
         )
         self.env.make_snapshot("dvs_install", is_make=True)
 
@@ -244,16 +241,18 @@ class TestDVSSmoke(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        assert_true(
-            self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 0,
-            'Can not remove plugin.')
+        self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd,
+            err_msg='Can not remove plugin.'
+        )
 
         self.show_step(3)
-        cmd = 'fuel plugins list'
-        output = list(self.env.d_env.get_admin_remote().execute(
-            cmd)['stdout']).pop().split(' ')
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd='fuel plugins list')['stdout'].pop().split(' ')
 
         assert_true(
             plugin.plugin_name not in output,
-            "Plugin is not removed {}".format(plugin.plugin_name)
+            "Plugin '{0}' is not removed".format(plugin.plugin_name)
         )
