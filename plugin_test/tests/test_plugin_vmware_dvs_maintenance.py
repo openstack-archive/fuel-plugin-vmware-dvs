@@ -25,7 +25,9 @@ from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
 from helpers import openstack
 
-from tests.test_plugin_vmware_dvs_smoke import TestDVSSmoke
+from tests.test_plugin_vmware_dvs_smoke import TestDVSBVT
+
+
 TestBasic = fuelweb_test.tests.base_test_case.TestBasic
 
 
@@ -45,7 +47,7 @@ class TestDVSMaintenance(TestBasic):
         """Get node by name."""
         return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
-    @test(depends_on=[TestDVSSmoke.dvs_vcenter_bvt],
+    @test(depends_on=[TestDVSBVT.dvs_vcenter_bvt],
           groups=["dvs_regression"])
     @log_snapshot_after_test
     def dvs_regression(self):
