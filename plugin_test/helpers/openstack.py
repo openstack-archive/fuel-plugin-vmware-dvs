@@ -78,7 +78,7 @@ def create_instances(os_conn, nics, vm_count=1,
     """Create Vms on available hypervisors.
 
     :param os_conn: type object, openstack
-    :param vm_count: type interger, count of VMs to create
+    :param vm_count: type integer, count of VMs to create
     :param nics: type dictionary, neutron networks
                      to assign to instance
     :param security_groups: A list of security group names
@@ -92,8 +92,7 @@ def create_instances(os_conn, nics, vm_count=1,
     if not available_hosts:
         available_hosts = os_conn.nova.services.list(binary='nova-compute')
     for host in available_hosts:
-        image = [image for image
-                 in images_list
+        image = [image for image in images_list
                  if image.name == zone_image_maps[host.zone]][0]
         instance = os_conn.nova.servers.create(
             flavor=flavor,
@@ -129,7 +128,7 @@ def check_connection_vms(ip_pair, command='pingv4',
     """Check network connectivity between instances.
 
     :param os_conn: type object, openstack
-    :param ip_pair: type list, pair floating ips of instances
+    :param ip_pair: type dict, {ip_from: [ip_to1, ip_to2, etc.]}
     :param command: type string, key from dictionary 'commands'
                     by default is 'pingv4'
     :param result_of_command: type interger, exite code of command execution
@@ -150,15 +149,15 @@ def check_connection_vms(ip_pair, command='pingv4',
             for ip_to in ip_pair[ip_from]:
                 message = generate_message(
                     commands[command], result_of_command, ip_from, ip_to)
-                logger.info("Check connectin from {0} to {1}.".format(
+                logger.info("Check connection from {0} to {1}.".format(
                     ip_from, ip_to))
                 cmd = commands[command].format(ip_to)
                 wait(lambda: execute(
                      ssh, cmd)['exit_code'] == result_of_command,
                      interval=interval,
                      timeout=timeout,
-                     timeout_msg=message.format(
-                         ip_from, ip_to))
+                     timeout_msg=message.format(ip_from, ip_to)
+                     )
 
 
 def check_connection_through_host(remote, ip_pair, command='pingv4',
