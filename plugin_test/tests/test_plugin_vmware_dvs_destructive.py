@@ -174,7 +174,9 @@ class TestDVSDestructive(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
+        assert_true(
+            self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
+        )
 
         # Check that plugin is not removed
         output = list(self.env.d_env.get_admin_remote().execute(
@@ -182,7 +184,7 @@ class TestDVSDestructive(TestBasic):
 
         assert_true(
             plugin.plugin_name in output[-1].split(' '),
-            "Plugin is removed {}".format(plugin.plugin_name)
+            "Plugin '{}' was removed".format(plugin.plugin_name)
         )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
