@@ -13,25 +13,17 @@ License for the specific language governing permissions and limitations
 under the License.
 """
 
+from proboscis import test
+from proboscis.asserts import assert_true
 
 from fuelweb_test import logger
-
 from fuelweb_test.helpers import os_actions
-
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
-
 from fuelweb_test.tests.base_test_case import TestBasic
-
 from helpers import openstack
-
-from proboscis import test
-
-from proboscis.asserts import assert_true
-
 from tests.test_plugin_vmware_dvs_smoke import TestDVSSmoke
 
 
