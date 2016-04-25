@@ -16,30 +16,22 @@ under the License.
 import time
 
 from devops.error import TimeoutError
-
 from devops.helpers.helpers import wait
+from proboscis import test
+from proboscis.asserts import assert_true
 
 from fuelweb_test import logger
-
 from fuelweb_test.helpers import os_actions
-
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
-
 from fuelweb_test.tests.base_test_case import SetupEnvironment
 from fuelweb_test.tests.base_test_case import TestBasic
-
 from helpers import openstack
 from helpers import plugin
-
-from proboscis import test
-
-from proboscis.asserts import assert_true
 
 
 @test(groups=["plugins", 'dvs_vcenter_system'])
@@ -87,7 +79,7 @@ class TestDVSSystem(TestBasic):
              "remote_ip_prefix": None}}
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_vcenter_systest_setup", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_systest_setup"])
     @log_snapshot_after_test
     def dvs_vcenter_systest_setup(self):
         """Deploy cluster with plugin and vmware datastore backend.
@@ -155,7 +147,7 @@ class TestDVSSystem(TestBasic):
         self.env.make_snapshot("dvs_vcenter_systest_setup", is_make=True)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_networks", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_networks"])
     @log_snapshot_after_test
     def dvs_vcenter_networks(self):
         """Check abilities to create and terminate networks on DVS.
@@ -224,8 +216,9 @@ class TestDVSSystem(TestBasic):
             network_name=self.net_data[0].keys()[0],
             tenant_id=tenant.id)['network']
 
-        logger.info('Create subnet {}'.format(net.keys()[0]))
-        subnet = os_conn.create_subnet(
+        logger.info('Create subnet {}'.format(self.net_data[0].keys()[0]))
+        # subnet
+        os_conn.create_subnet(
             subnet_name=self.net_data[0].keys()[0],
             network_id=network['id'],
             cidr=self.net_data[0][self.net_data[0].keys()[0]],
@@ -237,7 +230,7 @@ class TestDVSSystem(TestBasic):
         logger.info('Networks net_1 and net_2 are present.')
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_ping_public", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_ping_public"])
     @log_snapshot_after_test
     def dvs_vcenter_ping_public(self):
         """Check connectivity instances to public network with floating ip.
@@ -313,7 +306,7 @@ class TestDVSSystem(TestBasic):
         openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_instances_one_group", 'dvs_vcenter_system'])
+          groups=["dvs_instances_one_group"])
     @log_snapshot_after_test
     def dvs_instances_one_group(self):
         """Check creation instance in the one group simultaneously.
@@ -381,7 +374,7 @@ class TestDVSSystem(TestBasic):
             os_conn.verify_srv_deleted(srv)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_security", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_security"])
     @log_snapshot_after_test
     def dvs_vcenter_security(self):
         """Check abilities to create and delete security group.
@@ -573,7 +566,7 @@ class TestDVSSystem(TestBasic):
         openstack.check_connection_vms(ip_pair, command='ssh')
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_tenants_isolation", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_tenants_isolation"])
     @log_snapshot_after_test
     def dvs_vcenter_tenants_isolation(self):
         """Connectivity between instances in different tenants.
@@ -611,28 +604,28 @@ class TestDVSSystem(TestBasic):
         admin.create_user_and_tenant('test', 'test', 'test')
         openstack.add_role_to_user(admin, 'test', 'admin', 'test')
 
-        test = os_actions.OpenStackActions(
+        test_os = os_actions.OpenStackActions(
             os_ip, 'test', 'test', 'test')
 
-        tenant = test.get_tenant('test')
+        tenant = test_os.get_tenant('test')
 
         self.show_step(3)
-        network_test = test.create_network(
+        network_test = test_os.create_network(
             network_name=self.net_data[0].keys()[0],
             tenant_id=tenant.id)['network']
 
-        subnet_test = test.create_subnet(
+        subnet_test = test_os.create_subnet(
             subnet_name=network_test['name'],
             network_id=network_test['id'],
             cidr=self.net_data[0][self.net_data[0].keys()[0]],
             ip_version=4)
 
         # create security group with rules for ssh and ping
-        security_group_test = test.create_sec_group_for_ssh()
+        security_group_test = test_os.create_sec_group_for_ssh()
 
         self.show_step(4)
-        router = test.create_router('router_1', tenant=tenant)
-        test.add_router_interface(
+        router = test_os.create_router('router_1', tenant=tenant)
+        test_os.add_router_interface(
             router_id=router["id"],
             subnet_id=subnet_test["id"])
 
@@ -648,11 +641,11 @@ class TestDVSSystem(TestBasic):
 
         self.show_step(6)
         srv_2 = openstack.create_instances(
-            os_conn=test, vm_count=1,
+            os_conn=test_os, vm_count=1,
             nics=[{'net-id': network_test['id']}],
             security_groups=[security_group_test.name]
         )
-        openstack.verify_instance_state(test)
+        openstack.verify_instance_state(test_os)
 
         self.show_step(7)
         fip_1 = openstack.create_and_assign_floating_ips(admin, srv_1)
@@ -661,10 +654,10 @@ class TestDVSSystem(TestBasic):
             ips_1.append(admin.get_nova_instance_ip(
                 srv, net_name=self.inter_net_name))
 
-        fip_2 = openstack.create_and_assign_floating_ips(test, srv_2)
+        fip_2 = openstack.create_and_assign_floating_ips(test_os, srv_2)
         ips_2 = []
         for srv in srv_2:
-            ips_2.append(test.get_nova_instance_ip(
+            ips_2.append(test_os.get_nova_instance_ip(
                 srv, net_name=network_test['name']))
         ip_pair = dict.fromkeys(fip_1)
         for key in ip_pair:
@@ -676,7 +669,7 @@ class TestDVSSystem(TestBasic):
         openstack.check_connection_vms(ip_pair, result_of_command=1)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_vcenter_same_ip", 'dvs_vcenter_system'])
+          groups=["dvs_vcenter_same_ip"])
     @log_snapshot_after_test
     def dvs_vcenter_same_ip(self):
         """Connectivity between instances with same ip in different tenants.
@@ -726,44 +719,44 @@ class TestDVSSystem(TestBasic):
         admin.create_user_and_tenant('test', 'test', 'test')
         openstack.add_role_to_user(admin, 'test', 'admin', 'test')
 
-        test = os_actions.OpenStackActions(
+        test_os = os_actions.OpenStackActions(
             os_ip, 'test', 'test', 'test')
 
-        tenant = test.get_tenant('test')
+        tenant = test_os.get_tenant('test')
 
         self.show_step(3)
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = test.create_network(
+        network = test_os.create_network(
             network_name=self.net_data[0].keys()[0],
             tenant_id=tenant.id)['network']
 
-        subnet = test.create_subnet(
+        subnet = test_os.create_subnet(
             subnet_name=network['name'],
             network_id=network['id'],
             cidr=self.net_data[0][self.net_data[0].keys()[0]],
             ip_version=4)
 
         self.show_step(4)
-        router = test.create_router('router_1', tenant=tenant)
-        test.add_router_interface(
+        router = test_os.create_router('router_1', tenant=tenant)
+        test_os.add_router_interface(
             router_id=router["id"],
             subnet_id=subnet["id"])
 
         # create security group with rules for ssh and ping
-        security_group = test.create_sec_group_for_ssh()
+        security_group = test_os.create_sec_group_for_ssh()
 
         self.show_step(5)
         self.show_step(6)
         srv_1 = openstack.create_instances(
-            os_conn=test, nics=[{'net-id': network['id']}], vm_count=1,
+            os_conn=test_os, nics=[{'net-id': network['id']}], vm_count=1,
             security_groups=[security_group.name]
         )
-        openstack.verify_instance_state(test)
+        openstack.verify_instance_state(test_os)
 
-        fip_1 = openstack.create_and_assign_floating_ips(test, srv_1)
+        fip_1 = openstack.create_and_assign_floating_ips(test_os, srv_1)
         ips_1 = []
         for srv in srv_1:
-            ips_1.append(test.get_nova_instance_ip(
+            ips_1.append(test_os.get_nova_instance_ip(
                 srv, net_name=network['name']))
 
         # create security group with rules for ssh and ping
@@ -812,7 +805,7 @@ class TestDVSSystem(TestBasic):
         openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_volume", 'dvs_vcenter_system'])
+          groups=["dvs_volume"])
     @log_snapshot_after_test
     def dvs_volume(self):
         """Deploy cluster with plugin and vmware datastore backend.
@@ -1849,7 +1842,7 @@ class TestDVSSystem(TestBasic):
                 flag = False
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_instances_batch_mix_sg", 'dvs_vcenter_system'])
+          groups=["dvs_instances_batch_mix_sg"])
     @log_snapshot_after_test
     def dvs_instances_batch_mix_sg(self):
         """Launch/remove instances in the one group with few security groups.
@@ -1936,10 +1929,15 @@ class TestDVSSystem(TestBasic):
 
         self.show_step(3)
         self.show_step(4)
-        sg1 = os_conn.nova.security_groups.create(
-            'SG1', "descr")
-        sg2 = os_conn.nova.security_groups.create(
-            'SG2', "descr")
+        sg1 = os_conn.nova.security_groups.create('SG1', "descr")
+        sg2 = os_conn.nova.security_groups.create('SG2', "descr")
+
+        self.icmp["security_group_rule"]["security_group_id"] = sg1.id
+        self.icmp["security_group_rule"]["remote_group_id"] = sg1.id
+        self.icmp["security_group_rule"]["direction"] = "ingress"
+        os_conn.neutron.create_security_group_rule(self.icmp)
+        self.icmp["security_group_rule"]["direction"] = "egress"
+        os_conn.neutron.create_security_group_rule(self.icmp)
 
         for sg in [sg1, sg2]:
             self.tcp["security_group_rule"]["security_group_id"] = sg.id
@@ -1948,13 +1946,6 @@ class TestDVSSystem(TestBasic):
             os_conn.neutron.create_security_group_rule(self.tcp)
             self.tcp["security_group_rule"]["direction"] = "egress"
             os_conn.neutron.create_security_group_rule(self.tcp)
-
-        self.icmp["security_group_rule"]["security_group_id"] = sg.id
-        self.icmp["security_group_rule"]["remote_group_id"] = sg.id
-        self.icmp["security_group_rule"]["direction"] = "ingress"
-        os_conn.neutron.create_security_group_rule(self.icmp)
-        self.icmp["security_group_rule"]["direction"] = "egress"
-        os_conn.neutron.create_security_group_rule(self.icmp)
 
         # add rules for ssh and ping
         os_conn.goodbye_security()
@@ -2253,7 +2244,7 @@ class TestDVSSystem(TestBasic):
         openstack.check_connection_vms(ip_pair, result_of_command=1)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
-          groups=["dvs_update_network", 'dvs_vcenter_system'])
+          groups=["dvs_update_network"])
     @log_snapshot_after_test
     def dvs_update_network(self):
         """Check abilities to create and terminate networks on DVS.
