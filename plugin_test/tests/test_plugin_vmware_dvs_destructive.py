@@ -18,30 +18,23 @@ import time
 
 from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import wait
+from devops.helpers.helpers import _wait
+from proboscis import test
+from proboscis.asserts import assert_true
 
 from fuelweb_test import logger
-
 from fuelweb_test.helpers import os_actions
-
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
-
 from fuelweb_test.tests.base_test_case import SetupEnvironment
 from fuelweb_test.tests.base_test_case import TestBasic
-
 from helpers import openstack
 from helpers import plugin
 from helpers import vmrun
-
-from proboscis import test
-
-from proboscis.asserts import assert_true
-
 from tests.test_plugin_vmware_dvs_system import TestDVSSystem
 
 
@@ -117,13 +110,17 @@ class TestDVSDestructive(TestBasic):
                 instance, net_name=self.inter_net_name))
         time.sleep(30)
         self.show_step(15)
-        for ip in ips:
-            ping_result = openstack.remote_execute_command(
-                access_point_ip, ip, "ping -c 5 {}".format(ip))
-            assert_true(
-                ping_result['exit_code'] == 0,
-                "Ping isn't available from {0} to {1}".format(ip, ip)
-            )
+        ip_pair = {
+            key: [value for value in ips if key != value] for key in ips}
+        for ip_from in ip_pair:
+            for ip_to in ip_pair[ip_from]:
+                ping_result = openstack.remote_execute_command(
+                    access_point_ip, ip_from, "ping -c 5 {0}".format(ip_to))
+                assert_true(
+                    ping_result['exit_code'] == 0,
+                    "Ping isn't available from {0} to {1}".format(ip_from,
+                                                                  ip_to)
+                )
 
         self.show_step(16)
         vcenter_name = [
@@ -139,21 +136,23 @@ class TestDVSDestructive(TestBasic):
         self.show_step(17)
         wait(lambda: not icmp_ping(
             self.VCENTER_IP), interval=1, timeout=10,
-            timeout_msg='Vcenter is still availabled.')
+            timeout_msg='Vcenter is still available.')
 
         self.show_step(18)
         wait(lambda: icmp_ping(
             self.VCENTER_IP), interval=5, timeout=120,
-            timeout_msg='Vcenter is not availabled.')
+            timeout_msg='Vcenter is not available.')
 
         self.show_step(20)
-        for ip in ips:
-            ping_result = openstack.remote_execute_command(
-                access_point_ip, ip, "ping -c 5 {}".format(ip))
-            assert_true(
-                ping_result['exit_code'] == 0,
-                "Ping isn't available from {0} to {1}".format(ip, ip)
-            )
+        for ip_from in ip_pair:
+            for ip_to in ip_pair[ip_from]:
+                ping_result = openstack.remote_execute_command(
+                    access_point_ip, ip_from, "ping -c 5 {0}".format(ip_to))
+                assert_true(
+                    ping_result['exit_code'] == 0,
+                    "Ping isn't available from {0} to {1}".format(ip_from,
+                                                                  ip_to)
+                )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_uninstall", 'dvs_vcenter_system'])
@@ -174,15 +173,18 @@ class TestDVSDestructive(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
+        self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip,
+            cmd=cmd,
+            assert_ec_equal=[1]
+        )
 
         # Check that plugin is not removed
-        output = list(self.env.d_env.get_admin_remote().execute(
-            'fuel plugins list')['stdout'])
-
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip, cmd='fuel plugins list')['stdout']
         assert_true(
             plugin.plugin_name in output[-1].split(' '),
-            "Plugin is removed {}".format(plugin.plugin_name)
+            "Plugin '{0}' was removed".format(plugin.plugin_name)
         )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
@@ -280,18 +282,16 @@ class TestDVSDestructive(TestBasic):
             os_conn.neutron.update_port(
                 port['id'], {'port': {'admin_state_up': True}}
             )
-
+        for instance in instances:
             instance.reboot()
             wait(
                 lambda:
                 os_conn.get_instance_detail(instance).status == "ACTIVE",
                 timeout=300)
 
-        time.sleep(60)  # need time after reboot to get ip by instance
-
-        # Verify that instances should communicate between each other.
+        # Verify that instances communicate between each other.
         # Send icmp ping between instances
-        openstack.check_connection_vms(ip_pair)
+        _wait(lambda: openstack.check_connection_vms(ip_pair), timeout=90)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_destructive_setup_2", 'dvs_vcenter_system'])
@@ -474,13 +474,15 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.warm_shutdown_nodes(
             [self.fuel_web.environment.d_env.get_node(
                 name=controllers[0].name)])
-        time.sleep(30)
 
         # Verify connection between instances.
         # Send ping Check that ping get reply.
         with self.fuel_web.get_ssh_for_node(controllers[1].name) as ssh_contr:
-            openstack.check_service(ssh=ssh_contr, commands=self.cmds)
-        openstack.check_connection_vms(ip_pair)
+            _wait(lambda:
+                  openstack.check_service(ssh=ssh_contr, commands=self.cmds),
+                  timeout=60)
+        _wait(lambda: openstack.check_connection_vms(ip_pair),
+              timeout=30)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_reboot_vcenter_1", 'dvs_vcenter_system'])
