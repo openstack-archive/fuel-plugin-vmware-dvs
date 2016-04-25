@@ -18,30 +18,22 @@ import time
 
 from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import wait
+from proboscis import test
+from proboscis.asserts import assert_true
 
 from fuelweb_test import logger
-
 from fuelweb_test.helpers import os_actions
-
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
-
 from fuelweb_test.tests.base_test_case import SetupEnvironment
 from fuelweb_test.tests.base_test_case import TestBasic
-
 from helpers import openstack
 from helpers import plugin
 from helpers import vmrun
-
-from proboscis import test
-
-from proboscis.asserts import assert_true
-
 from tests.test_plugin_vmware_dvs_system import TestDVSSystem
 
 
@@ -174,15 +166,15 @@ class TestDVSDestructive(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        self.env.d_env.get_admin_remote().execute(cmd)['exit_code'] == 1
+        res = self.ssh_manager.execute(self.ssh_manager.admin_ip, cmd)
+        assert_true(res['exit_code'] == 1)
 
         # Check that plugin is not removed
-        output = list(self.env.d_env.get_admin_remote().execute(
-            'fuel plugins list')['stdout'])
-
+        output = self.ssh_manager.execute_on_remote(
+            ip=self.ssh_manager.admin_ip, cmd='fuel plugins list')['stdout']
         assert_true(
             plugin.plugin_name in output[-1].split(' '),
-            "Plugin is removed {}".format(plugin.plugin_name)
+            "Plugin '{0}' was removed".format(plugin.plugin_name)
         )
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
