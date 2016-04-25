@@ -34,7 +34,7 @@ import requests
 
 requests.packages.urllib3.disable_warnings()
 log.getLogger("requests").setLevel(log.WARNING)
-log.basicConfig(format='%(message)s', level=log.INFO)  # %(levelname)s:
+log.basicConfig(format='%(message)s', level=log.INFO)
 
 
 class NotFoundException(Exception):
@@ -227,33 +227,21 @@ class Victl(object):
                                     "datacenter".format(ds=datastore,
                                                         dc=datacenter))
 
-        # Build the url to put the file - https://hostname:port/resource?params
         resource = '/folder/test_upload'
         params = {'dsName': datastore, 'dcPath': datacenter}
         http_url = 'https://{vcenter}:443{resource}'.format(vcenter=host,
                                                             resource=resource)
+        headers = {'Content-Type': 'application/octet-stream'}
 
-        # Get the cookie built from the current session
         client_cookie = self._service_instance._stub.cookie
-        # Break apart the cookie into it's component parts - This is more than
-        # is needed, but a good example of how to break apart the cookie
-        # anyways. The verbosity makes it clear what is happening.
-        cookie_name = client_cookie.split('=', 1)[0]
         _path_etc = client_cookie.split('=', 1)[1]
         cookie_value = _path_etc.split(';', 1)[0]
         cookie_path = _path_etc.split(';', 1)[1].split(';', 1)[0].lstrip()
         cookie_text = " {value}; ${path}".format(value=cookie_value,
                                                  path=cookie_path)
-        # Make a cookie
         cookie = dict()
-        cookie[cookie_name] = cookie_text
+        cookie[client_cookie.split('=', 1)[0]] = cookie_text
 
-        # Get the request headers set up
-        headers = {'Content-Type': 'application/octet-stream'}
-
-        # Get the file to upload ready, extra protection by using with against
-        # leaving open threads
-        # Connect and upload the file
         request = requests.put(http_url,
                                params=params,
                                data='Test upload file',
