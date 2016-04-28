@@ -2186,13 +2186,13 @@ class TestDVSSystem(TestBasic):
           groups=["dvs_port_security_group"])
     @log_snapshot_after_test
     def dvs_port_security_group(self):
-        """Check creation instance in the one group simultaneously.
+        """Verify that only the associated IP address can communicate on port.
 
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Launch 2 instances on each hypervisors.
             3. Verify that traffic can be successfully sent from and received
-               on the MAC and IP address associated with the logical port.
+               on the IP address associated with the logical port.
             4. Configure a new IP address on the instance associated with
                the logical port.
             5. Confirm that the instance cannot communicate with that

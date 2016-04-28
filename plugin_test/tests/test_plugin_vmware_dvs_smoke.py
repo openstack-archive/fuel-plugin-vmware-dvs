@@ -59,12 +59,11 @@ class TestDVSSmoke(TestBasic):
             5. Configure interfaces on nodes.
             6. Configure network settings.
             7. Enable and configure DVS plugin.
-            8. Enable VMWare vCenter/ESXi datastore for images (Glance)
-            9  Configure VMware vCenter Settings.
+            8  Configure VMware vCenter Settings.
                Add 1 vSphere clusters and configure Nova Compute instances
                on conrollers.
-            10. Deploy the cluster.
-            11. Run OSTF.
+            9. Deploy the cluster.
+            10. Run OSTF.
 
         Duration: 1.8 hours
 

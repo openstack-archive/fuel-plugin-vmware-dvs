@@ -560,14 +560,12 @@ Steps
     4. Verify that traffic can be successfully sent from and received on the MAC and IP address associated with the logical port.
     5. Configure a new IP address on the instance associated with the logical port.
     6. Confirm that the instance cannot communicate with that IP address.
-    7. Configure a new MAC address on the instance associated with the logical port.
-    8. Confirm that the instance cannot communicate with that MAC address and the original IP address.
 
 
 Expected result
 ###############
 
-Instances should not communicate with new ip and mac addresses but it should communicate with old IP.
+Instances should not communicate with new ip address but it should communicate with old ip.
 
 
 Check connectivity between instances with same ip in different tenants.
