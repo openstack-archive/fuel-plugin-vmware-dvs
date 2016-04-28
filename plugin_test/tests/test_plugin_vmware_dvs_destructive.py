@@ -102,8 +102,8 @@ class TestDVSDestructive(TestBasic):
             os_conn=admin, nics=[{'net-id': network.id}],
             security_groups=[security_group.name, default_sg['name']])
 
-        self.show_step(13)
-        self.show_step(14)
+        self.show_step(11)
+        self.show_step(12)
         instances = openstack.create_instances(
             os_conn=admin, nics=[{'net-id': network.id}],
             vm_count=1,
@@ -116,7 +116,7 @@ class TestDVSDestructive(TestBasic):
             ips.append(admin.get_nova_instance_ip(
                 instance, net_name=self.inter_net_name))
         time.sleep(30)
-        self.show_step(15)
+        self.show_step(13)
         for ip in ips:
             ping_result = openstack.remote_execute_command(
                 access_point_ip, ip, "ping -c 5 {}".format(ip))
@@ -125,7 +125,7 @@ class TestDVSDestructive(TestBasic):
                 "Ping isn't available from {0} to {1}".format(ip, ip)
             )
 
-        self.show_step(16)
+        self.show_step(14)
         vcenter_name = [
             name for name in self.WORKSTATION_NODES if 'vcenter' in name].pop()
         node = vmrun.Vmrun(
@@ -136,17 +136,17 @@ class TestDVSDestructive(TestBasic):
             password=self.WORKSTATION_PASSWORD)
         node.reset()
 
-        self.show_step(17)
+        self.show_step(15)
         wait(lambda: not icmp_ping(
             self.VCENTER_IP), interval=1, timeout=10,
             timeout_msg='Vcenter is still availabled.')
 
-        self.show_step(18)
+        self.show_step(16)
         wait(lambda: icmp_ping(
             self.VCENTER_IP), interval=5, timeout=120,
             timeout_msg='Vcenter is not availabled.')
 
-        self.show_step(20)
+        self.show_step(17)
         for ip in ips:
             ping_result = openstack.remote_execute_command(
                 access_point_ip, ip, "ping -c 5 {}".format(ip))
@@ -315,7 +315,7 @@ class TestDVSDestructive(TestBasic):
 
         plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
-        # Configure cluster with 2 vcenter clusters and vcenter glance
+        # Configure cluster with 2 vcenter clusters
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
@@ -503,25 +503,22 @@ class TestDVSDestructive(TestBasic):
             4. Configure interfaces on nodes.
             5. Configure network settings.
             6. Enable and configure DVS plugin.
-            7. Enable VMWare vCenter/ESXi datastore for images (Glance).
-            8. Configure VMware vCenter Settings. Add 2 vSphere clusters
+            7. Configure VMware vCenter Settings. Add 2 vSphere clusters
                and configure Nova Compute instances on conrollers.
-            9. Configure Glance credentials on VMware tab.
-            10. Verify networks.
-            11. Deploy cluster.
-            12. Run OSTF.
-            13. Launch instance VM_1 with image TestVM, availability zone nova
+            8. Verify networks.
+            9. Deploy cluster.
+            10. Run OSTF.
+            11. Launch instance VM_1 with image TestVM, availability zone nova
                 and flavor m1.micro.
-            14. Launch instance VM_2 with image TestVM-VMDK, availability zone
+            12. Launch instance VM_2 with image TestVM-VMDK, availability zone
                 vcenter and flavor m1.micro.
-            15. Check connection between instances, send ping from VM_1 to VM_2
+            13. Check connection between instances, send ping from VM_1 to VM_2
                 and vice verse.
-            16. Reboot vcenter.
-            17. Check that controller lost connection with vCenter.
-            18. Wait for vCenter.
-            19. Ensure that all instances from vCenter displayed in dashboard.
-            20. Ensure connectivity between instances.
-            21. Run OSTF.
+            14. Reboot vcenter.
+            15. Check that controller lost connection with vCenter.
+            16. Wait for vCenter.
+            17. Ensure that all instances from vCenter displayed in dashboard.
+            18. Run OSTF.
 
 
         Duration: 2.5 hours
@@ -538,8 +535,7 @@ class TestDVSDestructive(TestBasic):
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                'images_vcenter': True
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
 
@@ -558,26 +554,27 @@ class TestDVSDestructive(TestBasic):
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
         self.show_step(7)
-        self.show_step(8)
-        self.show_step(9)
         self.fuel_web.vcenter_configure(
             cluster_id,
-            multiclusters=True,
-            vc_glance=True
+            multiclusters=True
         )
 
-        self.show_step(10)
+        self.show_step(8)
         self.fuel_web.verify_network(cluster_id)
 
-        self.show_step(11)
+        self.show_step(9)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
-        self.show_step(12)
+        self.show_step(10)
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         self.extended_tests_reset_vcenter(os_ip)
+
+        self.show_step(18)
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_reboot_vcenter_2", 'dvs_vcenter_system'])
@@ -601,25 +598,22 @@ class TestDVSDestructive(TestBasic):
             4. Configure interfaces on nodes.
             5. Configure network settings.
             6. Enable and configure DVS plugin.
-            7. Enable VMWare vCenter/ESXi datastore for images (Glance).
-            8. Configure VMware vCenter Settings. Add 1 vSphere clusters and
+            7. Configure VMware vCenter Settings. Add 1 vSphere clusters and
                configure Nova Compute instances on compute-vmware.
-            9. Configure Glance credentials on VMware tab.
-            10. Verify networks.
-            11. Deploy cluster.
-            12. Run OSTF.
-            13. Launch instance VM_1 with image TestVM, availability zone nova
+            8. Verify networks.
+            9. Deploy cluster.
+            10. Run OSTF.
+            11. Launch instance VM_1 with image TestVM, availability zone nova
                 and flavor m1.micro.
-            14. Launch instance VM_2 with image TestVM-VMDK, availability zone
+            12. Launch instance VM_2 with image TestVM-VMDK, availability zone
                 vcenter and flavor m1.micro.
-            15. Check connection between instances, send ping from VM_1 to VM_2
+            13. Check connection between instances, send ping from VM_1 to VM_2
                 and vice verse.
-            16. Reboot vcenter.
-            17. Check that controller lost connection with vCenter.
-            18. Wait for vCenter.
-            19. Ensure that all instances from vCenter displayed in dashboard.
-            20. Ensure connectivity between instances.
-            21. Run OSTF.
+            14. Reboot vcenter.
+            15. Check that controller lost connection with vCenter.
+            16. Wait for vCenter.
+            17. Ensure that all instances from vCenter displayed in dashboard.
+            18. Run OSTF.
 
 
         Duration: 2.5 hours
@@ -627,21 +621,22 @@ class TestDVSDestructive(TestBasic):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
+        self.show_step(1)
         plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
-        # Configure cluster with 2 vcenter clusters and vcenter glance
+        self.show_step(2)
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                'images_vcenter': True
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
-        plugin.enable_plugin(cluster_id, self.fuel_web)
 
-        # Assign role to node
+        self.show_step(3)
+        self.show_step(4)
+        self.show_step(5)
         self.fuel_web.update_nodes(
             cluster_id,
             {'slave-01': ['controller'],
@@ -651,19 +646,30 @@ class TestDVSDestructive(TestBasic):
              'slave-05': ['compute-vmware']}
         )
 
-        # Configure VMWare vCenter settings
+        self.show_step(6)
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        self.show_step(7)
         target_node_1 = self.node_name('slave-05')
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_1=target_node_1,
-            multiclusters=False,
-            vc_glance=True
+            multiclusters=False
         )
 
+        self.show_step(8)
+        self.fuel_web.verify_network(cluster_id)
+
+        self.show_step(9)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        self.show_step(10)
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         self.extended_tests_reset_vcenter(os_ip)
+
+        self.show_step(18)
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id, test_sets=['smoke'])

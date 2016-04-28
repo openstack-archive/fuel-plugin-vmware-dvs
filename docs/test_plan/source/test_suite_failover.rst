@@ -136,21 +136,19 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin.
-    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
-    8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on conrollers.
-    9. Configure Glance credentials on VMware tab.
-    10. Verify networks.
-    11. Deploy cluster.
-    12. Run OSTF.
-    13. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
-    14. Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
-    15. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
-    16. Reboot vcenter.
-    17. Check that controller lost connection with vCenter.
-    18. Wait for vCenter.
-    19. Ensure that all instances from vCenter displayed in dashboard.
-    20. Ensure connectivity between instances.
-    21. Run OSTF.
+    7. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure
+       Nova Compute instances on conrollers.
+    8. Verify networks.
+    9. Deploy cluster.
+    10. Run OSTF.
+    11. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
+    12. Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
+    13. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
+    14. Reboot vcenter.
+    15. Check that controller lost connection with vCenter.
+    16. Wait for vCenter.
+    17. Ensure connectivity between instances.
+    18. Run OSTF.
 
 
 Expected result
@@ -199,21 +197,19 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin.
-    7. Enable VMWare vCenter/ESXi datastore for images (Glance).
-    8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on compute-vmware.
-    9. Configure Glance credentials on VMware tab.
-    10. Verify networks.
-    11. Deploy cluster.
-    12. Run OSTF.
-    13. Launch instance VM_1 with image TestVM,  nova availability zone and flavor m1.micro.
-    14. Launch instance VM_2  with image TestVM-VMDK,  vcenter availability zone and flavor m1.micro.
-    15. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
-    16. Reboot vcenter.
-    17. Check that ComputeVMware lost connection with vCenter.
-    18. Wait for vCenter.
-    19. Ensure that all instances from vCenter displayed in dashboard.
-    20. Ensure connectivity between instances.
-    21. Run OSTF.
+    7. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure
+       Nova Compute instances on compute-vmware.
+    8. Verify networks.
+    9. Deploy cluster.
+    10. Run OSTF.
+    11. Launch instance VM_1 with image TestVM,  nova availability zone and flavor m1.micro.
+    12. Launch instance VM_2  with image TestVM-VMDK,  vcenter availability zone and flavor m1.micro.
+    13. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
+    14. Reboot vcenter.
+    15. Check that ComputeVMware lost connection with vCenter.
+    16. Wait for vCenter.
+    17. Ensure connectivity between instances.
+    18. Run OSTF.
 
 
 Expected result
