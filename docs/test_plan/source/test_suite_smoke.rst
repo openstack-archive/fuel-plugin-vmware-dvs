@@ -147,19 +147,18 @@ smoke
 Steps
 #####
 
-    1. Connect to a Fuel web UI with preinstalled plugin.
-    2. Create a new environment with following parameters:
+    1. Upload plugins to the master node.
+    2. Install plugin.
+    3. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
         * Storage: default
         * Additional services: default
-    3. Add nodes with following roles:
+    4. Add nodes with following roles:
         * Controller
-    4. Configure interfaces on nodes.
-    5. Configure network settings.
-    6. Enable and configure DVS plugin.
-    7. Configure settings:
-        * Enable VMWare vCenter/ESXi datastore for images (Glance).
+    5. Configure interfaces on nodes.
+    6. Configure network settings.
+    7. Enable and configure DVS plugin.
     8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on conrollers.
     9. Deploy cluster.
     10. Run OSTF.

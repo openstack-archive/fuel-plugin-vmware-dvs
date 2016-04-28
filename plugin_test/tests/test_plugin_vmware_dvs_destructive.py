@@ -315,7 +315,7 @@ class TestDVSDestructive(TestBasic):
 
         plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
-        # Configure cluster with 2 vcenter clusters and vcenter glance
+        # Configure cluster with 2 vcenter clusters
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
@@ -503,25 +503,23 @@ class TestDVSDestructive(TestBasic):
             4. Configure interfaces on nodes.
             5. Configure network settings.
             6. Enable and configure DVS plugin.
-            7. Enable VMWare vCenter/ESXi datastore for images (Glance).
-            8. Configure VMware vCenter Settings. Add 2 vSphere clusters
+            7. Configure VMware vCenter Settings. Add 2 vSphere clusters
                and configure Nova Compute instances on conrollers.
-            9. Configure Glance credentials on VMware tab.
-            10. Verify networks.
-            11. Deploy cluster.
-            12. Run OSTF.
-            13. Launch instance VM_1 with image TestVM, availability zone nova
+            8. Verify networks.
+            9. Deploy cluster.
+            10. Run OSTF.
+            11. Launch instance VM_1 with image TestVM, availability zone nova
                 and flavor m1.micro.
-            14. Launch instance VM_2 with image TestVM-VMDK, availability zone
+            12. Launch instance VM_2 with image TestVM-VMDK, availability zone
                 vcenter and flavor m1.micro.
-            15. Check connection between instances, send ping from VM_1 to VM_2
+            13. Check connection between instances, send ping from VM_1 to VM_2
                 and vice verse.
-            16. Reboot vcenter.
-            17. Check that controller lost connection with vCenter.
-            18. Wait for vCenter.
-            19. Ensure that all instances from vCenter displayed in dashboard.
-            20. Ensure connectivity between instances.
-            21. Run OSTF.
+            14. Reboot vcenter.
+            15. Check that controller lost connection with vCenter.
+            16. Wait for vCenter.
+            17. Ensure that all instances from vCenter displayed in dashboard.
+            18. Ensure connectivity between instances.
+            19. Run OSTF.
 
 
         Duration: 2.5 hours
@@ -538,8 +536,7 @@ class TestDVSDestructive(TestBasic):
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                'images_vcenter': True
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
 
@@ -559,20 +556,18 @@ class TestDVSDestructive(TestBasic):
 
         self.show_step(7)
         self.show_step(8)
-        self.show_step(9)
         self.fuel_web.vcenter_configure(
             cluster_id,
-            multiclusters=True,
-            vc_glance=True
+            multiclusters=True
         )
 
-        self.show_step(10)
+        self.show_step(9)
         self.fuel_web.verify_network(cluster_id)
 
-        self.show_step(11)
+        self.show_step(10)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
-        self.show_step(12)
+        self.show_step(11)
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
@@ -601,25 +596,23 @@ class TestDVSDestructive(TestBasic):
             4. Configure interfaces on nodes.
             5. Configure network settings.
             6. Enable and configure DVS plugin.
-            7. Enable VMWare vCenter/ESXi datastore for images (Glance).
-            8. Configure VMware vCenter Settings. Add 1 vSphere clusters and
+            7. Configure VMware vCenter Settings. Add 1 vSphere clusters and
                configure Nova Compute instances on compute-vmware.
-            9. Configure Glance credentials on VMware tab.
-            10. Verify networks.
-            11. Deploy cluster.
-            12. Run OSTF.
-            13. Launch instance VM_1 with image TestVM, availability zone nova
+            8. Verify networks.
+            9. Deploy cluster.
+            10. Run OSTF.
+            11. Launch instance VM_1 with image TestVM, availability zone nova
                 and flavor m1.micro.
-            14. Launch instance VM_2 with image TestVM-VMDK, availability zone
+            12. Launch instance VM_2 with image TestVM-VMDK, availability zone
                 vcenter and flavor m1.micro.
-            15. Check connection between instances, send ping from VM_1 to VM_2
+            13. Check connection between instances, send ping from VM_1 to VM_2
                 and vice verse.
-            16. Reboot vcenter.
-            17. Check that controller lost connection with vCenter.
-            18. Wait for vCenter.
-            19. Ensure that all instances from vCenter displayed in dashboard.
-            20. Ensure connectivity between instances.
-            21. Run OSTF.
+            14. Reboot vcenter.
+            15. Check that controller lost connection with vCenter.
+            16. Wait for vCenter.
+            17. Ensure that all instances from vCenter displayed in dashboard.
+            18. Ensure connectivity between instances.
+            19. Run OSTF.
 
 
         Duration: 2.5 hours
@@ -629,14 +622,13 @@ class TestDVSDestructive(TestBasic):
 
         plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
-        # Configure cluster with 2 vcenter clusters and vcenter glance
+        # Configure cluster with 2 vcenter clusters
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
             settings={
                 "net_provider": 'neutron',
-                "net_segment_type": NEUTRON_SEGMENT_TYPE,
-                'images_vcenter': True
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
         plugin.enable_plugin(cluster_id, self.fuel_web)
@@ -656,8 +648,7 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.vcenter_configure(
             cluster_id,
             target_node_1=target_node_1,
-            multiclusters=False,
-            vc_glance=True
+            multiclusters=False
         )
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
