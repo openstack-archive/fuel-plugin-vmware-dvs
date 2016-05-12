@@ -151,6 +151,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         self.check_services_networks(cluster_id, network_template)
 
         self.fuel_web.run_ostf(cluster_id=cluster_id,
+                               timeout=3600,
                                test_sets=['smoke', 'sanity',
                                           'ha', 'tests_platform'])
         self.check_ipconfig_for_template(cluster_id, network_template,
