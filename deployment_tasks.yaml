@@ -36,6 +36,7 @@
   groups: ['compute-vmware']
   requires:  [top-role-compute-vmware]
   type: puppet
+  reexecute_on: [deploy_changes]
   parameters:
     puppet_manifest: puppet/manifests/compute-vmware.pp
     puppet_modules:  puppet/modules:/etc/puppet/modules
@@ -70,6 +71,7 @@
   groups: ['primary-controller','controller','compute-vmware']
   required_for: [vmware-dvs-network-end]
   requires: [vmware-dvs-network-start]
+  reexecute_on: [deploy_changes]
   parameters:
     puppet_manifest: /etc/puppet/modules/osnailyfacter/modular/openstack-network/common-config.pp
     puppet_modules: /etc/puppet/modules
@@ -82,6 +84,7 @@
   required_for: [vmware-dvs-network-end]
   requires: [vmware-dvs-network-common-config, openstack-network-server-config]
   refresh_on: [neutron_plugin_ml2, neutron_agent_ovs, neutron_config, neutron_api_config]
+  reexecute_on: [deploy_changes]
   cross-depends:
     - name: primary-openstack-network-plugins-l2
   parameters:
@@ -96,6 +99,7 @@
   required_for: [vmware-dvs-network-end]
   requires: [openstack-network-networks, openstack-network-routers, primary-openstack-network-plugins-l2, vmware-dvs-network-plugins-l2]
   refresh_on: [neutron_l3_agent_config]
+  reexecute_on: [deploy_changes]
   cross-depends:
     - name: /(primary-)?openstack-network-plugins-l2/
     - name: primary-openstack-network-agents-l3
