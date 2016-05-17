@@ -12,7 +12,7 @@
         min_count: 10
       runner:
         type: "constant"
-        times: {{ compute * 2 }}
+        times: {{ compute }}
         concurrency: {{ concurrency }}
       context:
         users:
