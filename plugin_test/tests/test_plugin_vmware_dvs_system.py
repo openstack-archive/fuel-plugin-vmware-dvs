@@ -16,30 +16,24 @@ under the License.
 import time
 
 from devops.error import TimeoutError
-
 from devops.helpers.helpers import wait
+from proboscis import test
+from proboscis.asserts import assert_true
 
+import fuelweb_test.tests.base_test_case
 from fuelweb_test import logger
-
 from fuelweb_test.helpers import os_actions
-
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
-
-from fuelweb_test.tests.base_test_case import SetupEnvironment
-from fuelweb_test.tests.base_test_case import TestBasic
-
 from helpers import openstack
 from helpers import plugin
 
-from proboscis import test
-
-from proboscis.asserts import assert_true
+TestBasic = fuelweb_test.tests.base_test_case.TestBasic
+SetupEnvironment = fuelweb_test.tests.base_test_case.SetupEnvironment
 
 
 @test(groups=["plugins", 'dvs_vcenter_system'])

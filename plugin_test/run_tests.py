@@ -75,7 +75,7 @@ def run_tests():
 
 
 if __name__ == '__main__':
-    sys.path.append(sys.path[0] + "/fuel-qa")
+    sys.path.append(os.path.join(sys.path[0], 'fuel-qa'))
     import_tests()
     from fuelweb_test.helpers.patching import map_test
     if any(re.search(r'--group=patching_master_tests', arg)

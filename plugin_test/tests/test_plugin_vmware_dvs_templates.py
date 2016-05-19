@@ -15,23 +15,21 @@ under the License.
 
 import os
 
-from fuelweb_test import logger
-
-from fuelweb_test.helpers.decorators import log_snapshot_after_test
-
-from fuelweb_test.settings import DEPLOYMENT_MODE
-from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
-
-from fuelweb_test.tests.base_test_case import SetupEnvironment
-from fuelweb_test.tests.base_test_case import TestBasic
-
-from fuelweb_test.tests.test_net_templates_base import TestNetworkTemplatesBase
-
-from helpers import plugin
-
+import yaml
 from proboscis import test
 
-import yaml
+import fuelweb_test.tests.base_test_case
+import fuelweb_test.tests.test_net_templates_base
+from fuelweb_test import logger
+from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test.settings import DEPLOYMENT_MODE
+from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
+from helpers import plugin
+
+TestBasic = fuelweb_test.tests.base_test_case.TestBasic
+SetupEnvironment = fuelweb_test.tests.base_test_case.SetupEnvironment
+TestNetworkTemplatesBase = fuelweb_test.tests.test_net_templates_base.\
+    TestNetworkTemplatesBase
 
 
 @test(groups=["dvs_vcenter_net_template"])
