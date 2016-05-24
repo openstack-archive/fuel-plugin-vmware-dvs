@@ -1,0 +1,8 @@
+Code-Review+2: Slava Tabolin <vtabolin@mirantis.com>
+Workflow+1: Slava Tabolin <vtabolin@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Tue, 24 May 2016 08:14:33 +0000
+Reviewed-on: https://review.openstack.org/320282
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/stable/8.0-agentful
