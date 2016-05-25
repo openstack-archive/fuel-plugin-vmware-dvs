@@ -2050,9 +2050,7 @@ class TestDVSSystem(TestBasic):
         )
         # Create Router_01, set gateway and add interface
         # to external network.
-        router_1 = os_conn.create_router(
-            'router_1',
-            tenant=tenant)
+        router_1 = os_conn.create_router('router_1', tenant=tenant)
 
         # Add net_1 to router_1
         os_conn.add_router_interface(
@@ -2060,15 +2058,14 @@ class TestDVSSystem(TestBasic):
             subnet_id=subnet["id"])
 
         self.show_step(4)
-        sg1 = os_conn.nova.security_groups.create(
-            'SG1', "descr")
-        sg_rules = [
-            sg_rule for sg_rule
-            in os_conn.neutron.list_security_group_rules()[
-                'security_group_rules']
-            if sg_rule['security_group_id'] == sg1.id]
-        for rule in sg_rules:
-            os_conn.neutron.delete_security_group_rule(rule['id'])
+        sg1 = os_conn.nova.security_groups.create('SG1', "descr")
+        rules = os_conn.neutron.list_security_group_rules()
+        sg_rules = filter((lambda x: x['security_group_id'] == sg1.id),
+                          rules['security_group_rules'])
+
+        map((lambda x: os_conn.neutron.delete_security_group_rule(x['id'])),
+            sg_rules)
+
         for rule in [self.icmp, self.tcp]:
             rule["security_group_rule"]["security_group_id"] = sg1.id
             rule["security_group_rule"]["remote_group_id"] = sg1.id
@@ -2081,11 +2078,12 @@ class TestDVSSystem(TestBasic):
 
         # add rules for ssh and ping
         os_conn.goodbye_security()
-        default_sg = [
-            sg
-            for sg in os_conn.neutron.list_security_groups()['security_groups']
-            if sg['tenant_id'] == os_conn.get_tenant(SERVTEST_TENANT).id
-            if sg['name'] == 'default'][0]
+        default_sg = filter(
+            (lambda x:
+             x['tenant_is'] == os_conn.get_tenant(SERVTEST_TENANT).id and
+             x['name'] == 'default'),
+            os_conn.neutron.list_security_groups()['security_groups']
+        )[0]
 
         self.show_step(5)
         instances_1 = openstack.create_instances(
@@ -2106,25 +2104,22 @@ class TestDVSSystem(TestBasic):
             security_groups=[default_sg['name'], sg1.name])
         openstack.verify_instance_state(os_conn)
 
-        ips_1 = []
-        for instance in instances_1:
-            ips_1.append(os_conn.get_nova_instance_ip(
-                instance, net_name=network['name']))
-        ips_2 = []
-        for instance in instances_2:
-            ips_2.append(os_conn.get_nova_instance_ip(
-                instance, net_name=self.inter_net_name))
+        ips_1 = map(
+            (lambda x:
+             os_conn.get_nova_instance_ip(x, net_name=network['name'])),
+            instances_1)
+        ips_2 = map(
+            (lambda x:
+             os_conn.get_nova_instance_ip(x, net_name=network['name'])),
+            instances_2)
 
-        ip_pair = dict.fromkeys(ips_1)
-        for key in ip_pair:
-            ip_pair[key] = [value for value in ips_1 if key != value]
+        ip_pair = {ip: [v for v in ips_1 if ip != v] for ip in ips_1}
         openstack.check_connection_through_host(
             access_point_ip_1, ip_pair,
             timeout=60)
 
         self.show_step(7)
-        for key in ip_pair:
-            ip_pair[key] = ips_2
+        ip_pair = {ip: ips_2 for ip in ips_1}
         openstack.check_connection_through_host(
             access_point_ip_1, ip_pair,
             result_of_command=1)
@@ -2134,39 +2129,39 @@ class TestDVSSystem(TestBasic):
         for instance in instances_1:
             ip = os_conn.get_nova_instance_ip(
                 instance, net_name=network['name'])
-            port = [
-                p
-                for p in os_conn.neutron.list_ports()['ports']
-                if p['fixed_ips'][0]['ip_address'] == ip].pop()
-            instance.interface_detach(
-                port["id"])
-            instance.interface_attach(
-                None, default_net.id, None)
+            port = [p for p in os_conn.neutron.list_ports()['ports']
+                    if p['fixed_ips'][0]['ip_address'] == ip].pop()
+            instance.interface_detach(port["id"])
+            instance.interface_attach(None, default_net.id, None)
             instance.reboot()  # instead of restart network
 
         self.show_step(10)
-        ips = []
-        instances = [instance for instance in os_conn.nova.servers.list()
-                     if instance.id in [inst.id for inst in instances_1]]
-        for instance in instances:
-            assert_true(instance.security_groups.pop()['name'] == 'default')
-            ips.append(os_conn.get_nova_instance_ip(
-                instance, net_name=self.inter_net_name))
+        instances_id = map((lambda x: x.id), instances_1)
+        instances = filter((lambda x: x.id in instances_id),
+                           os_conn.nova.servers.list())
+
+        map((
+            lambda x:
+            assert_true(x.security_groups.pop()['name'] == 'default')),
+            instances)
+        ips = map((
+            lambda x:
+            os_conn.get_nova_instance_ip(x, net_name=self.inter_net_name)),
+            instances)
 
         self.show_step(11)
-        ip_pair = dict.fromkeys(ips_2)
-        for key in ip_pair:
-            ip_pair[key] = ips
+        ip_pair = {ip: ips for ip in ips_2}
+
         openstack.check_connection_through_host(
             access_point_ip_2, ip_pair,
             timeout=60 * 5)
+
         self.show_step(12)
         self.show_step(13)
-        for instance in instances:
-            instance.remove_security_group('default')
-            instance.add_security_group(sg1.name)
-        for key in ip_pair:
-            ip_pair[key] = [value for value in ips if key != value]
+        map((lambda x: x.remove_security_group('default')), instances)
+        map((lambda x: x.add_security_group(sg1.name)), instances)
+
+        ip_pair = {ip: [v for v in ips if ip != v] for ip in ips_2}
         openstack.check_connection_through_host(
             access_point_ip_2, ip_pair,
             timeout=60 * 2)
