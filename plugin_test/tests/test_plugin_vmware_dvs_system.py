@@ -22,6 +22,7 @@ from proboscis.asserts import assert_true
 
 import fuelweb_test.tests.base_test_case
 from fuelweb_test import logger
+from fuelweb_test.helpers.utils import pretty_log
 from fuelweb_test.helpers import os_actions
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test.settings import DEPLOYMENT_MODE
@@ -1752,12 +1753,11 @@ class TestDVSSystem(TestBasic):
                net02_subnet01, 192.168.102.0/24) to each network.
             4. Launch instances in nova and vcenter az
                with multiple vNIC net01 and net02.
-            5. Check that both interfaces on each instance got a ip address.
-            6. Check icmp ping between instances.
-            7. To activate second interface on cirros edit the
+            5. Check that both interfaces on each instance got an ip address.
+            6. To activate second interface on cirros edit the
                 /etc/network/interfaces and
                 restart network: "sudo /etc/init.d/S40network restart"
-            8. Check icmp ping between instances.
+            7. Check icmp ping between instances.
 
         Duration 15 min
 
@@ -1778,6 +1778,7 @@ class TestDVSSystem(TestBasic):
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
 
         self.show_step(2)
+        self.show_step(3)
         for net in self.net_data:
             network = os_conn.create_network(
                 network_name=net.keys()[0],
@@ -1794,7 +1795,6 @@ class TestDVSSystem(TestBasic):
             assert_true(
                 os_conn.get_network(network['name'])['id'] == network['id']
             )
-            self.show_step(3)
             os_conn.add_router_interface(
                 router_id=router["id"],
                 subnet_id=subnet["id"])
@@ -1825,37 +1825,40 @@ class TestDVSSystem(TestBasic):
                 assert_true(os_conn.get_nova_instance_ip(
                     instance, net_name=net['name']) is not None)
 
-        self.show_step(6)
-        flag = True
+        net_1_name = self.net_data[0].keys()[0]
+        net_2_name = self.net_data[1].keys()[0]
+        ips = {
+            net_1_name: {'ips': [], 'access_point_ip': ''},
+            net_2_name: {'ips': [], 'access_point_ip': ''}
+        }
+
         for net in networks:
-            # create access point to instances
+            ips[net['name']]['ips'] = map(
+                    (lambda x: os_conn.get_nova_instance_ip(
+                            x, net_name=net['name'])), instances)
             access_point, access_point_ip = openstack.create_access_point(
                 os_conn=os_conn, nics=[{'net-id': net['id']}],
                 security_groups=[default_sg['name']])
+            ips[net['name']]['access_point_ip'] = access_point_ip
 
-            # Get private ips of instances
-            ips = []
-            for instance in instances:
-                ips.append(os_conn.get_nova_instance_ip(
-                    instance, net_name=net['name']))
-            ip_pair = dict.fromkeys(ips)
-            for key in ip_pair:
-                ip_pair[key] = [value for value in ips if key != value]
+        logger.debug(pretty_log(ips))
+
+        self.show_step(6)
+        cmd_1 = "sudo ip link set up dev eth1"
+        cmd_2 = "sudo cirros-dhcpc up eth1"
+        access_point_ip = ips[net_1_name]['access_point_ip']
+        for ip in ips[net_1_name]['ips']:
+            logger.info('Execute for ip {}'.format(ip))
+            openstack.remote_execute_command(access_point_ip, ip, cmd_1)
+            openstack.remote_execute_command(access_point_ip, ip, cmd_2)
+
+        self.show_step(7)
+        for net in networks:
+            inst_ips = ips[net['name']]['ips']
+            access_point_ip = ips[net['name']]['access_point_ip']
+            ip_pair = {ip: [v for v in inst_ips if v != ip] for ip in inst_ips}
             openstack.check_connection_through_host(
                 access_point_ip, ip_pair, timeout=60 * 5, interval=10)
-            if flag is True:
-                # restart network
-                for ip in ips:
-                    self.show_step(7)
-                    command = "sudo /etc/init.d/S40network restart"
-                    result = openstack.remote_execute_command(
-                        access_point_ip,
-                        ip, command)
-                    assert_true(
-                        result['exit_code'] == 0,
-                        "Restart network has failed"
-                    )
-                flag = False
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_instances_batch_mix_sg"])
