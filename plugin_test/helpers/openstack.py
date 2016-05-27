@@ -14,19 +14,16 @@ under the License.
 """
 import time
 
+import paramiko
+import yaml
 from devops.error import TimeoutError
-
 from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import tcp_ping
 from devops.helpers.helpers import wait
-
-from fuelweb_test import logger
-
-import paramiko
-
 from proboscis.asserts import assert_true
 
-import yaml
+from fuelweb_test import logger
+from fuelweb_test.helpers.utils import pretty_log
 
 # timeouts
 BOOT_TIMEOUT = 300
@@ -173,7 +170,6 @@ def check_connection_through_host(remote, ip_pair, command='pingv4',
                                by default is 0
     :param timeout: wait to get expected result
     :param interval: interval of executing command
-    :param message: message of failing
     """
     commands = {
         "pingv4": "ping -c 5 {}",
@@ -182,13 +178,15 @@ def check_connection_through_host(remote, ip_pair, command='pingv4',
 
     for ip_from in ip_pair:
         for ip_to in ip_pair[ip_from]:
+            logger.info('Check ping from {0} to {1}'.format(ip_from, ip_to))
             message = generate_message(
                 commands[command], result_of_command, ip_from, ip_to)
             wait(
                 lambda:
                 remote_execute_command(
                     remote,
-                    ip_from, commands[command].format(ip_to),
+                    ip_from,
+                    commands[command].format(ip_to),
                     wait=timeout)['exit_code'] == result_of_command,
                 interval=interval,
                 timeout=timeout,
@@ -252,8 +250,8 @@ def execute(ssh_client, command):
 def remote_execute_command(instance1_ip, instance2_ip, command, wait=30):
     """Check execute remote command.
 
-    :param instance1: string, instance ip connect from
-    :param instance2: string, instance ip connect to
+    :param instance1_ip: string, instance ip connect from
+    :param instance2_ip: string, instance ip connect to
     :param command: string, remote command
     :param wait: integer, time to wait available ip of instances
     """
@@ -290,12 +288,12 @@ def remote_execute_command(instance1_ip, instance2_ip, command, wait=30):
             'stderr': [],
             'exit_code': 0
         }
-        logger.debug("Receiving exit_code")
+        logger.debug("Receiving exit_code, stdout, stderr")
         result['exit_code'] = channel.recv_exit_status()
-        logger.debug("Receiving stdout")
         result['stdout'] = channel.recv(1024)
-        logger.debug("Receiving stderr")
         result['stderr'] = channel.recv_stderr(1024)
+        logger.debug('Command: {}'.format(command))
+        logger.debug(pretty_log(result))
         logger.debug("Closing channel")
         channel.close()
 
@@ -373,7 +371,6 @@ def create_access_point(os_conn, nics, security_groups):
         with private ip in the same network.
 
         :param os_conn: type object, openstack
-        :param vm_count: type interger, count of VMs to create
         :param nics: type dictionary, neutron networks
                      to assign to instance
         :param security_groups: A list of security group names
