@@ -14,19 +14,16 @@ under the License.
 """
 import time
 
+import paramiko
+import yaml
 from devops.error import TimeoutError
-
 from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import tcp_ping
 from devops.helpers.helpers import wait
-
-from fuelweb_test import logger
-
-import paramiko
-
 from proboscis.asserts import assert_true
 
-import yaml
+from fuelweb_test import logger
+from fuelweb_test.helpers.utils import pretty_log
 
 # timeouts
 BOOT_TIMEOUT = 300
@@ -182,6 +179,7 @@ def check_connection_through_host(remote, ip_pair, command='pingv4',
 
     for ip_from in ip_pair:
         for ip_to in ip_pair[ip_from]:
+            logger.info('Check ping from {0} to {1}'.format(ip_from, ip_to))
             message = generate_message(
                 commands[command], result_of_command, ip_from, ip_to)
             wait(
@@ -290,12 +288,11 @@ def remote_execute_command(instance1_ip, instance2_ip, command, wait=30):
             'stderr': [],
             'exit_code': 0
         }
-        logger.debug("Receiving exit_code")
+        logger.debug("Receiving exit_code, stdout, stderr")
         result['exit_code'] = channel.recv_exit_status()
-        logger.debug("Receiving stdout")
         result['stdout'] = channel.recv(1024)
-        logger.debug("Receiving stderr")
         result['stderr'] = channel.recv_stderr(1024)
+        logger.debug(pretty_log(result))
         logger.debug("Closing channel")
         channel.close()
 
@@ -373,7 +370,6 @@ def create_access_point(os_conn, nics, security_groups):
         with private ip in the same network.
 
         :param os_conn: type object, openstack
-        :param vm_count: type interger, count of VMs to create
         :param nics: type dictionary, neutron networks
                      to assign to instance
         :param security_groups: A list of security group names
