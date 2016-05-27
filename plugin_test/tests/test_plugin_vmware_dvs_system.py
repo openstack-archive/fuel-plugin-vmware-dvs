@@ -1846,11 +1846,20 @@ class TestDVSSystem(TestBasic):
             if flag is True:
                 # restart network
                 for ip in ips:
+                    # command = (
+                    #     r"cat /etc/network/interfaces > interface_file && "
+                    #     r"printf '%s\nauto eth1%s\niface eth1 inet dhcp' >> "
+                    #     r"interface_file && "
+                    #     r"sudo mv interface_file /etc/network/interfaces"
+                    # )
+                    # result = openstack.remote_execute_command(
+                    #     access_point_ip,ip, command)
+                    # assert_true(
+                    #     result['exit_code'] == 0,)
                     self.show_step(7)
                     command = "sudo /etc/init.d/S40network restart"
                     result = openstack.remote_execute_command(
-                        access_point_ip,
-                        ip, command)
+                        access_point_ip, ip, command)
                     assert_true(
                         result['exit_code'] == 0,
                         "Restart network has failed"
