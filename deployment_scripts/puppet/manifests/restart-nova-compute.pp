@@ -19,7 +19,7 @@ $vc_setting = parse_vcenter_settings($vcenter['computes'])
 
 $defaults   = {
   'current_node'   => hiera('fqdn'),
-  'role'           => hiera('role'),
+  'role'           => inline_template('<% if File.exist?("/etc/controller.yaml") or File.exist?("/etc/primary-controller.yaml") -%>controller<% end -%>'),
 }
 
 create_resources(vmware_dvs::ha_nova_restart, $vc_setting, $defaults)
