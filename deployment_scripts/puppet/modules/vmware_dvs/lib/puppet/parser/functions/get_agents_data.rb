@@ -7,7 +7,7 @@
     raise(Puppet::ParseError, 'Shoud have 5 arguments!') if args.size < 4 or args[0] == ""
     vcenter = args[0]['computes']
     physnet = args[1]["predefined_networks"]["admin_internal_net"]["L2"]["physnet"]
-    netmaps = args[2]["vmware_dvs_net_maps"]
+    netmaps = args[2]["vmware_dvs_net_maps"].delete(' ')
     use_fw_driver = args[2]["vmware_dvs_fw_driver"]
     current_node = args[3].split(".")[0]
     controllersp = args[4].any? {|role| role.include?("controller")}
