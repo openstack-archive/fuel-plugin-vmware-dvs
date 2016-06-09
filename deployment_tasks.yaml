@@ -27,7 +27,7 @@
 - id: vmware-dvs-neutron-agent-install
   version: 2.0.0
   groups: ['primary-controller','controller','compute-vmware']
-  require_for: [openstack-network-networks]
+  require_for: [openstack-network-networks,vmware-vcenter]
   requires: [vmware-dvs-network-common-config]
   type: puppet
   parameters:
