@@ -172,25 +172,6 @@ define vmware_dvs::agent(
     Pcmk_resource[$primitive_name]->
     Service[$primitive_name]
 
-#    service {$agent_name: }
-#
-#    cluster::corosync::cs_service{$agent_name:
-#      ocf_script      => $ocf_dvs_name,
-#      csr_parameters  => {
-#        'plugin_config'         => $ml2_conf,
-#        'additional_parameters' => "--config-file=${agent_config}",
-#        'log_file'              => $agent_log,
-#        'pid'                   => $ocf_pid,
-#      },
-#      csr_mon_intr    => '20',
-#      csr_mon_timeout => '10',
-#      csr_timeout     => '80',
-#      service_name    => $agent_name,
-#      package_name    => $agent_name,
-#      service_title   => $agent_name,
-#      primary         => $primary,
-#      hasrestart      => false,
-#    }
   }
   else {
       exec {"start_${agent_name}":
