@@ -1,9 +1,9 @@
-Using advanced neutron's possibilities with VMware DVS plugin
--------------------------------------------------------------
+Using advanced Neutron possibilities with VMware DVS plugin
+-----------------------------------------------------------
 
-#. Once OpenStack has been deployed, we can start using Neutron for
-   networking. The port group for admin\_internal\_net could appear
-   on the vCenter (don't worry if any DVS has missing portgroups):
+#. Once you deploy OpenStack, you can start using Neutron for
+   networking. The port group for admin\_internal\_net may appear
+   on vCenter (don't worry if any DVS has missing port groups):
 
    .. image:: _static/net04pg.png
 
@@ -26,7 +26,7 @@ Using advanced neutron's possibilities with VMware DVS plugin
    of reverse rules implementation.
 
    Just add only those rules if you want to correctly launch EC2 compatible image with
-   matadata request and DNS access:
+   metadata request and DNS access:
 
    Implement Custom TCP Egress rule to 169.254.169.254/32 CIDR port 80
    Implement Custom UDP Egress rule to '<DNS server IP or 0.0.0.0/0>' CIDR port 53
