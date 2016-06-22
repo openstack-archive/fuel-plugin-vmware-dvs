@@ -1095,3 +1095,49 @@ Expected result
 
 Verify that network traffic is allowed/prohibited to instances according security groups
 rules.
+
+
+Fuel create mirror and update core repos on cluster with DVS
+------------------------------------------------------------
+
+
+ID
+##
+
+dvs_fuel_crate_mirror
+
+
+Description
+###########
+
+Fuel create mirror and update core repos in custer with DVS plugin+
+
+
+Complexity
+##########
+
+core
+
+
+Steps
+#####
+
+    1. Setup for system tests
+    2. Log into controller node via Fuel CLI and get PID of services which were
+        launched by plugin and store them.
+    3. Launch the following command on the Fuel Master node:
+        `fuel-mirror create -P ubuntu -G mos ubuntu`+    4. Run the command below on the Fuel Master node:
+        `fuel-mirror apply -P ubuntu -G mos ubuntu --env <env_id> --replace`
+    5. Run the command below on the Fuel Master node:
+        `fuel --env <env_id> node --node-id <node_ids_separeted_by_coma> --tasks setup_repositories`
+        And wait until task is done.
+    6. Log into controller node and check plugins services are alive and their PID are changed.
+    7. Check all nodes remain in ready status.
+    8. Rerun OSTF.
+
+
+Expected result
+###############
+
+Cluster (nodes) should remain in ready state.
+OSTF test should be passed on rerun
