@@ -203,7 +203,7 @@ latex_elements = {'classoptions': ',openany,oneside',
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'FuelVMwareDVSvplugin.tex',
-     u'Fuel VMware DVS plugin testingdocumentation',
+     u'Fuel VMware DVS plugin testing documentation',
      u'Mirantis Inc.', 'manual'),
 ]
 
@@ -233,8 +233,9 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'fuelvmwaredvsplugin', u'Fuel VMware DVS plugin testing\
-     documentation', [u'Mirantis Inc.'], 1)
+    ('index', 'fuelvmwaredvsplugin',
+     u'Fuel VMware DVS plugin testing documentation',
+     [u'Mirantis Inc.'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -248,7 +249,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'FuelVMwareDVSplugin',
-     u'Fuel VMware DVS plugin testingdocumentation',
+     u'Fuel VMware DVS plugin testing documentation',
      u'Mirantis Inc.', 'FuelVMwareDVSplugin',
      'One line description of project.', 'Miscellaneous'),
 ]
