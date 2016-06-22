@@ -6,6 +6,10 @@ stop on runlevel [016]
 
 chdir /var/run
 
+respawn
+respawn limit 20 5
+limit nofile 65535 65535
+
 pre-start script
         mkdir -p /var/run/neutron
         chown neutron:root /var/run/neutron
