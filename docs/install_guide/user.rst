@@ -19,11 +19,15 @@ Using advanced neutron's possibilities with VMware DVS plugin
 
 #. You can use Neutron for such instance brand the same way as for KVM-located instances.
 
-#. DVS Security groups functionality differs from KVM implementatin. VMWare DVS does not
-   support stateful firewall properties and ICMP types. DVS Plugin realises emulation logic
+#. DvSwitch Security groups functionality differs from KVM implementation. VMWare dvSwich
+   does not support stateful firewall properties and ICMP types. DVS Plugin realises emulation logic
    to support the similar behavior. It installs reverse traffic rule for each SG rule.
    VMWare DVS plugin state emulation logic uses ephemeral port range filter to rise security
    of reverse rules implementation.
+
+   Usage of Remote Security Groups is possible but it can couse rules changes for multiple ports.
+   SG engine will change rules in evenually consistent manner. Do not use Remote Security Groups
+   with many attached ports if you need fast security rules changes.
 
    Just add only those rules if you want to correctly launch EC2 compatible image with
    matadata request and DNS access:
@@ -56,7 +60,3 @@ Using advanced neutron's possibilities with VMware DVS plugin
 
    DVS plugin support only symmectric ICMP interaction. If your host can ping destination host,
    it means the destination host can ping your host by reverse rules.
-
-#. Sometimes the error at log files happens "Cannot complete operation due to concurrent
-   modification by another operation." due to absence of concurrent access to modify resources
-   by vSphere. Do not panic. Driver has special wrapper for this exception.

@@ -6,14 +6,9 @@ the agent. Thereby the main source of information for troubleshooting is
 /var/log/neutron/server.log and /var/log/neutron/vmware-dvs-agent-....log.
 
 Please to be sure in correctness of configuration in
-the /etc/neutron/neutron.conf, /etc/neutron/plugin.ini. and
+the /etc/neutron/plugin.ini and
 /etc/neutron/plugins/ml2/vmware_dvs-.....ini It should contain following
 values:
-
-neutron.conf::
-
-  notification_driver=messagingv2
-
 
 plugin.ini::
 
@@ -35,12 +30,27 @@ vmware_dvs-<vcenter AZ>-<service name>.ini::
 
   [ml2_vmware]
   vsphere_login=<vsphere_user>
-  network_maps=physnet2:<VDS>
+  network_maps=physnet2:<dvSwitch>
   vsphere_hostname=<vsphere_ip>
   vsphere_password=<vsphere_password>
 
 Sure all neutron-dvs-agent should be launched on corresponded nodes. On
 controllers --- under corosync and on compute-vmware --- via init script.
+
+Neutron-dvs-agents must be in active state with cluster host name:
+
+  root@node-1:~# neutron agent-list -c agent_type -c alive -c host
+
+  +--------------------+-------+--------------------------+
+  | agent_type         | alive | host                     |
+  +--------------------+-------+--------------------------+
+  | Open vSwitch agent | :-)   | node-1.test.domain.local |
+  | DHCP agent         | :-)   | node-1.test.domain.local |
+  | L3 agent           | :-)   | node-1.test.domain.local |
+  | DVS agent          | :-)   | vcenter-asdf             |
+  | Metadata agent     | :-)   | node-1.test.domain.local |
+  | DVS agent          | :-)   | vcenter-qwer             |
+  ...
 
 Also in case of trouble would be useful to check the
 connectivity between controller nodes and vCenter.

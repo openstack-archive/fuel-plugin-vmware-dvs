@@ -5,5 +5,5 @@ Limitations
 
 - Only vSphere 5.5 & 6.0 are supported.
 
-- Each vSphere Cluster shoud be connected with individual dvSwitch with same
-  name as that Cluster.
+- All hosts of each vSphere Cluster shoud be connected with dvSwitch
+  with same name as that Cluster.
