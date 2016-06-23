@@ -231,7 +231,7 @@ Assignee(s)
 
 :Primary assignee: Igor Gajsin <igajsin>
 
-:QA: Olesia Tsvigun <otsvigun>
+:QA: Olesia Tsvigun <otsvigun>, Vasily Gorin <vgorin>
 
 :Mandatory design review: Vladimir Kuklin <vkuklin>, Bogdan Dobrelia
                         <bogdando>, Sergii Golovatiuk <sgolovatiuk>
