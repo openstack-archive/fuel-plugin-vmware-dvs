@@ -9,9 +9,9 @@ Introduction
 Purpose
 =======
 
-Main purpose of this document is intended to describe Quality Assurance
-activities, required to insure that  Fuel plugin for Neutron ML2  vmware_dvs
-driver is  ready for production. The project will be able to offer VMware DVS
+The main purpose of this document is to describe Quality Assurance activities
+required to ensure that the Fuel plugin for Neutron ML2 vmware_dvs driver
+is ready for production. The project will be able to offer VMware DVS
 integration functionality with MOS.
 
 The scope of this plan defines the following objectives:
@@ -26,12 +26,12 @@ The scope of this plan defines the following objectives:
 Scope
 =====
 
-Fuel VMware DVS plugin includes Neutron ML2 Driver For VMWare vCenter DVS
-which is developed by third party. This test plan covers a full functionality
-of Fuel VMware DVS plugin, include basic scenarios related with DVS driver for
-Neutron.
+The Fuel VMware DVS plugin includes Neutron ML2 Driver For VMware vCenter DVS
+which is developed by third party. This test plan covers the full functionality
+of Fuel VMware DVS plugin, includes basic scenarios related to the DVS driver
+for Neutron.
 
-Following test types should be provided:
+The following test types should be provided:
 
 * Smoke/BVT tests
 * Integration tests
@@ -39,9 +39,9 @@ Following test types should be provided:
 * Destructive tests
 * GUI tests
 
-Performance testing will be executed on the scale lab and a custom set of
-rally scenarios must be run with DVS environment. Configuration, enviroment
-and scenarios for performance/scale testing should be determine separately.
+Performance testing will be executed on the scale lab and a custom set of rally
+scenarios must be run with the DVS environment. The configuration, environment,
+and scenarios for performance/scale testing must be determined separately.
 
 Intended Audience
 =================
@@ -52,9 +52,9 @@ managers) and all other persons who are interested in testing results.
 Limitation
 ==========
 
-Plugin (or its components) has the following limitations:
+The plugin (or its components) has the following limitations:
 
-* VMware DVS plugin be enabled only in environments with Neutron as the networking option.
+* VMware DVS plugin can be enabled only in environments with Neutron as a networking option
 * Only VLANs are supported for tenant network separation.
 * Only vSphere 5.5 & 6.0 are supported.
 
@@ -81,34 +81,34 @@ Product compatibility matrix
 Test environment, infrastructure and tools
 ==========================================
 
-Following configuration should be used in the testing:
+The following configuration should be used in the testing:
 
 * 1 physnet to 1 DVS switch (dvSwitch).
 
-Other recommendation you can see in the test cases.
+Other recommendation are in the test cases.
 
 **************************************
 Evaluation Mission and Test Motivation
 **************************************
 
-Project main goal is to build a MOS plugin that integrates a Neutron ML2
-Driver For VMWare vCenter DVS. This will allow to use Neutron for networking
-in vmware-related environments. The plugin must be compatible with the version
-9.0 of Mirantis OpenStack and should be tested with sofware/hardware described
-in `product compatibility matrix`_.
+The main goal of the project is to build a MOS plugin that integrates
+the Neutron ML2 Driver For VMware vCenter DVS. This will allow to use Neutron
+for networking in VMware-related environments. The plugin must be compatible
+with the version 9.0 of Mirantis OpenStack and should be tested with the
+software/hardware described in `product compatibility matrix`_.
 
 See the VMware DVS Plugin specification for more details.
 
 Evaluation mission
 ==================
 
-* Find important problems with integration of Neutron ML2 driver for DVS.
-* Verify a specification.
-* Provide tests for maintenance update.
+* Find pressing issues with the integration of Neutron ML2 driver for DVS.
+* Verify the specification.
+* Provide tests for the maintenance update.
 * Lab environment deployment.
-* Deploy MOS with developed plugin installed.
+* Deploy MOS with the developed plugin installed.
 * Create and run specific tests for plugin/deployment.
-* Verify a documentation.
+* Verify the documentation.
 
 *****************
 Target Test Items
@@ -217,7 +217,7 @@ executed successfully for starting test phase:
 * implementation of testing features has finished (a new build is ready for testing);
 * implementation code is stored in GIT;
 * test environment is prepared with correct configuration, installed all needed software, hardware;
-* test environment contains the last delivered build for testing;
+* test environment contains the latest delivered build for testing;
 * test plan is ready and confirmed internally;
 * implementation of manual tests and autotests (if any) has finished.
 

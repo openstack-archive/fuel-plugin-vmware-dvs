@@ -63,7 +63,7 @@ smoke
 Steps
 #####
 
-    1. Connect to fuel node with preinstalled plugin via ssh.
+    1. Connect to fuel node with pre-installed plugin via ssh.
     2. Remove plugin.
 
 
@@ -73,8 +73,8 @@ Expected result
 Verify that plugin is removed, run command 'fuel plugins'.
 
 
-Verify that all elements of DVS plugin section meets the requirements.
-----------------------------------------------------------------------
+Verify that all elements of DVS plugin section meet the requirements.
+---------------------------------------------------------------------
 
 
 ID
@@ -86,7 +86,7 @@ dvs_gui
 Description
 ###########
 
-Verify that all elements of DVS plugin section meets the requirements.
+Verify that all elements of DVS plugin section meet the requirements.
 
 
 Complexity
@@ -98,7 +98,7 @@ smoke
 Steps
 #####
 
-    1. Install Neutron VMware DVS ML2 plugin on master node. Connect to a Fuel Web UI .
+    1. Install Neutron VMware DVS ML2 plugin on master node. Connect to the Fuel Web UI .
     2. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
@@ -110,16 +110,16 @@ Steps
        "Enter the cluster to dvSwitch mapping." text field with description 'List of ClusterName:SwitchName pairs, separated by semicolon. '
        'Versions' radio button with <plugin version>
     4. Verify that check box "Neutron VMware DVS ML2 plugin" is enabled by default.
-    5. Verify that user can disabled -> enabled DVS plugin by click on check box "Neutron VMware DVS ML2 plugin".
+    5. Verify that user can disable -> enable the DVS plugin by clicking on the checkbox “Neutron VMware DVS ML2 plugin”
     6. Verify that  check box "Use the VMware DVS firewall driver" is enabled by default.
-    7. Verify that all labels of DVS plugin section have same font style and color.
-    8. Verify that all elements of DVS plugin section are  vertical aligned.
+    7. Verify that all labels of the DVS plugin section have the same font style and color.
+    8. Verify that all elements of the DVS plugin section are vertically aligned
 
 
 Expected result
 ###############
 
-All elements of DVS plugin section meets the requirements.
+All elements of DVS plugin section meet the requirements.
 
 
 Deployment with plugin, controller and vmware datastore backend.
@@ -160,7 +160,7 @@ Steps
     6. Configure network settings.
     7. Enable and configure DVS plugin.
     8. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure
-       Nova Compute instances on conrollers.
+       Nova Compute instances on controllers.
     9. Deploy cluster.
     10. Run OSTF.
 
@@ -196,7 +196,7 @@ smoke
 Steps
 #####
 
-    1. Connect to a Fuel web UI with preinstalled plugin.
+    1. Connect to the Fuel web UI with prei-nstalled plugin.
     2. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
@@ -213,7 +213,7 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin.
-    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers and compute-vmware.
+    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers and compute-vmware.
     8. Verify networks.
     9. Deploy cluster.
     10. Run OSTF.
