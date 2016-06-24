@@ -133,7 +133,7 @@ class TestDVSSmoke(TestBasic):
             7. Enable and configure DVS plugin.
             8  Configure VMware vCenter Settings.
                Add 1 vSphere clusters and configure Nova Compute instances
-               on conrollers.
+               on controllers.
             9. Deploy the cluster.
             10. Run OSTF.
 
