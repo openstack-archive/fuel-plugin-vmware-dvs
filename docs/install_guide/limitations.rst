@@ -7,3 +7,5 @@ Limitations
 
 - All hosts of each vSphere Cluster shoud be connected with dvSwitch
   with same name as that Cluster.
+
+- There is no IPv6 support.
