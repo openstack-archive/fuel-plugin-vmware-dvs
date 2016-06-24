@@ -201,7 +201,7 @@ class TestDVSDestructive(TestBasic):
             4. Bind sub_net port of instances.
             5. Check instances are not available.
             6. Enable sub_net port of all instances.
-            7. Verify that instances should communicate between each other.
+            7. Verify that instances communicate between each other.
                Send icmp ping between instances.
 
 
@@ -510,7 +510,7 @@ class TestDVSDestructive(TestBasic):
             6. Enable and configure DVS plugin.
             7. Enable VMWare vCenter/ESXi datastore for images (Glance).
             8. Configure VMware vCenter Settings. Add 2 vSphere clusters
-               and configure Nova Compute instances on conrollers.
+               and configure Nova Compute instances on controllers.
             9. Configure Glance credentials on VMware tab.
             10. Verify networks.
             11. Deploy cluster.

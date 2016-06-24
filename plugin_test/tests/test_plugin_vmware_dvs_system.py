@@ -748,9 +748,9 @@ class TestDVSSystem(TestBasic):
             10. Launch instances VM_7 and VM_8
                in the net01(default admin tenant)
                with image TestVM-VMDK and flavor m1.micro in vcenter az.
-            11. Verify that VM_1, VM_2, VM_3 and VM_4 should communicate
+            11. Verify that VM_1, VM_2, VM_3 and VM_4 communicate
                between each other via no floating ip.
-            12. Verify that VM_5, VM_6, VM_7 and VM_8 should communicate
+            12. Verify that VM_5, VM_6, VM_7 and VM_8 communicate
                between each other via no floating ip.
 
         Duration: 30 min
@@ -1000,7 +1000,7 @@ class TestDVSSystem(TestBasic):
             3. Launch instances with image TestVM-VMDK
                and flavor m1.micro in vcenter availability zone.
             4. Verify that instances on different hypervisors
-               should communicate between each other.
+               communicate between each other.
                Send icmp ping from VM_1 instances of vCenter to instances
                from Qemu/KVM and vice versa.
 
@@ -1074,7 +1074,7 @@ class TestDVSSystem(TestBasic):
             4. Launch instances with image TestVM-VMDK
                and flavor m1.micro in vcenter availability zone in net_01.
             5. Verify that instances on different hypervisors
-               should communicate between each other.
+               communicate between each other.
                Send icmp ping from VM_1 instances of vCenter to instances
                from Qemu/KVM and vice versa.
 
@@ -1282,13 +1282,13 @@ class TestDVSSystem(TestBasic):
                with image TestVM and flavor m1.micro in nova az.
             10. Launch instances in the net02
                 with image TestVM-VMDK and flavor m1.micro in vcenter az.
-            11. Verify that instances of same networks should communicate
+            11. Verify that instances of same networks communicate
                 between each other via private ip.
                 Send icmp ping between instances.
             12. Verify that instances of different networks should not
                 communicate between each other via private ip.
             13. Delete net_02 from Router_02 and add it to the Router_01.
-            14. Verify that instances of different networks should communicate
+            14. Verify that instances of different networks communicate
                 between each other via private ip.
                 Send icmp ping between instances.
 
@@ -1500,7 +1500,7 @@ class TestDVSSystem(TestBasic):
         according security groups rules.
 
         Scenario:
-            1. Setup for system tests.
+            1. Set up for system tests.
             2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to
                the router01.
             3. Create security groups: SG1, SG2
@@ -1653,7 +1653,7 @@ class TestDVSSystem(TestBasic):
         according security group rules with remote ip prefix.
 
         Scenario:
-            1. Setup for system tests.
+            1. Set up for system tests.
             2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to
                the router01.
             3. Create instance 'VM1' of any availability zone in the
