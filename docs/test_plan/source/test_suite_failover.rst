@@ -78,7 +78,7 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin.
-    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers.
+    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers.
     8. Verify networks.
     9. Deploy cluster.
     10. Run OSTF
@@ -94,7 +94,7 @@ Steps
 Expected result
 ###############
 
-Vcenter-vmcluster should be migrate to another controller. Ping is available between instances.
+Vcenter-vmcluster should migrate to another controller. Ping is available between instances.
 
 
 Check cluster functionality after reboot vcenter (Nova Compute on controllers).
@@ -262,7 +262,7 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin.
-    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on conrollers.
+    7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers.
     8. Verify networks.
     9. Deploy cluster.
     10. Run OSTF
@@ -278,4 +278,4 @@ Steps
 Expected result
 ###############
 
-Vcenter-vmcluster should be migrate to another controller. Ping is available between instances.
+Vcenter-vmcluster should migrate to another controller. Ping is available between instances.
