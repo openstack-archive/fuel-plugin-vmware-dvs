@@ -152,6 +152,13 @@ define vmware_dvs::agent(
           'timeout' => '30',
         }
       }
+    exec {"clear_${primitive_name}":
+      path    => '/usr/sbin:/sbin:/usr/bin:/bin',
+      command => "crm_mon -1|grep ${primitive_name} && \
+      pcs resource delete ${primitive_name} || \
+      echo There is no ${primitive_name} here.",
+    }
+
     pacemaker::service { $primitive_name :
       prefix             => false,
       primitive_class    => 'ocf',
@@ -167,6 +174,7 @@ define vmware_dvs::agent(
       enable => true,
     }
 
+    Exec["clear_${primitive_name}"]->
     File[$agent_config]->
     File[$ocf_dvs_res]->
     Pcmk_resource[$primitive_name]->
