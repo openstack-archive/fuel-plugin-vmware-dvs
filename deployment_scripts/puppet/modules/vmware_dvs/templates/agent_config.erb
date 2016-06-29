@@ -2,7 +2,7 @@
 host=<%= @host %>
 
 [securitygroup]
-enable_security_group = True
+enable_security_group = <%= @use_fw_driver %>
 firewall_driver=<%= @fw_driver %>
 
 [ml2_vmware]
