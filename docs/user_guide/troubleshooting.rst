@@ -1,12 +1,19 @@
 Troubleshooting
 ~~~~~~~~~~~~~~~
 
-VMware DVS driver consists of two parts: the mechanism driver of Neutron and
-the VMware DVS agent. Therefore, two main sources of information for
-troubleshooting are ``/var/log/neutron/server.log`` and
-``/var/log/neutron/vmware-dvs-agent-....log``.
+This section contains a guidance on how to ensure that the VMware DVS plugin
+is up and running on your deployed environment.
 
-**To verify Neutron configuration files:**
+**To find logs**
+
+The VMware DVS driver consists of two parts: the mechanism driver of Neutron
+and the VMware DVS agent. Therefore, two main sources of information for
+troubleshooting are:
+
+* ``/var/log/neutron/server.log``
+* ``/var/log/neutron/vmware-dvs-agent-....log``
+
+**To verify Neutron configuration files**
  
 To deliver a stable performance of the VMware DVS plugin, verify that the
 Neutron configuration files contain the following values:
@@ -45,11 +52,15 @@ Neutron configuration files contain the following values:
    vsphere_hostname=<vsphere_ip>
    vsphere_password=<vsphere_password>
 
-Verify that all neutron-dvs-agent services are launched on corresponding nodes:
+**To verify neutron-dvs-agent services**
 
-* On controllers: under corosync
+All neutron-dvs-agent services should be launched on the corresponding
+nodes:
+
+* On controllers: under Corosync
 * On compute-vmware: using the init script
 
-Verify the connectivity between controller nodes and vCenter:
+**To verify connectivity**
 
-.. TODO: add CLI command
+Check the connectivity between controller nodes and vCenter using the
+:command:`ping` command.

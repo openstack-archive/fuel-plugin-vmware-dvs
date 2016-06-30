@@ -19,7 +19,7 @@ are attached:
 
 |
 
-In Horizon, the network topology looks like the following:
+In Horizon, the network topology looks as follows:
 
 .. figure:: _static/topology.png
    :width: 100%
@@ -68,7 +68,7 @@ Example of a common egress TCP rule:
 
 * TCP egress to any ports 0.0.0.0/0 CIDR
 
-It works in the following way:
+It works as follows:
 
 * TCP egress from any IP ports 32768-65535 to any IP any port
 * TCP ingress from any IP any port to any IP ports 32768-65535
@@ -78,13 +78,6 @@ Once applied, the private ports of your VM like HTTP or SSH will be closed.
 The VMWare DVS plugin supports only symmetric ICMP interaction. If your host
 can ping a destination host, it means that the destination host can ping your
 host by reverse rules.
-
-Sometimes, you can see the following error in log files:
-*Cannot complete operation due to concurrent modification by another
-operation.*
-Reason: concurrent access is missing to modify resources by vSphere.
-Solution: the VMWare DVS plugin driver has special wrapper for this exception.
-Therefore, you can ignore this error.
 
 .. raw:: latex
 
