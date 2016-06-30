@@ -1,14 +1,14 @@
 .. _configure_env:
 
 Configure an environment with VMware DVS plugin
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------
 
 Configuring and deploying an environment with VMware DVS plugin involves
 creating an environment in Fuel and modifying the environment settings.
 
 **To configure an OpenStack environment with VMware DVS plugin:**
 
-#. Using Fuel Web UI, follow steps 1-5 of the `Create a new OpenStack
+#. Using Fuel web UI, follow steps 1-5 of the `Create a new OpenStack
    environment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/create-environment/start-create-env.html>`_
    instruction.
 
@@ -31,7 +31,7 @@ creating an environment in Fuel and modifying the environment settings.
    environment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/create-environment/start-create-env.html>`_
    instruction.
 
-#. In the :guilabel:`Nodes` tab of the Fuel Web UI, `add
+#. In the :guilabel:`Nodes` tab of the Fuel web UI, `add
    <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/configure-environment/add-nodes.html>`_
    at least 1 :guilabel:`Controller` node to the environment:
 
@@ -55,7 +55,7 @@ creating an environment in Fuel and modifying the environment settings.
       :guilabel:`Use the VMware DVS firewall driver`.
 
    .. figure:: _static/settings.png
-      :width: 100%
+      :width: 90%
 
    .. caution::
       VMware DVS ML2 plugin does not support the Distributed Virtual Routers
@@ -72,8 +72,8 @@ creating an environment in Fuel and modifying the environment settings.
       :width: 90%
 
 #. Make additional configuration adjustments as described in the
-   `Configure your environment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/configure-environment.html>`_
-   section of Fuel User Guide.
+   *Configure your environment* section of the
+   `Fuel User Guide <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/configure-environment.html>`_.
 
 #. Proceed to the `environment deployment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/deploy-environment.html>`_.
 

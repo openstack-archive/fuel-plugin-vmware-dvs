@@ -2,9 +2,9 @@ Using advanced Neutron possibilities with VMware DVS plugin
 -----------------------------------------------------------
 
 Once you deploy an OpenStack environment with VMware DVS plugin, you can
-start using Neutron for networking. When neutron creates a new network it
-doesn't affect any VDS until a port in that network would attached to VM, that
-launched on a corresponding Cluster.
+start using Neutron for networking. When Neutron creates a new network, it
+does not affect any VDS until a port in that network is attached to a VM
+launched on a corresponding environment.
 
 **DVS security groups**
 
@@ -44,7 +44,7 @@ Example of a common egress TCP rule:
 
 * TCP egress to any ports 0.0.0.0/0 CIDR
 
-It works in the following way:
+It works as follows:
 
 * TCP egress from any IP ports 32768-65535 to any IP any port
 * TCP ingress from any IP any port to any IP ports 32768-65535
@@ -54,7 +54,3 @@ Once applied, the private ports of your VM like HTTP or SSH will be closed.
 The VMWare DVS plugin supports only symmetric ICMP interaction. If your host
 can ping a destination host, it means that the destination host can ping your
 host by reverse rules.
-
-.. raw:: latex
-
-   \pagebreak

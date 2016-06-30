@@ -1,5 +1,5 @@
 Install VMware DVS plugin
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Before you proceed with the VMware DVS plugin installation, verify that:
 
