@@ -1,15 +1,15 @@
 .. _prereqs:
 
 Prerequisites
-~~~~~~~~~~~~~
+-------------
 
-Before you install and start using VMware DVS plugin on Fuel, complete the
+Before you install and start using the VMware DVS plugin on Fuel, complete the
 following steps:
 
 #. Install and set up
    `Fuel 9.0 <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-install-guide.html>`__.
 
-#. Read the *Plan the vSphere integration* section in
+#. Plan the vSphere integration. For details, see
    `Mirantis OpenStack Planning Guide <https://docs.mirantis.com/openstack/fuel/fuel-8.0/mos-planning-guide.html#plan-the-vsphere-integration>`_.
 
    .. seealso::
@@ -34,15 +34,16 @@ following steps:
           * dvPort group.Modify
           * dvPort group.Policy operation
 
-   It allows the VMware DVS plugin to use manipulation resources of VMware
+   This allows the VMware DVS plugin to use manipulation resources of VMware
    vSphere Distributed Switch (VDS).
 
-#. Create and properly configure VDSes on vCenter that will be used in
+#. Create and properly configure VDSes on vCenter that will be used for
    your environment. For details, see the VDS videos in the
    :menuselection:`Technical Details -> Resources` section on the
-   `VMware Distributed Switch page <https://www.vmware.com/products/vsphere/features/distributed-switch>`__.
+   `VMware Distributed Switch <https://www.vmware.com/products/vsphere/features/distributed-switch>`__
+   page.
 
-#. Connect the VMware DVS plugin to the precreated and configured VDSes.
+#. Connect the VMware DVS plugin to the pre-created and configured VDSes.
 
    .. note::
     The VMware DVS plugin does not create new VDSes but uses the existing ones.

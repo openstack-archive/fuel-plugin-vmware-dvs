@@ -1,7 +1,7 @@
 .. _links:
 
 Useful links
-============
+------------
 
 For more information about Fuel VMware DVS plugin described in this document,
 see:

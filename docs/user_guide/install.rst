@@ -1,5 +1,5 @@
 Install VMware DVS plugin
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Before you proceed with the VMware DVS plugin installation, verify that:
 
@@ -8,7 +8,7 @@ Before you proceed with the VMware DVS plugin installation, verify that:
 #. All the nodes of your future environment are :guilabel:`DISCOVERED` on the
    Fuel Master node.
 
-#. You have a connectivity to correctly configured vCenter with VDSes and
+#. You have connectivity to correctly configured vCenter with VDSes and
    clusters created.
 
 **To install the VMware DVS plugin:**
@@ -22,7 +22,7 @@ Before you proceed with the VMware DVS plugin installation, verify that:
 
      $ scp fuel-plugin-vmware-dvs-3.0-3.0.0-1.noarch.rpm <Fuel Master node ip>:/tmp
 
-#. Log into the Fuel Master node CLI as root.
+#. Log in to the Fuel Master node CLI as root.
 
 #. Install the plugin:
 
