@@ -1,7 +1,7 @@
 .. _definitions:
 
 Key terms
-~~~~~~~~~
+---------
 
 The table below lists the key terms, acronyms, and abbreviations that are used
 in this document.

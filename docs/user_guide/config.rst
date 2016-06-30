@@ -1,14 +1,14 @@
 .. _configure_env:
 
 Configure an environment with VMware DVS plugin
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------
 
 Configuring and deploying an environment with VMware DVS plugin involves
 creating an environment in Fuel and modifying the environment settings.
 
 **To configure an OpenStack environment with VMware DVS plugin:**
 
-#. Using Fuel Web UI, follow steps 1-5 of the `Create a new OpenStack
+#. Using the Fuel web UI, follow steps 1 to 5 of the `Create a new OpenStack
    environment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/create-environment/start-create-env.html>`_
    instruction.
 
@@ -31,14 +31,14 @@ creating an environment in Fuel and modifying the environment settings.
    environment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/create-environment/start-create-env.html>`_
    instruction.
 
-#. In the :guilabel:`Nodes` tab of the Fuel Web UI, `add
+#. In the :guilabel:`Nodes` tab of the Fuel web UI, `add
    <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/configure-environment/add-nodes.html>`_
-   at least 1 :guilabel:`Controller` node to the environment:
+   at least one :guilabel:`Controller` node to the environment:
 
    .. figure:: _static/nodes-controller.png
       :width: 90%
 
-   (Optional) You can also add 1 dedicated :guilabel:`Compute VMware` node:
+   (Optional) You can also add one dedicated :guilabel:`Compute VMware` node:
 
    .. figure:: _static/nodes-vmware.png
       :width: 90%
@@ -55,12 +55,12 @@ creating an environment in Fuel and modifying the environment settings.
       :guilabel:`Use the VMware DVS firewall driver`.
 
    .. figure:: _static/settings.png
-      :width: 100%
+      :width: 90%
 
    .. caution::
-      VMware DVS ML2 plugin does not support the Distributed Virtual Routers
-      (DVR) feature. Therefore, do not select :guilabel:`Neutron DVR` in
-      :menuselection:`Neutron L3 Configuration -> Neutron Advanced Configuration`.
+      The VMware DVS ML2 plugin does not support the Distributed Virtual
+      Routers (DVR) feature. Therefore, do not select :guilabel:`Neutron DVR`
+      in :menuselection:`Neutron L3 Configuration -> Neutron Advanced Configuration`.
 
 .. raw:: latex
 
@@ -71,9 +71,7 @@ creating an environment in Fuel and modifying the environment settings.
    .. figure:: _static/vmware.png
       :width: 90%
 
-#. Make additional configuration adjustments as described in the
-   `Configure your environment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/configure-environment.html>`_
-   section of Fuel User Guide.
+#. Make additional `configuration adjustments <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/configure-environment.html>`_.
 
 #. Proceed to the `environment deployment <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-user-guide/deploy-environment.html>`_.
 
