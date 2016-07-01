@@ -1132,3 +1132,144 @@ Expected result
 
 Cluster (nodes) should remain in ready state.
 OSTF test should be passed on rerun
+
+
+Modifying env with DVS plugin(removing/adding controller)
+---------------------------------------------------------
+
+ID
+##
+
+dvs_modifying_controller
+
+
+Description
+###########
+
+Adding and remove controllers to existed cluster with preinstalled DVS plugin.
+
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Install DVS plugin
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation + Neutron with DVS
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Controller
+        * Controller
+        * Compute
+        * ComputeVMware
+    4. Configure networks.
+    5. Configure DVS plugin.
+    6. Enable VMware vCenter/ESXi datastore for images (Glance).
+    7. Configure VMware vCenter Settings.
+    8. Verify networks.
+    9. Deploy changes
+    10. Run OSTF
+    11. Remove primary controller from the cluster
+    12. Deploy changes
+    13. Rerun OSTF
+    14. Add 1 nodes with controller role to the cluster
+    15. Verify networks
+    16. Redeploy changes
+    17. Rerun OSTF
+
+Expected result
+###############
+
+Cluster is deployed successfully and all OSTF tests are passed.
+
+
+Modifying env with DVS plugin(removing/adding compute)
+------------------------------------------------------
+
+ID
+##
+
+dvs_modifying_compute
+
+
+Description
+###########
+
+Adding and remove controllers to existed cluster with preinstalled DVS plugin.
+
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Set up for system tests.
+    2. Remove compute from the cluster
+    3. Deploy changes
+    4. Rerun OSTF
+    5. Add 1 nodes with compute role to the cluster
+    6. Verify networks
+    7. Redeploy changes
+    8. Rerun OSTF
+
+Expected result
+###############
+
+Cluster is deployed successfully and all OSTF tests are passed.
+
+
+Modifying env with DVS plugin(removing/adding compute-vmware)
+-------------------------------------------------------------
+
+ID
+##
+
+dvs_modifying_compute_vmware
+
+
+Description
+###########
+
+Adding and remove compute-vmware to existed cluster with preinstalled DVS plugin.
+
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Install DVS plugin
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Controller
+        * Controller
+    4. Configure VMware vCenter Settings. Add vSphere clusters and configure Nova Compute instance on conrollers.
+    5. Deploy the cluster.
+    6. Run OSTF tests.
+    7. Launch instance in vcenter az.
+    8. Add a node with compute-vmware role and redeploy cluster.
+    9. Verify that previously created instance is working.
+    10. Run OSTF tests.
+
+Expected result
+###############
+
+Cluster is deployed successfully and all OSTF tests are passed.
