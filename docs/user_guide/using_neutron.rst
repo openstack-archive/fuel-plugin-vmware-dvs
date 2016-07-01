@@ -1,34 +1,10 @@
 Using advanced Neutron possibilities with VMware DVS plugin
 -----------------------------------------------------------
 
-This section describes the features that you get while using the VMware DVS
-plugin as well as outlines the usage aspects of DVS security groups.
-
 Once you deploy an OpenStack environment with VMware DVS plugin, you can
-start using Neutron for networking.
-
-The port group for ``admin_internal_net`` is created on clusters when VMs
-are attached:
-
-.. figure:: _static/net04pg.png
-   :width: 100%
-
-.. raw:: latex
-
-   \pagebreak
-
-|
-
-In Horizon, the network topology looks like the following:
-
-.. figure:: _static/topology.png
-   :width: 100%
-
-where *VMware* is the name of the instance located in vCenter. You can use
-Neutron for such instance the same way as for KVM-located instances.
-
-.. TODO OL: Update the picture so that it displays the instance name
-   as mentioned in description.
+start using Neutron for networking. When neutron creates a new network it
+doesn't affect any VDS until a port in that network would attached to VM, that
+launched on a corresponding Cluster.
 
 **DVS security groups**
 
@@ -78,13 +54,6 @@ Once applied, the private ports of your VM like HTTP or SSH will be closed.
 The VMWare DVS plugin supports only symmetric ICMP interaction. If your host
 can ping a destination host, it means that the destination host can ping your
 host by reverse rules.
-
-Sometimes, you can see the following error in log files:
-*Cannot complete operation due to concurrent modification by another
-operation.*
-Reason: concurrent access is missing to modify resources by vSphere.
-Solution: the VMWare DVS plugin driver has special wrapper for this exception.
-Therefore, you can ignore this error.
 
 .. raw:: latex
 
