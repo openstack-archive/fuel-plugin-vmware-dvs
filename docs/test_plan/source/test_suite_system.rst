@@ -597,17 +597,46 @@ Steps
     1. Set up for system tests.
     2. Log in to Horizon Dashboard.
     3. Create 2 non-admin tenants "test_1" and "test_2": Identity -> Projects -> Create Project. On tab Project Members add admin with admin and member.
-    4. In tenant "test_1" create net1 and subnet1 with CIDR 10.0.0.0/24.
-    5. In tenant "test_1" create security group "SG_1" and add rule that allows ingress icmp traffic.
-    6. In tenant "test_2" create net2 and subnet2 with CIDR 10.0.0.0/24.
-    7. In tenant "test_2" create security group "SG_2".
-    8. In tenant "test_1"  launch VM_1 of vcenter availability zone in net1 with ip 10.0.0.4 and "SG_1" as security group.
-    9. In tenant "test_1"  launch  VM_2 of nova availability zone in net1 with ip 10.0.0.5 and "SG_1" as security group.
-    10. In tenant "test_2" create net1 and subnet1 with CIDR 10.0.0.0/24.
-    11. In tenant "test_2" create security group "SG_1" and add rule that allows ingress icmp traffic.
-    12. In tenant "test_2" launch  VM_3 of nova  availability zone in net1 with ip 10.0.0.4 and "SG_1" as security group.
-    13. In tenant "test_2" launch VM_4 of vcenter availability zone in net1 with ip 10.0.0.5 and "SG_1" as security group.
-    14. Verify that instances with same ip on different tenants communicate between each other. Send icmp ping from VM_1 to VM_3,  VM_2 to VM_4 and vice versa.
+    4. In tenant 'test_1' create net1 and subnet1 with CIDR 10.0.0.0/24.
+    5. In tenant 'test_1' create Router 'router_01' with external floating network
+    6. In tenant 'test_1' attach interface of 'net1', 'subnet1' to 'router_1'
+    7. In tenant 'test_1' create security group "SG_1" and add rule that allows ingress icmp traffic.
+    8. In tenant 'test_1' launch instance:
+        * name: VM_1
+        * AZ: vcenter
+        * image: TestVM-VMDK
+        * flavor: m1.micro
+        * network: net1 with ip 10.0.0.4
+        * SG: SG_1
+    9. In tenant 'test_1' launch instance:
+        * name: VM_2
+        * AZ: nova
+        * image: TestVM
+        * flavor: m1.micro
+        * network: net1 with ip 10.0.0.5
+        * SG: SG_1
+    10. In tenant 'test_2' create net2 and subnet2 with CIDR 10.0.0.0/24.
+    11. In tenant 'test_2' Create Router 'router_2' with external floating network
+    12. In tenant 'test_2' attach interface of net2, subnet2 to router_2
+    13. In tenant "test_2" create security group "SG_2" and add rule that allows ingress icmp traffic.
+    14. In tenant "test_2" launch instance:
+        * name: VM_3
+        * AZ: nova
+        * image: TestVM
+        * flavor: m1.micro
+        * network: net2 with ip 10.0.0.4
+        * SG: SG_2
+    15. In tenant "test_2" launch instance:
+        * name: VM_4
+        * AZ: vcenter
+        * image: TestVM-VMDK
+        * flavor: m1.micro
+        * network: net2 with ip 10.0.0.5
+        * SG: SG_2
+    16. Assign floating ips for each instance
+    17. Check instances in tenant_1 communicate between each other by internal ip
+    18. Check instances in tenant_2 communicate between each other by internal ip
+    19. Check instances in different tenants communicate between each other by floating ip.
 
 
 Expected result
@@ -1176,13 +1205,12 @@ Steps
     8. Deploy changes
     9. Run OSTF
     10. Remove controller on which DVS agent is run.
-    11. Reconfigure VMware vCenter Settings.
-    12. Deploy changes
-    13. Rerun OSTF
-    14. Add 1 nodes with controller role to the cluster
-    15. Verify networks
-    16. Redeploy changes
-    17. Rerun OSTF
+    11. Deploy changes
+    12. Rerun OSTF
+    13. Add 1 nodes with controller role to the cluster
+    14. Verify networks
+    15. Redeploy changes
+    16. Rerun OSTF
 
 Expected result
 ###############
@@ -1218,7 +1246,7 @@ Steps
     3. Verify networks
     4. Deploy changes
     5. Rerun OSTF
-    6. Add 1 nodes with compute role to the cluster
+    6. Add 1 node with compute role to the cluster
     7. Verify networks
     8. Redeploy changes
     9. Rerun OSTF
@@ -1262,11 +1290,11 @@ Steps
         * Controller
         * Controller
         * Controller
-    4. Configure VMware vCenter Settings. Add vSphere clusters and configure Nova Compute instance on conrollers.
+    4. Configure VMware vCenter Settings. Add vSphere clusters and configure Nova Compute instance on conroller.
     5. Deploy the cluster.
     6. Run OSTF tests.
     7. Launch instance in vcenter az.
-    8. Add 2 nodes with compute-vmware role and redeploy cluster.
+    8. Add 1 node with compute-vmware role,configure Nova Compute instance on compute-vmware and redeploy cluster.
     9. Verify that previously created instance is working.
     10. Run OSTF tests.
     11. Delete compute-vmware
