@@ -21,7 +21,7 @@ INVALIDTASK_ERR=112
 
 export REBOOT_TIMEOUT=${REBOOT_TIMEOUT:-5000}
 export ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT=${ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT:-true}
-
+export TIMEOUT=1
 
 ShowHelp() {
 cat << EOF
@@ -493,10 +493,11 @@ RunTest() {
     fi
 
     #Wait before environment is created
-    while [ $(virsh net-list |grep -c $ENV_NAME) -ne 5 ];do sleep 10
+    while [ $(virsh net-list |grep -c $ENV_NAME) -ne 5 ]; do 
+      sleep 5 
       if ! ps -p $SYSTEST_PID > /dev/null
       then
-        echo System tests exited prematurely, aborting
+        echo "System tests exited prematurely, aborting"
         exit 1
       fi
     done
@@ -505,11 +506,13 @@ RunTest() {
     # Configre vcenter nodes and interfaces
     setup_net $ENV_NAME
     clean_iptables
-    revert_ws "$WORKSTATION_NODES" || { echo "killing $SYSTEST_PID and its childs" && pkill --parent $SYSTEST_PID && kill $SYSTEST_PID && exit 1; }
+
+    [ -z $NOREVERT ] && revert_ws "$WORKSTATION_NODES" $SYSTEST_PID
+
     #fixme should use only one clean_iptables call
     clean_iptables
 
-    echo waiting for system tests to finish
+    echo "Waiting for system tests to finish"
     wait $SYSTEST_PID
 
     export RES=$?
@@ -517,16 +520,7 @@ RunTest() {
     virsh net-dumpxml ${ENV_NAME}_admin | grep -P "(\d+\.){3}" -o | awk '{print "Fuel master node IP: "$0"2"}'
 
     echo Result is $RES
-
-    if [ "${KEEP_AFTER}" != "yes" ]; then
-      # remove environment after tests
-      if [ "${DRY_RUN}" = "yes" ]; then
-        echo dos.py destroy "${ENV_NAME}"
-      else
-        dos.py destroy "${ENV_NAME}"
-      fi
-    fi
-
+    [ "${KEEP_AFTER}" != "yes" ] && dos.py destroy "${ENV_NAME}"
     exit "${RES}"
 }
 
@@ -550,15 +544,14 @@ RouteTasks() {
   exit 0
 }
 
-#Define functions for VCenter configuration
 add_interface_to_bridge() {
   env=$1
   net_name=$2
   nic=$3
   ip=$4
 
-  for net in $(virsh net-list |grep ${env}_${net_name} |awk '{print $1}');do
-    bridge=$(virsh net-info $net |grep -i bridge |awk '{print $2}')
+  for net in $(virsh net-list | grep ${env}_${net_name} | awk '{print $1}'); do
+    bridge=$(virsh net-info $net | grep -i bridge |awk '{print $2}')
     setup_bridge $bridge $nic $ip && echo $net_name bridge $bridge ready
   done
 }
@@ -570,16 +563,21 @@ setup_bridge() {
 
   sudo /sbin/brctl stp $bridge off
   sudo /sbin/brctl addif $bridge $nic
-  #set if with existing ip down
-  for itf in $(sudo ip -o addr show to $ip |cut -d' ' -f2); do
-      echo deleting $ip from $itf
-      sudo ip addr del dev $itf $ip
-  done
-  echo "adding $ip to $bridge"
-  sudo /sbin/ip addr add $ip dev $bridge
-  echo "$nic added to $bridge"
+
+  if [ ! -z $ip ]; then
+    #set if with existing ip down
+    for itf in $(sudo ip -o addr show to $ip | cut -d' ' -f2); do
+        echo deleting $ip from $itf
+        sudo ip addr del dev $itf $ip
+    done
+    echo "adding $ip to $bridge"
+    sudo /sbin/ip addr flush dev $bridge
+    sudo /sbin/ip addr add $ip dev $bridge
+    echo "$nic added to $bridge"
+  fi 
+
   sudo /sbin/ip link set dev $bridge up
-  if sudo /sbin/iptables-save |grep $bridge | grep -i reject| grep -q FORWARD;then
+  if sudo /sbin/iptables-save | grep $bridge | grep -i reject | grep -q FORWARD; then
     sudo /sbin/iptables -D FORWARD -o $bridge -j REJECT --reject-with icmp-port-unreachable
     sudo /sbin/iptables -D FORWARD -i $bridge -j REJECT --reject-with icmp-port-unreachable
   fi
@@ -600,21 +598,73 @@ clean_iptables() {
   sudo /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 }
 
-revert_ws() {
-  for i in $1
-  do
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD listRegisteredVM | grep -q $i || { echo "VM $i does not exist"; continue; }
-    echo "vmrun: reverting $i to $WORKSTATION_SNAPSHOT"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD revertToSnapshot "[standard] $i/$i.vmx" $WORKSTATION_SNAPSHOT || { echo "Error: revert of $i falied";  return 1; }
-    echo "vmrun: starting $i"
-    vmrun -T ws-shared -h https://localhost:443/sdk -u $WORKSTATION_USERNAME -p $WORKSTATION_PASSWORD start "[standard] $i/$i.vmx" || { echo "Error: $i failed to start";  return 1; }
+# waiting for ending of parallel processes
+wait_revert {
+  verbose=$1 
+  while [ $(pgrep vmrun | wc -l) -ne 0 ] ; do 
+    [ $verbose == true ] && echo $(pgrep vmrun) || echo -n .
+    sleep $TIMEOUT 
   done
+  echo ''
+}
+
+
+kill_test(){
+    pid=$1
+    if [ ! -z $pid ]; then
+        echo "killing $pid and its childs" && pkill --parent $pid && kill $pid && exit 1;
+
+    elif [ -z $SYSTEST_PID ]; then
+        echo "killing $pid and its childs" && pkill --parent $pid && kill $pid && exit 1;
+
+    else
+        echo "test process id doesn't exist"
+        exit 1
+    fi
+}
+
+revert_ws() {
+  set +x
+  systest_pid=$1
+
+  [ -z $WORKSTATION_USERNAME ] && { echo "WORKSTATION_USERNAME is not set"; kill_test $systest_pid; }
+  [ -z $WORKSTATION_PASSWORD ] && { echo "WORKSTATION_PASSWORD is not set"; kill_test $systest_pid; }
+  [ -z $WORKSTATION_SNAPSHOT ] && { echo "WORKSTATION_SNAPSHOT is not set"; kill_test $systest_pid; }
+  [ -z $WORKSTATION_NODES    ] && { echo "WORKSTATION_NODES is not set";    kill_test $systest_pid; }
+                                                                          
+  nodes=$WORKSTATION_NODES
+  snapshot=$WORKSTATION_NODES
+
+  # checking that required vms are existing
+  for node in $nodes; do
+    $cmd listRegisteredVM | grep -q $node || \
+      { echo "Error: $node does not exist or does not registered";  kill_test $systest_pid; }
+  done
+
+  # reverting vms to the required snapshot
+  for node in $nodes; do
+    echo "Reverting $node to $snapshot"
+    $cmd revertToSnapshot "[standard] $node/$node.vmx" $snapshot || \
+      { echo "Error: reverting of $node has failed"; kill_test $systest_pid; } &
+  done
+
+  wait_revert false
+
+  # starting vms from suspending state
+  for node in $nodes; do
+    echo "Starting $node"
+    $cmd start "[standard] $node/$node.vmx" || \
+      { echo "Error: $node failed to start";  kill_test $systest_pid; } &
+  done
+
+  wait_revert false
+
+  set -x
 }
 
 setup_net() {
   env=$1
-  add_interface_to_bridge $env private vmnet2 10.0.0.1/24
-  add_interface_to_bridge $env public vmnet1 172.16.0.1/24
+  add_interface_to_bridge $env private vmnet2
 }
 
 # MAIN
