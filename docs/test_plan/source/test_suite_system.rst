@@ -620,19 +620,19 @@ Steps
     12. In tenant 'test_2' attach interface of net2, subnet2 to router_2
     13. In tenant "test_2" create security group "SG_2" and add rule that allows ingress icmp traffic.
     14. In tenant "test_2" launch instance:
-        * name: VM_3
-        * AZ: nova
-        * image: TestVM
-        * flavor: m1.micro
-        * network: net2 with ip 10.0.0.4
-        * SG: SG_2
+         * name: VM_3
+         * AZ: nova
+         * image: TestVM
+         * flavor: m1.micro
+         * network: net2 with ip 10.0.0.4
+         * SG: SG_2
     15. In tenant "test_2" launch instance:
-        * name: VM_4
-        * AZ: vcenter
-        * image: TestVM-VMDK
-        * flavor: m1.micro
-        * network: net2 with ip 10.0.0.5
-        * SG: SG_2
+         * name: VM_4
+         * AZ: vcenter
+         * image: TestVM-VMDK
+         * flavor: m1.micro
+         * network: net2 with ip 10.0.0.5
+         * SG: SG_2
     16. Assign floating ips for each instance
     17. Check instances in tenant_1 communicate between each other by internal ip
     18. Check instances in tenant_2 communicate between each other by internal ip
