@@ -1,14 +1,19 @@
+{% set az = 'vcenter' %}
+{% set image = 'ubuntu' %}
+{% set flavor = 'ubuntu' %}
 ---
   NovaKeypair.boot_and_delete_server_with_keypair:
+{% for concurrency in (32,) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
+            name: {{ image }}
+        availability_zone: {{ az }}
       runner:
         type: "constant"
-        times: {{ compute }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -33,3 +38,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}

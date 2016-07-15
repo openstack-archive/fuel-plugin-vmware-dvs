@@ -1,16 +1,23 @@
+{% set az = 'vcenter' %}
+{% set compute = 4 %}
+{% set image = 'ubuntu' %}
+{% set flavor = 'ubuntu' %}
+
 ---
   NovaServers.boot_and_rebuild_server:
+{% for concurrency in (32,) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         from_image:
-            name: "TestVM-VMDK"
+            name: {{ image }}
         to_image:
-            name: "TestVM-VMDK"
+            name: {{ image }}
+        availability_zone: {{ az }}
       runner:
         type: constant
-        times: {{ compute * 2 }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -34,3 +41,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}

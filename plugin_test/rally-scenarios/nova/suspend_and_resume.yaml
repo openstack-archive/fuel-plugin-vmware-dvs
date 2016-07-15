@@ -1,16 +1,21 @@
+{% set az = 'vcenter' %}
+{% set flavor = 'ubuntu' %}
+{% set image = 'ubuntu' %}
+
 ---
   NovaServers.suspend_and_resume_server:
+{% for concurrency in (32,) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
-        availability_zone: "vcenter"
+            name: {{ image }}
+        availability_zone: {{ az }}
         force_delete: false
       runner:
         type: "constant"
-        times: {{ compute }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -34,3 +39,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}
