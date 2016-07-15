@@ -1,18 +1,24 @@
+{% set az = 'vcenter' %}
+{% set flavor = 'ubuntu' %}
+{% set flavor_2 = 'ubuntu_extend' %}
+{% set image = 'ubuntu' %}
+
 ---
   NovaServers.resize_server:
+{% for concurrency in (32) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
-        availability_zone: "vcenter"
+            name: {{ image }}
+        availability_zone: {{ az }}
         to_flavor:
-            name: "m1.small"
+            name: {{ flavor_2 }}
         confirm: true
       runner:
         type: "constant"
-        times: {{ compute * 12 }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -36,3 +42,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}

@@ -1,16 +1,21 @@
+{% set az = 'vcenter' %}
+{% set compute = 4 %}
+{% set image_loc = 'http://10.20.0.2:9999/xenial-server-cloudimg-amd64-disk1.vmdk' %}
 ---
   GlanceImages.create_image_and_boot_instances:
+{% for concurrency in (32,) %}
     -
       args:
-        image_location: "http://172.16.44.5/cirros-0.3.1-x86_64-disk.img"
+        image_location: {{ image_loc }}
         container_format: "bare"
         disk_format: "vmdk"
+        availability_zone: {{ az }}
         flavor:
             name: "m1.nano"
         number_instances: 1
       runner:
         type: "constant"
-        times: {{ compute }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -19,3 +24,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}

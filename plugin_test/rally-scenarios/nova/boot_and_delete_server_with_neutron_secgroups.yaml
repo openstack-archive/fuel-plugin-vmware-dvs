@@ -1,19 +1,24 @@
+{% set az = 'vcenter' %}
+{% set image = 'ubuntu' %}
+{% set flavor = 'ubuntu' %}
+
 ---
   NeutronSecGroupPlugin.boot_and_delete_server_with_secgroups:
+{% for concurrency in (32) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
+            name: {{ image }}
         zone:
-            name: "vcenter"
+            name: {{ az }}
         security_group_count: 10
         rules_per_security_group: 10
       runner:
         type: "constant"
-        times: {{ 10 * compute }}
-        concurrency: {{ concurrency * 4 }}
+        times: {{ concurrency * 10 }}
+        concurrency: {{ concurrency }}
       context:
         users:
           tenants: 2
@@ -38,3 +43,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}
