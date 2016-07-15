@@ -1,16 +1,20 @@
+{% set az = 'vcenter' %}
+{% set image = 'ubuntu' %}
+{% set flavor = 'ubuntu' %}
 ---
   NovaServers.boot_and_delete_server:
+{% for concurrency in (32) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
-        availability_zone: "vcenter"
+            name: {{ image }}
+        availability_zone: {{ az }}
       runner:
         type: "constant"
-        times: {{ compute * 12 }}
-        concurrency: {{ concurrency * 4 }}
+        times: {{ concurrency * 10 }}
+        concurrency: {{ concurrency }}
       context:
         users:
           tenants: 2
@@ -33,3 +37,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}
