@@ -1,26 +1,8 @@
 ---
   CinderVolumes.create_and_list_volume:
-    -
-      args:
-        size: 1
-        detailed: True
-        availability_zone: "vcenter-cinder"
-      runner:
-        type: "constant"
-        times: {{ compute * 12 }}
-        concurrency: {{ concurrency }}
-      context:
-        users:
-          tenants: {{ compute * 2 }}
-          users_per_tenant: 3
-        quotas:
-          cinder:
-            volumes: -1
-            gigabytes: -1
-            snapshots: -1
-      sla:
-        failure_rate:
-          max: 0
+{% set az = "vcenter" %}
+{% set compute = 4 %}
+{% for concurrency in (32) %}
     -
       args:
         size: 1
@@ -30,7 +12,7 @@
         availability_zone: "vcenter-cinder"
       runner:
         type: "constant"
-        times: {{ compute * 12 }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -44,3 +26,5 @@
       sla:
         failure_rate:
           max: 0
+
+{% endfor %}

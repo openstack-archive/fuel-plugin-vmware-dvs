@@ -1,19 +1,25 @@
 ---
   CinderVolumes.create_and_attach_volume:
+{% set az = "vcenter" %}
+{% set compute = 4 %}
+{% for concurrency in (32) %}
     -
       args:
           size: 10
           image:
-            name: "TestVM-VMDK"
+            name: "ubuntu-VMDK"
           create_vm_params:
-              availability_zone: "vcenter"
+              availability_zone: {{ az }}
           create_volume_params:
               availability_zone: "vcenter-cinder"
           flavor:
-            name: "m1.nano"
+            name: "ubuntu"
+            # RAM: 2Gb
+            # CPU: 2
+            # Disk: 3Gb
       runner:
         type: "constant"
-        times: {{ compute * 9 }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -31,3 +37,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}
