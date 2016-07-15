@@ -4,22 +4,54 @@
 {% set flavor = 'ubuntu' %}
 {% set image = 'ubuntu' %}
 ---
+  CinderVolumes.create_and_extend_volume:
+{% for concurrency in (32) %}
+    -
+      args:
+        size: 1
+        new_size: 2
+        availability_zone: {{ cinder_az }}
+      runner:
+        type: "constant"
+        times: {{ concurrency * 10 }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+        quotas:
+          cinder:
+            volumes: -1
+            gigabytes: -1
+            snapshots: -1
+        api_versions:
+          cinder:
+            version: 2
+            service_name: cinderv2
+      sla:
+        failure_rate:
+          max: 0
+
+{% endfor %}
+
   CinderVolumes.create_and_attach_volume:
+
 {% for concurrency in (32) %}
     -
       args:
           size: 10
           image:
             name: {{ image }}
-          create_vm_params:
-              availability_zone: {{ az }}
-          create_volume_params:
-              availability_zone: {{ cinder_az }}
           flavor:
             name: {{ flavor }}
             # RAM: 2Gb
             # CPU: 2
             # Disk: 3Gb
+          create_vm_params:
+              availability_zone: {{ az }}
+          create_volume_params:
+              availability_zone: {{ cinder_az }}
+
       runner:
         type: "constant"
         times: {{ concurrency * 10 }}
