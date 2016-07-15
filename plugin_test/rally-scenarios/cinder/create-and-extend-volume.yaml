@@ -1,13 +1,16 @@
+{% set cinder_az = 'vcenter-cinder' %}
+{% set compute = 4 %}
 ---
   CinderVolumes.create_and_extend_volume:
+{% for concurrency in (32,) %}
     -
       args:
         size: 1
         new_size: 2
-        availability_zone: "vcenter-cinder"
+        availability_zone: {{ cinder_az }}
       runner:
         type: "constant"
-        times: {{ compute * 14 }}
+        times: {{ concurrency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -25,3 +28,5 @@
       sla:
         failure_rate:
           max: 0
+
+{% endfor %}

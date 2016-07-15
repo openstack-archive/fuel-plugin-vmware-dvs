@@ -1,12 +1,16 @@
+{% set az = 'vcenter' %}
+{% set image = 'ubuntu' %}
+{% set flavor = 'ubuntu' %}
 ---
   NovaServers.boot_and_bounce_server:
+{% for concurrency in (32,) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
-        availability_zone: "vcenter"
+            name: {{ image }}
+        availability_zone: {{ az }}
         actions:
           -
             hard_reboot: 1
@@ -16,7 +20,7 @@
             stop_start: 1
       runner:
         type: "constant"
-        times: {{ compute }}
+        times: {{ concurency * 10 }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -40,3 +44,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}

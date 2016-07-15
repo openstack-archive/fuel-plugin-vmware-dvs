@@ -1,16 +1,22 @@
+{% set az = 'vcenter' %}
+{% set image = 'ubuntu' %}
+{% set flavor = 'ubuntu' %}
+{% set compute = 4 %}
+
 ---
   NovaServers.boot_and_list_server:
+{% for concurrency in (32,) %}
     -
       args:
         flavor:
-            name: "m1.nano"
+            name: {{ flavor }}
         image:
-            name: "TestVM-VMDK"
-        availability_zone: "vcenter"
+            name: {{ image }}
+        availability_zone: {{ az }}
         detailed: True
       runner:
         type: "constant"
-        times: {{ compute * 12 }}
+        times: {{ concurrency }}
         concurrency: {{ concurrency }}
       context:
         users:
@@ -34,3 +40,4 @@
       sla:
         failure_rate:
           max: 0
+{% endfor %}

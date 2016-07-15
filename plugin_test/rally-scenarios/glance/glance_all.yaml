@@ -1,0 +1,69 @@
+{% set az = 'vcenter' %}
+{% set compute = 4 %}
+{% set image_loc = 'http://10.20.0.2:9999/xenial-server-cloudimg-amd64-disk1.vmdk' %}
+{% set image_count = 10 %}
+
+---
+  GlanceImages.create_and_delete_image:
+{% for concurrency in (4,8,) %}
+    -
+      args:
+        image_location: {{ image_loc }}
+        container_format: "bare"
+        disk_format: "vmdk"
+      runner:
+        type: "constant"
+        times: {{ image_count * concurrency }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+      sla:
+        failure_rate:
+          max: 0
+{% endfor %}
+
+  GlanceImages.create_and_list_image:
+{% for concurrency in (4,8,) %}
+    -
+      args:
+        image_location: {{ image_loc }}
+        container_format: "bare"
+        disk_format: "vmdk"
+      runner:
+        type: "constant"
+        times: {{ image_count * concurrency }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute * 2 }}
+          users_per_tenant: 3
+      sla:
+        failure_rate:
+          max: 0
+{% endfor %}
+
+  GlanceImages.create_image_and_boot_instances:
+{% for concurrency in (4,8,) %}
+    -
+      args:
+        image_location: {{ image_loc }}
+        container_format: "bare"
+        disk_format: "vmdk"
+        availability_zone: {{ az }}
+        flavor:
+            name: "m1.nano"
+        number_instances: 1
+      runner:
+        type: "constant"
+        times: {{ image_count * concurrency }}
+        concurrency: {{ concurrency }}
+      context:
+        users:
+          tenants: {{ compute }}
+          users_per_tenant: 2
+      sla:
+        failure_rate:
+          max: 0
+{% endfor %}
