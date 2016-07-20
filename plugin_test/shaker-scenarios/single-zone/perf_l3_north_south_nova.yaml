@@ -1,0 +1,57 @@
+title: OpenStack L3 North-South nova-AZ Performance
+
+description:
+  In this scenario Shaker launches 1 pair of instances on different compute
+  nodes. Instances are in different networks connected to different routers,
+  master accesses slave by floating ip. The traffic goes from one network
+  via external network to the other network.
+  The master and slave instances are in nova availability zones.
+
+deployment:
+  template: l3_north_south.hot
+  accommodation: [pair, single_room, zones: [nova], compute_nodes: 2]
+
+execution:
+  tests:
+  -
+    title: Ping
+    class: flent
+    method: ping
+    time: 10
+    sla:
+    - "[type == 'agent'] >> (stats.ping_icmp.avg < 2.0)"
+  -
+    title: TCP
+    class: iperf3
+    time: 600
+    sla:
+    - "[type == 'agent'] >> (stats.bandwidth.avg > 5000)"
+    - "[type == 'agent'] >> (stats.retransmits.max < 10)"
+  -
+    title: UDP64
+    class: iperf3
+    udp: on
+    time: 600
+    bandwidth: 0
+    datagram_size: 32
+    sla:
+    - "[type == 'agent'] >> (stats.packets.avg > 100000)"
+  -
+    title: UDP1500
+    class: iperf3
+    udp: on
+    time: 600
+    bandwidth: 0
+    datagram_size: 1500
+    sla:
+    - "[type == 'agent'] >> (stats.packets.avg > 100000)"
+  -
+    title: UDP_JUMBO
+    class: iperf3
+    udp: on
+    time: 600
+    bandwidth: 1000M
+    buffer_size: 8950
+    datagram_size: 9000
+    sla:
+    - "[type == 'agent'] >> (stats.packets.avg > 100000)"
