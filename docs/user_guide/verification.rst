@@ -7,14 +7,23 @@ following verification steps:
 #. Log in to a controller node.
 #. Verify whether the DVS agent is available in the list of Neutron agents:
 
+#. Verify whether the DVS agent is present in the list of Neutron agents and
+   is ready for use:
+
+   * The ``alive`` column should contain the ``:-)`` value.
+   * The ``admin_state_up`` column should contain the ``True`` value.
+
    .. code-block:: console
 
     $ neutron agent-list
-    +----+-----------+-----------+-----------------+------+---------------+-----------------+
-    |id  |agent_type |host       |availability_zone|alive |admin_state_up |binary           |
-    +----+-----------+-----------+-----------------+----------------------+-----------------+
-    |... |DVS agent  |vcenter-sn2|                 |:-)   |True           |neutron-dvs-agent|
-    +----+-----------+-----------+-----------------+------+---------------+-----------------+
+    +----+-----------+-----------+------+---------------+-----------------+
+    |id  |agent_type |host       |alive |admin_state_up |binary           |
+    +----+-----------+-----------+----------------------+-----------------+
+    |... |DVS agent  |vcenter-sn2|:-)   |True           |neutron-dvs-agent|
+    +----+-----------+-----------+------+---------------+-----------------+
+
+   .. note:: In the example above, the ``availability_zone`` column was
+    removed from the output of the :command:`neutron agent-list` command.
 
 #. Log in to the Fuel web UI.
 #. Click the :guilabel:`Health Check` tab.
