@@ -5,10 +5,8 @@ After you deploy an environment with VMware DVS plugin, complete the
 following verification steps:
 
 #. Log in to a controller node.
-#. Verify whether the DVS agent is available in the list of Neutron agents:
-
-#. Verify whether the DVS agent is present in the list of Neutron agents and
-   is ready for use:
+#. Run the :command:`neutron agent-list` command to verify whether the
+   DVS agent is present in the list of Neutron agents and is ready for use:
 
    * The ``alive`` column should contain the ``:-)`` value.
    * The ``admin_state_up`` column should contain the ``True`` value.
