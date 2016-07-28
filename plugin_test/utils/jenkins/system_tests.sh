@@ -255,7 +255,7 @@ CheckVariables() {
     export WORKSTATION_NODES="esxi1 esxi2 esxi3 vcenter trusty"
   fi
   if [ -z "${WORKSTATION_IFS}" ]; then
-    export WORKSTATION_IFS="vmnet1 vmnet2"
+    export WORKSTATION_IFS="vmnet2"
   fi
   if [ -z "${VCENTER_CLUSTERS}" ]; then
     export VCENTER_CLUSTERS="Cluster1,Cluster2"
@@ -571,13 +571,15 @@ setup_bridge() {
   sudo /sbin/brctl stp $bridge off
   sudo /sbin/brctl addif $bridge $nic
   #set if with existing ip down
-  for itf in $(sudo ip -o addr show to $ip |cut -d' ' -f2); do
-      echo deleting $ip from $itf
-      sudo ip addr del dev $itf $ip
-  done
-  echo "adding $ip to $bridge"
-  sudo /sbin/ip addr add $ip dev $bridge
-  echo "$nic added to $bridge"
+  if [ ! -z $ip ]; then
+    for itf in $(sudo ip -o addr show to $ip |cut -d' ' -f2); do
+        echo deleting $ip from $itf
+        sudo ip addr del dev $itf $ip
+    done
+    echo "adding $ip to $bridge"
+    sudo /sbin/ip addr add $ip dev $bridge
+    echo "$nic added to $bridge"
+  fi
   sudo /sbin/ip link set dev $bridge up
   if sudo /sbin/iptables-save |grep $bridge | grep -i reject| grep -q FORWARD;then
     sudo /sbin/iptables -D FORWARD -o $bridge -j REJECT --reject-with icmp-port-unreachable
@@ -613,8 +615,7 @@ revert_ws() {
 
 setup_net() {
   env=$1
-  add_interface_to_bridge $env private vmnet2 10.0.0.1/24
-  add_interface_to_bridge $env public vmnet1 172.16.0.1/24
+  add_interface_to_bridge $env private vmnet2
 }
 
 # MAIN
