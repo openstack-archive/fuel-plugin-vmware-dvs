@@ -1,5 +1,5 @@
 =============================================
-Test Plan for VMware DVS plugin version 3.0.0
+Test Plan for VMware DVS plugin version 3.1.0
 =============================================
 
 ************

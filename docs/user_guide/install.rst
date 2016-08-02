@@ -20,7 +20,7 @@ Before you proceed with the VMware DVS plugin installation, verify that:
 
    .. code-block:: console
 
-     $ scp fuel-plugin-vmware-dvs-3.0-3.0.0-1.noarch.rpm <Fuel Master node ip>:/tmp
+     $ scp fuel-plugin-vmware-dvs-3.0-3.1.0-1.noarch.rpm <Fuel Master node ip>:/tmp
 
 #. Log in to the Fuel Master node CLI as root.
 
@@ -28,7 +28,7 @@ Before you proceed with the VMware DVS plugin installation, verify that:
 
    .. code-block:: console
 
-     # fuel plugins --install /tmp/fuel-plugin-vmware-dvs-3.0-3.0.0-1.noarch.rpm
+     # fuel plugins --install /tmp/fuel-plugin-vmware-dvs-3.0-3.1.0-1.noarch.rpm
 
 #. Verify that the plugin was installed successfully:
 
@@ -39,7 +39,7 @@ Before you proceed with the VMware DVS plugin installation, verify that:
      +------+--------------------------+-----------+--------------------+
      | id   | name                     | version   | package\_version   |
      +------+--------------------------+-----------+--------------------+
-     | 2    | fuel-plugin-vmware-dvs   | 3.0.0     | 4.0.0              |
+     | 2    | fuel-plugin-vmware-dvs   | 3.1.0     | 4.0.0              |
      +------+--------------------------+-----------+--------------------+
 
 #. Proceed to :ref:`configure_env`.
