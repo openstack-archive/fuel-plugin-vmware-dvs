@@ -1,7 +1,7 @@
 Limitations
 -----------
 
-The VMware DVS plugin 3.0.0 for Fuel has the following limitations:
+The VMware DVS plugin 3.0.1 for Fuel has the following limitations:
 
 * The plugin is enabled only on environments with Neutron as the
   networking option.
