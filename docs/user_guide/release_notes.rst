@@ -1,7 +1,7 @@
 Release notes
 -------------
 
-The VMware DVS plugin 3.0.0 contains the following updates:
+The VMware DVS plugin 3.1.0 contains the following updates:
 
 * Added a new consistent engine for remote security groups.
 
