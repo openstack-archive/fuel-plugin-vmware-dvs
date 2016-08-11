@@ -16,14 +16,13 @@ import time
 
 import paramiko
 import yaml
-from devops.error import TimeoutError
 from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import tcp_ping
 from devops.helpers.helpers import wait
-from proboscis.asserts import assert_true
 
 from fuelweb_test import logger
 from fuelweb_test.helpers.utils import pretty_log
+from fuelweb_test.helpers.ssh_manager import SSHManager as ssh_manager
 
 # timeouts
 BOOT_TIMEOUT = 300
@@ -56,17 +55,16 @@ def verify_instance_state(os_conn, instances=None, expected_state='ACTIVE',
     if not instances:
         instances = os_conn.nova.servers.list()
     for instance in instances:
-        try:
-            wait(
-                lambda:
-                os_conn.get_instance_detail(instance).status == expected_state,
-                timeout=BOOT_TIMEOUT)
-        except TimeoutError:
-            current_state = os_conn.get_instance_detail(instance).status
-            assert_true(
-                current_state == expected_state,
-                "Timeout is reached. Current state of Vm {0} is {1}".format(
-                    instance.name, current_state)
+        wait(
+            lambda:
+            os_conn.get_instance_detail(instance).status == expected_state,
+            timeout=BOOT_TIMEOUT,
+            timeout_msg="Timeout is reached. "
+                        "Current state of Vm {0} is {1}."
+                        "Expected state is {2}".format(
+                    instance.name,
+                    os_conn.get_instance_detail(instance).status,
+                    expected_state)
             )
 
 
@@ -119,16 +117,14 @@ def generate_message(command, result_of_command, ip_from, ip_to):
     return message
 
 
-def check_connection_vms(ip_pair, command='pingv4',
-                         result_of_command=0,
+def check_connection_vms(ip_pair, command='pingv4', result_of_command=0,
                          timeout=30, interval=5):
     """Check network connectivity between instances.
 
-    :param os_conn: type object, openstack
     :param ip_pair: type dict, {ip_from: [ip_to1, ip_to2, etc.]}
     :param command: type string, key from dictionary 'commands'
                     by default is 'pingv4'
-    :param result_of_command: type interger, exite code of command execution
+    :param result_of_command: type integer, exit code of command execution
                               by default is 0
     :param timeout: wait to get expected result
     :param interval: interval of executing command
@@ -149,8 +145,8 @@ def check_connection_vms(ip_pair, command='pingv4',
                 logger.info("Check connection from {0} to {1}.".format(
                     ip_from, ip_to))
                 cmd = commands[command].format(ip_to)
-                wait(lambda: execute(
-                     ssh, cmd)['exit_code'] == result_of_command,
+                wait(lambda:
+                     execute(ssh, cmd)['exit_code'] == result_of_command,
                      interval=interval,
                      timeout=timeout,
                      timeout_msg=message.format(ip_from, ip_to)
@@ -166,7 +162,7 @@ def check_connection_through_host(remote, ip_pair, command='pingv4',
     :param remote: SSHClient to instance
     :param command: type string, key from dictionary 'commands'
                     by default is 'pingv4'
-    :param  result_of_command: type interger, exite code of command execution
+    :param  result_of_command: type integer, exit code of command execution
                                by default is 0
     :param timeout: wait to get expected result
     :param interval: interval of executing command
@@ -196,15 +192,14 @@ def check_connection_through_host(remote, ip_pair, command='pingv4',
 
 
 def create_and_assign_floating_ips(os_conn, instances_list):
-    """Create Vms on available hypervisors.
+    """Associate floating ips with specified instances.
 
     :param os_conn: type object, openstack
     :param instances_list: type list, instances
     """
     fips = []
     for instance in instances_list:
-            ip = os_conn.assign_floating_ip(
-                instance).ip
+            ip = os_conn.assign_floating_ip(instance).ip
             fips.append(ip)
             wait(lambda: icmp_ping(ip), timeout=60 * 5, interval=5)
     return fips
@@ -323,19 +318,21 @@ def add_role_to_user(os_conn, user_name, role_name, tenant_name):
     os_conn.keystone.roles.add_user_role(user_id, role_id, tenant_id)
 
 
-def check_service(ssh, commands):
+def check_service(ip, commands):
         """Check that required nova services are running on controller.
 
-        :param ssh: SSHClient
+        :param ip: ip address of node
         :param commands: type list, nova commands to execute on controller,
                          example of commands:
                          ['nova-manage service list | grep vcenter-vmcluster1'
         """
-        ssh.execute('source openrc')
+        ssh_manager.execute_on_remote(ip=ip, cmd='source openrc')
+
         for cmd in commands:
             wait(
                 lambda:
-                ':-)' in list(ssh.execute(cmd)['stdout'])[-1].split(' '),
+                ':-)' in ssh_manager.execute_on_remote(ip=ip,
+                                                       cmd=cmd)['stdout'][-1],
                 timeout=200)
 
 
