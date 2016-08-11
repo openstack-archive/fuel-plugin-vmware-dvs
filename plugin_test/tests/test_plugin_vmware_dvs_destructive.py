@@ -18,8 +18,10 @@ import time
 
 from devops.helpers.helpers import icmp_ping
 from devops.helpers.helpers import wait
+from devops.error import TimeoutError
 from proboscis import test
 from proboscis.asserts import assert_true
+from proboscis.asserts import assert_raises
 
 import fuelweb_test.tests.base_test_case
 from fuelweb_test import logger
@@ -58,8 +60,21 @@ class TestDVSDestructive(TestBasic):
     cmds = ['nova-manage service list | grep vcenter-vmcluster1',
             'nova-manage service list | grep vcenter-vmcluster2']
 
-    net_data = [{'net_1': '192.168.112.0/24'},
-                {'net_2': '192.168.113.0/24'}]
+    networks = [
+        {'name': 'net_1',
+         'subnets': [
+             {'name': 'subnet_1',
+                      'cidr': '192.168.112.0/24'}
+                     ]
+         },
+        {'name': 'net_2',
+         'subnets': [
+             {'name': 'subnet_1',
+                      'cidr': '192.168.113.0/24'}
+         ]
+         }
+    ]
+
     # defaults
     inter_net_name = openstack.get_defaults()['networks']['internal']['name']
     ext_net_name = openstack.get_defaults()['networks']['floating']['name']
@@ -112,14 +127,15 @@ class TestDVSDestructive(TestBasic):
                 instance, net_name=self.inter_net_name))
         time.sleep(30)
         self.show_step(13)
-        ip_pair = {
-            key: [value for value in ips if key != value] for key in ips}
+        ip_pair = {key: [ip for ip in ips if key != ip] for key in ips}
         for ip_from in ip_pair:
             for ip_to in ip_pair[ip_from]:
-                ping_result = openstack.remote_execute_command(
-                    access_point_ip, ip_from, "ping -c 5 {0}".format(ip_to))
+                cmd = "ping -c 5 {0}".format(ip_to)
+                res = openstack.remote_execute_command(
+                        access_point_ip, ip_from, cmd)
+
                 assert_true(
-                    ping_result['exit_code'] == 0,
+                    res['exit_code'] == 0,
                     "Ping isn't available from {0} to {1}".format(ip_from,
                                                                   ip_to)
                 )
@@ -136,22 +152,25 @@ class TestDVSDestructive(TestBasic):
         node.reset()
 
         self.show_step(15)
-        wait(lambda: not icmp_ping(
-            self.VCENTER_IP), interval=1, timeout=10,
-            timeout_msg='Vcenter is still available.')
+        wait(lambda: not icmp_ping(self.VCENTER_IP),
+             interval=1,
+             timeout=10,
+             timeout_msg='Vcenter is still available.')
 
         self.show_step(16)
-        wait(lambda: icmp_ping(
-            self.VCENTER_IP), interval=5, timeout=120,
-            timeout_msg='Vcenter is not available.')
+        wait(lambda: icmp_ping(self.VCENTER_IP),
+             interval=5,
+             timeout=120,
+             timeout_msg='Vcenter is not available.')
 
         self.show_step(17)
         for ip_from in ip_pair:
             for ip_to in ip_pair[ip_from]:
-                ping_result = openstack.remote_execute_command(
-                    access_point_ip, ip_from, "ping -c 5 {0}".format(ip_to))
+                cmd = "ping -c 5 {0}".format(ip_to)
+                res = openstack.remote_execute_command(
+                    access_point_ip, ip_from, cmd)
                 assert_true(
-                    ping_result['exit_code'] == 0,
+                    res['exit_code'] == 0,
                     "Ping isn't available from {0} to {1}".format(ip_from,
                                                                   ip_to)
                 )
@@ -165,14 +184,16 @@ class TestDVSDestructive(TestBasic):
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Try to uninstall dvs plugin.
+            3. Check plugin was not removed.
 
         Duration: 1.8 hours
 
         """
         # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.show_step(1)
         # self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
-        # Try to uninstall dvs plugin
+        self.show_step(2)
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
@@ -182,13 +203,11 @@ class TestDVSDestructive(TestBasic):
             assert_ec_equal=[1]
         )
 
-        # Check that plugin is not removed
+        self.show_step(3)
         output = self.ssh_manager.execute_on_remote(
             ip=self.ssh_manager.admin_ip, cmd='fuel plugins list')['stdout']
-        assert_true(
-            plugin.plugin_name in output[-1].split(' '),
-            "Plugin '{0}' was removed".format(plugin.plugin_name)
-        )
+        assert_true(plugin.plugin_name in output[-1].split(' '),
+                    "Plugin '{0}' was removed".format(plugin.plugin_name))
 
     @test(depends_on=[TestDVSSystem.dvs_vcenter_systest_setup],
           groups=["dvs_vcenter_bind_port"])
@@ -198,15 +217,15 @@ class TestDVSDestructive(TestBasic):
 
         Scenario:
             1. Revert snapshot to dvs_vcenter_destructive_setup
-            2. Create private networks net01 with sunet.
-            3. Launch instances VM_1 and VM_2 in the net01
+            2. Create private networks net01 with subnet.
+            3. Launch instance VM_1 in the net01
                with image TestVM and flavor m1.micro in nova az.
-            4. Launch instances VM_3 and VM_4 in the net01
-               with image TestVM-VMDK and flavor m1.micro in nova az.
-            4. Bind sub_net port of instances.
-            5. Check instances are not available.
-            6. Enable sub_net port of all instances.
-            7. Verify that instances communicate between each other.
+            4. Launch instance VM_2 in the net01
+               with image TestVM-VMDK and flavor m1.micro in vcenter az.
+            5. Disable sub_net port of instances.
+            6. Check instances are not available.
+            7. Enable sub_net port of all instances.
+            8. Verify that instances communicate between each other.
                Send icmp ping between instances.
 
 
@@ -214,11 +233,11 @@ class TestDVSDestructive(TestBasic):
 
         """
         # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.show_step(1)
         # self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
-        # Create new network
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
@@ -228,28 +247,27 @@ class TestDVSDestructive(TestBasic):
         # create security group with rules for ssh and ping
         security_group = os_conn.create_sec_group_for_ssh()
 
-        logger.info("Create non default network with subnet.")
-        logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = os_conn.create_network(
-            network_name=self.net_data[0].keys()[0])['network']
+        self.show_step(2)
+        net = self.networks[0]
+        network = os_conn.create_network(network_name=net['name'])['network']
 
         subnet = os_conn.create_subnet(
-            subnet_name=network['name'],
+            subnet_name=net['subnets'][0]['name'],
             network_id=network['id'],
-            cidr=self.net_data[0][self.net_data[0].keys()[0]])
+            cidr=net['subnets'][0]['cidr'])
 
-        logger.info("Check that network are created.")
+        logger.info("Check network was created.")
         assert_true(
             os_conn.get_network(network['name'])['id'] == network['id']
         )
 
         logger.info("Add net_1 to default router")
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
-        os_conn.add_router_interface(
-            router_id=router["id"],
-            subnet_id=subnet["id"])
+        os_conn.add_router_interface(router_id=router["id"],
+                                     subnet_id=subnet["id"])
 
-        #  Launch instance VM_1 and VM_2
+        self.show_step(3)
+        self.show_step(4)
         instances = openstack.create_instances(
             os_conn=os_conn, nics=[{'net-id': network['id']}], vm_count=1,
             security_groups=[security_group.name]
@@ -259,36 +277,40 @@ class TestDVSDestructive(TestBasic):
         ports = os_conn.neutron.list_ports()['ports']
         floating_ip = openstack.create_and_assign_floating_ips(
             os_conn, instances)
-        instance_ports = []
-        for instance in instances:
-            instance_addr = os_conn.get_nova_instance_ip(
-                instance, net_name=network['name'])
-            for port in ports:
-                port_addr = port['fixed_ips'][0]['ip_address']
-                if instance_addr == port_addr:
-                    instance_ports.append(port)
+
+        def get_ports_by_ip(ports, ips):
+            res = []
+            for p in ports:
+                if p['fixed_ips'][0]['ip_address'] in ips:
+                    res.append(p)
+            return res
+
+        instance_ips = [os_conn.get_nova_instance_ip(
+                instance,
+                net_name=network['name']) for instance in instances]
+        instance_ports = get_ports_by_ip(ports, instance_ips)
+
+        self.show_step(5)
         for port in instance_ports:
             os_conn.neutron.update_port(
                 port['id'], {'port': {'admin_state_up': False}}
             )
+        ip_pair = {
+            key: [ip for ip in floating_ip if key != ip] for key in floating_ip
+        }
 
-        ip_pair = dict.fromkeys(floating_ip)
-        for key in ip_pair:
-            ip_pair[key] = [value for value in floating_ip if key != value]
-        # Verify that not connection to instances
-        try:
-            openstack.check_connection_vms(ip_pair)
-        except Exception as e:
-                logger.info(str(e))
+        self.show_step(6)
+        assert_raises(exception_type=TimeoutError,
+                      function=openstack.check_connection_vms,
+                      ip_pair=ip_pair)
 
-        # Enable sub_net ports of instances
+        self.show_step(7)
         for port in instance_ports:
             os_conn.neutron.update_port(
                 port['id'], {'port': {'admin_state_up': True}}
             )
 
-        # Verify that instances communicate between each other.
-        # Send icmp ping between instances
+        self.show_step(8)
         openstack.check_connection_vms(ip_pair, timeout=90)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
@@ -300,20 +322,24 @@ class TestDVSDestructive(TestBasic):
         Scenario:
             1. Upload plugins to the master node
             2. Install plugin.
-            3. Create cluster with vcenter.
+            3. Configure cluster with 2 vcenter clusters.
             4. Add 3 node with controller role.
             5. Add 2 node with compute role.
-            6. Deploy the cluster.
-            7. Launch instances.
+            6. Configure vcenter
+            7. Deploy the cluster.
+            8. Run smoke OSTF tests
+            9. Launch instances. 1 per az. Assign gloating ips.
+            10. Make snapshot
 
         Duration: 1.8 hours
-
+        Snapshot: dvs_destructive_setup_2
         """
+        self.show_step(1)
         self.env.revert_snapshot("ready_with_5_slaves")
 
         plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
-        # Configure cluster with 2 vcenter clusters
+        self.show_step(2)
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
@@ -324,7 +350,8 @@ class TestDVSDestructive(TestBasic):
         )
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
-        # Assign role to node
+        self.show_step(3)
+        self.show_step(4)
         self.fuel_web.update_nodes(
             cluster_id,
             {'slave-01': ['controller'],
@@ -333,21 +360,23 @@ class TestDVSDestructive(TestBasic):
              'slave-04': ['compute'],
              'slave-05': ['compute']}
         )
-        # Configure VMWare vCenter settings
+        self.show_step(6)
         self.fuel_web.vcenter_configure(cluster_id, multiclusters=True)
 
+        self.show_step(7)
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
+        self.show_step(8)
         self.fuel_web.run_ostf(
             cluster_id=cluster_id, test_sets=['smoke'])
 
+        self.show_step(9)
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         os_conn = os_actions.OpenStackActions(
             os_ip, SERVTEST_USERNAME,
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
 
-        # create security group with rules for ssh and ping
         security_group = os_conn.create_sec_group_for_ssh()
 
         network = os_conn.nova.networks.find(label=self.inter_net_name)
@@ -360,6 +389,7 @@ class TestDVSDestructive(TestBasic):
         for instance in instances:
             os_conn.assign_floating_ip(instance)
 
+        self.show_step(10)
         self.env.make_snapshot("dvs_destructive_setup_2", is_make=True)
 
     @test(depends_on=[dvs_destructive_setup_2],
@@ -373,7 +403,7 @@ class TestDVSDestructive(TestBasic):
             2. Verify connection between instances. Send ping,
                check that ping get reply
             3. Reset controller.
-            4. Check that vmclusters should be migrate to another controller.
+            4. Check that vmclusters migrate to another controller.
             5. Verify connection between instances.
                 Send ping, check that ping get reply
 
@@ -381,6 +411,7 @@ class TestDVSDestructive(TestBasic):
 
         """
         # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.show_step(1)
         # self.env.revert_snapshot("dvs_destructive_setup_2")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
@@ -390,35 +421,28 @@ class TestDVSDestructive(TestBasic):
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
 
-        # Verify connection between instances.
-        # Send ping Check that ping get reply.
+        self.show_step(2)
         srv_list = os_conn.get_servers()
         floating_ip = []
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
                 srv, net_name=self.inter_net_name, addrtype='floating'))
-        ip_pair = dict.fromkeys(floating_ip)
-        for key in ip_pair:
-            ip_pair[key] = [value for value in floating_ip if key != value]
+        ip_pair = {
+            key: [ip for ip in floating_ip if key != ip] for key in floating_ip
+        }
         openstack.check_connection_vms(ip_pair)
 
-        controller = self.fuel_web.get_nailgun_primary_node(
-            self.env.d_env.nodes().slaves[0]
-        )
+        d_ctrl = self.fuel_web.get_nailgun_primary_node(
+            self.env.d_env.nodes().slaves[0])
+        n_ctrl = self.fuel_web.get_nailgun_node_by_devops_node(d_ctrl)
 
-        self.fuel_web.cold_restart_nodes(
-            [self.fuel_web.environment.d_env.get_node(name=controller.name)],
-            wait_offline=True, wait_online=True,
-            wait_after_destroy=300)
+        self.show_step(3)
+        self.fuel_web.cold_restart_nodes([d_ctrl], wait_after_destroy=300)
 
-        controller = self.fuel_web.get_nailgun_primary_node(
-            self.env.d_env.nodes().slaves[1]
-        )
+        self.show_step(4)
+        openstack.check_service(ip=n_ctrl['ip'], commands=self.cmds)
 
-        # Verify connection between instances.
-        # Send ping Check that ping get reply.
-        with self.fuel_web.get_ssh_for_node(controller.name) as ssh_control:
-            openstack.check_service(ssh=ssh_control, commands=self.cmds)
+        self.show_step(5)
         openstack.check_connection_vms(ip_pair)
 
     @test(depends_on=[dvs_destructive_setup_2],
@@ -440,6 +464,7 @@ class TestDVSDestructive(TestBasic):
 
         """
         # TODO(vgorin) Uncomment when reverting of WS snapshot is available
+        # self.show_step(1)
         # self.env.revert_snapshot("dvs_destructive_setup_2")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
@@ -449,36 +474,30 @@ class TestDVSDestructive(TestBasic):
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
 
-        # Verify connection between instances.
-        # Send ping, check that ping get reply.
+        self.show_step(2)
         srv_list = os_conn.get_servers()
-        floating_ip = []
+        ips = []
         for srv in srv_list:
-            floating_ip.append(os_conn.get_nova_instance_ip(
+            ips.append(os_conn.get_nova_instance_ip(
                 srv, net_name=self.inter_net_name, addrtype='floating'))
-        ip_pair = dict.fromkeys(floating_ip)
-        for key in ip_pair:
-            ip_pair[key] = [value for value in floating_ip if key != value]
+
+        ip_pair = {key: [ip for ip in ips if key != ip] for key in ips}
         openstack.check_connection_vms(ip_pair)
 
-        controllers = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
-            self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                cluster_id=cluster_id,
-                roles=['controller']))
+        n_ctrls = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                cluster_id=cluster_id, roles=['controller'])
 
-        with self.fuel_web.get_ssh_for_node(controllers[0].name) as ssh_contr:
-            openstack.check_service(ssh=ssh_contr, commands=self.cmds)
-
+        openstack.check_service(ip=n_ctrls[0]['ip'], commands=self.cmds)
         openstack.check_connection_vms(ip_pair)
 
+        self.show_step(3)
         self.fuel_web.warm_shutdown_nodes(
-            [self.fuel_web.environment.d_env.get_node(
-                name=controllers[0].name)])
+            [self.fuel_web.get_devops_node_by_nailgun_node(n_ctrls[0])])
 
-        # Verify connection between instances.
-        # Send ping Check that ping get reply.
-        with self.fuel_web.get_ssh_for_node(controllers[1].name) as ssh_contr:
-            openstack.check_service(ssh=ssh_contr, commands=self.cmds)
+        self.show_step(4)
+        openstack.check_service(ip=n_ctrls[1]['ip'], commands=self.cmds)
+
+        self.show_step(5)
         openstack.check_connection_vms(ip_pair, timeout=90)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
@@ -553,10 +572,7 @@ class TestDVSDestructive(TestBasic):
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
         self.show_step(7)
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            multiclusters=True
-        )
+        self.fuel_web.vcenter_configure(cluster_id, multiclusters=True)
 
         self.show_step(8)
         self.fuel_web.verify_network(cluster_id)
@@ -565,15 +581,13 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.show_step(10)
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         self.extended_tests_reset_vcenter(os_ip)
 
         self.show_step(18)
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_reboot_vcenter_2"])
@@ -663,12 +677,10 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.show_step(10)
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
         self.extended_tests_reset_vcenter(os_ip)
 
         self.show_step(18)
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
