@@ -278,7 +278,7 @@ epub_copyright = u'2016, Mirantis Inc.'
 # The basename for the epub file. It defaults to the project name.
 # epub_basename = u'fuel-plugin-openbook'
 
-# The HTML theme for the epub output. Since the default themes are not optimized
+# The HTML theme for the epub output. Since the default themes are'nt optimized
 # for small screen space, using the same theme for HTML and epub output is
 # usually not wise. This defaults to 'epub', a theme designed to save visual
 # space.
