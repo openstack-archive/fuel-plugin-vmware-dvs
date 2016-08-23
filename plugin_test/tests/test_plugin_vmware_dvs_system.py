@@ -167,8 +167,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -256,8 +255,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -331,8 +329,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -423,8 +420,7 @@ class TestDVSSystem(TestBasic):
         wait_to_update_rules_on_dvs_ports = 30
 
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -597,8 +593,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -711,8 +706,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -960,8 +954,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -1029,8 +1022,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -1126,8 +1118,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -1240,8 +1231,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1384,8 +1374,7 @@ class TestDVSSystem(TestBasic):
         template_path = 'plugin_test/templates/dvs_stack.yaml'
 
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -1455,8 +1444,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -1610,8 +1598,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -1761,8 +1748,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -1897,8 +1883,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -2037,8 +2022,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
         cluster_id = self.fuel_web.get_last_created_cluster()
 
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -2211,8 +2195,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
@@ -2278,8 +2261,7 @@ class TestDVSSystem(TestBasic):
 
         """
         self.show_step(1)
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 

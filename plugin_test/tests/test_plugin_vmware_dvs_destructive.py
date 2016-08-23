@@ -165,14 +165,15 @@ class TestDVSDestructive(TestBasic):
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Try to uninstall dvs plugin.
+            3. Check that plugin is not removed
 
         Duration: 1.8 hours
 
         """
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.show_step(1)
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
-        # Try to uninstall dvs plugin
+        self.show_step(2)
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
@@ -182,7 +183,7 @@ class TestDVSDestructive(TestBasic):
             assert_ec_equal=[1]
         )
 
-        # Check that plugin is not removed
+        self.show_step(3)
         output = self.ssh_manager.execute_on_remote(
             ip=self.ssh_manager.admin_ip, cmd='fuel plugins list')['stdout']
         assert_true(
@@ -197,7 +198,7 @@ class TestDVSDestructive(TestBasic):
         """Check abilities to bind port on DVS to VM, disable/enable this port.
 
         Scenario:
-            1. Revert snapshot to dvs_vcenter_destructive_setup
+            1. Revert snapshot to dvs_vcenter_systest_setup
             2. Create private networks net01 with sunet.
             3. Launch instances VM_1 and VM_2 in the net01
                with image TestVM and flavor m1.micro in nova az.
@@ -213,8 +214,7 @@ class TestDVSDestructive(TestBasic):
         Duration: 1,5 hours
 
         """
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_vcenter_systest_setup")
+        self.env.revert_snapshot("dvs_vcenter_systest_setup")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
 
