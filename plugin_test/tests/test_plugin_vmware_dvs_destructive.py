@@ -380,8 +380,7 @@ class TestDVSDestructive(TestBasic):
         Duration: 1.8 hours
 
         """
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_destructive_setup_2")
+        self.env.revert_snapshot("dvs_destructive_setup_2")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -439,8 +438,7 @@ class TestDVSDestructive(TestBasic):
         Duration: 1.8 hours
 
         """
-        # TODO(vgorin) Uncomment when reverting of WS snapshot is available
-        # self.env.revert_snapshot("dvs_destructive_setup_2")
+        self.env.revert_snapshot("dvs_destructive_setup_2")
 
         cluster_id = self.fuel_web.get_last_created_cluster()
         os_ip = self.fuel_web.get_public_vip(cluster_id)
