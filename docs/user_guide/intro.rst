@@ -2,7 +2,7 @@ Introduction
 ------------
 
 The purpose of this document is to describe how to install, configure,
-and use the VMware DVS plugin 3.0.0 for Fuel 9.0.
+and use the VMware DVS plugin 3.0.1 for Fuel 9.0.
 
 Mirantis OpenStack supports using vCenter as a hypervisor on vCenter-only or
 heterogeneous environments that are mixed with KVM. The vmware_dvs driver for
