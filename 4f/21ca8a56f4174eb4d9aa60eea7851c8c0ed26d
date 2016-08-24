@@ -1,0 +1,9 @@
+Code-Review+1: Vasily Gorin <vgorin@mirantis.com>
+Code-Review+2: Igor Gajsin <igajsin@mirantis.com>
+Workflow+1: Igor Gajsin <igajsin@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 24 Aug 2016 13:21:53 +0000
+Reviewed-on: https://review.openstack.org/349929
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/stable/9.0
