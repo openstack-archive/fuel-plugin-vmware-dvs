@@ -986,22 +986,22 @@ Steps
 
     1. Set up for system tests.
     2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the default router.
-    3. Create security SG1 group with rules:
+    3. Create security group SG1 with rules:
        Ingress rule with ip protocol 'icmp', port range any, SG group 'SG1'
        Egress rule with ip protocol 'icmp', port range any, SG group 'SG1'
        Ingress rule with ssh protocol 'tcp', port range 22, SG group 'SG1'
        Egress rule with ssh  protocol 'tcp', port range 22, SG group 'SG1'
-    4. Launch few instances with SG1 in net1.
-    5. Launch few instances with Default SG in net1.
+    4. Launch 2 instances with SG1 in net_1.
+    5. Launch 2 instances with Default SG in net_1.
     6. Verify that icmp/ssh is enabled between instances from SG1.
-    7. Verify that  that icmp/ssh isn't allowed to instances of SG1 from instances of Default SG.
-    8. Detached ports of all instances from net_1.
-    9. Attached ports of all instances to default internal net. For instances of Vcenter to activate new interface on cirros edit the  restart network: "sudo /etc/init.d/S40network restart"
+    7. Verify that that icmp/ssh isn't allowed to instances of SG1 from instances of Default SG.
+    8. Detach ports of all instances from net_1.
+    9. Attach ports of all instances to default internal net. To activate new interface on cirros restart network: "sudo /etc/init.d/S40network restart"
     10. Check that all instances are in Default SG.
     11. Verify that icmp/ssh is enabled between instances.
-    12. Change of some instances Default SG to SG1.
+    12. Change for all instances Default SG to SG1.
     13. Verify that icmp/ssh is enabled between instances from SG1.
-    14. Verify that  that icmp/ssh isn't allowed to instances of SG1 from instances of Default SG.
+    14. Verify that icmp/ssh isn't allowed to instances of SG1 from instances of Default SG.
 
 
 Expected result
