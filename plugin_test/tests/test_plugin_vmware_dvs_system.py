@@ -1992,8 +1992,8 @@ class TestDVSSystem(TestBasic):
         Scenario:
             1. Revert snapshot to dvs_vcenter_systest_setup.
             2. Create net_1: net01__subnet, 192.168.1.0/24, and attach
-               it to the router01.
-            3. Create security SG1 group with rules:
+               it to the default router.
+            3. Create security group SG1 with rules:
                 Ingress rule with ip protocol 'icmp ', port range any,
                 SG group 'SG1'
                 Egress rule with ip protocol 'icmp ', port range any,
@@ -2002,20 +2002,20 @@ class TestDVSSystem(TestBasic):
                 SG group 'SG1'
                 Egress rule with ssh protocol 'tcp ', port range 22,
                 SG group 'SG1'
-            4. Launch few instances with SG1 in net1.
-            5. Launch few instances with Default SG in net1.
+            4. Launch 2 instances with SG1 in net_1.
+            5. Launch 2 instances with Default SG in net_1.
             6. Verify that icmp/ssh is enabled between instances from SG1.
             7. Verify that that icmp/ssh isn't allowed to instances of SG1
                from instances of Default SG.
-            8. Detached ports of all instances from net_1.
-            9. Attached ports of all instances to default internal net.
+            8. Detach ports of all instances from net_1.
+            9. Attach ports of all instances to default internal net.
                To activate new interface on cirros
                restart network: "sudo /etc/init.d/S40network restart"
             10. Check that all instances are in Default SG.
             11. Verify that icmp/ssh is enabled between instances.
-            12. Change of some instances Default SG to SG1.
+            12. Change for all instances Default SG to SG1.
             13. Verify that icmp/ssh is enabled between instances from SG1.
-            14. Verify that that icmp/ssh isn't allowed to instances of SG1
+            14. Verify that icmp/ssh isn't allowed to instances of SG1
                 from instances of Default SG.
 
         Duration 15 min
@@ -2033,39 +2033,30 @@ class TestDVSSystem(TestBasic):
 
         tenant = os_conn.get_tenant(SERVTEST_TENANT)
 
-        network = os_conn.create_network(
-            network_name=self.net_data[0].keys()[0],
-            tenant_id=tenant.id)['network']
+        self.show_step(2)
+        net1 = os_conn.create_network(network_name=self.net_data[0].keys()[0],
+                                      tenant_id=tenant.id)['network']
 
-        subnet = os_conn.create_subnet(
-            subnet_name=network['name'],
-            network_id=network['id'],
+        subnet1 = os_conn.create_subnet(
+            subnet_name=net1['name'],
+            network_id=net1['id'],
             cidr=self.net_data[0][self.net_data[0].keys()[0]],
             ip_version=4)
 
-        # Check that network is created.
-        assert_true(
-            os_conn.get_network(network['name'])['id'] == network['id']
-        )
-        # Create Router_01, set gateway and add interface
-        # to external network.
-        router_1 = os_conn.create_router(
-            'router_1',
-            tenant=tenant)
+        # Check that network is created
+        assert_true(os_conn.get_network(net1['name'])['id'] == net1['id'])
 
-        # Add net_1 to router_1
-        os_conn.add_router_interface(
-            router_id=router_1["id"],
-            subnet_id=subnet["id"])
+        # Add net_1 to default router
+        default_router = os_conn.neutron.list_routers()[0]
+        os_conn.add_router_interface(router_id=default_router["id"],
+                                     subnet_id=subnet1["id"])
 
-        self.show_step(4)
-        sg1 = os_conn.nova.security_groups.create(
-            'SG1', "descr")
-        sg_rules = [
-            sg_rule for sg_rule
-            in os_conn.neutron.list_security_group_rules()[
-                'security_group_rules']
-            if sg_rule['security_group_id'] == sg1.id]
+        self.show_step(3)
+        sg1 = os_conn.nova.security_groups.create('SG1', "descr")
+        _rules = os_conn.neutron.list_security_group_rules()[
+            'security_group_rules']
+        sg_rules = [sg_rule for sg_rule in _rules
+                    if sg_rule['security_group_id'] == sg1.id]
         for rule in sg_rules:
             os_conn.neutron.delete_security_group_rule(rule['id'])
         for rule in [self.icmp, self.tcp]:
@@ -2078,70 +2069,68 @@ class TestDVSSystem(TestBasic):
 
         default_net = os_conn.nova.networks.find(label=self.inter_net_name)
 
-        # add rules for ssh and ping
+        # Add rules for ssh and ping
         os_conn.goodbye_security()
-        default_sg = [
-            sg
-            for sg in os_conn.neutron.list_security_groups()['security_groups']
-            if sg['tenant_id'] == os_conn.get_tenant(SERVTEST_TENANT).id
-            if sg['name'] == 'default'][0]
+        _groups = os_conn.neutron.list_security_groups()['security_groups']
+        _tenant_id = os_conn.get_tenant(SERVTEST_TENANT).id
+        default_sg = [sg for sg in _groups
+                      if sg['tenant_id'] == _tenant_id and
+                      sg['name'] == 'default'][0]
 
-        self.show_step(5)
+        self.show_step(4)
         instances_1 = openstack.create_instances(
-            os_conn=os_conn, nics=[{'net-id': network['id']}],
+            os_conn=os_conn, nics=[{'net-id': net1['id']}],
             security_groups=[sg1.name])
 
         access_point_1, access_point_ip_1 = openstack.create_access_point(
-            os_conn=os_conn, nics=[{'net-id': network['id']}],
+            os_conn=os_conn, nics=[{'net-id': net1['id']}],
             security_groups=[sg1.name, default_sg['name']])
 
-        self.show_step(6)
+        floating_1 = [os_conn.assign_floating_ip(i) for i in instances_1]
+
+        self.show_step(5)
         instances_2 = openstack.create_instances(
             os_conn=os_conn, nics=[{'net-id': default_net.id}],
             security_groups=[default_sg['name']])
 
         access_point_2, access_point_ip_2 = openstack.create_access_point(
-            os_conn=os_conn, nics=[{'net-id': default_net.id}],
+            os_conn=os_conn,
+            nics=[{'net-id': default_net.id}],
             security_groups=[default_sg['name'], sg1.name])
+
+        floating_2 = [os_conn.assign_floating_ip(i) for i in instances_2]
+
         openstack.verify_instance_state(os_conn)
 
-        ips_1 = []
-        for instance in instances_1:
-            ips_1.append(os_conn.get_nova_instance_ip(
-                instance, net_name=network['name']))
-        ips_2 = []
-        for instance in instances_2:
-            ips_2.append(os_conn.get_nova_instance_ip(
-                instance, net_name=self.inter_net_name))
+        self.show_step(6)
+        ips_1 = [os_conn.get_nova_instance_ip(i, net_name=net1['name'])
+                 for i in instances_1]
+        ips_2 = [os_conn.get_nova_instance_ip(i, net_name=self.inter_net_name)
+                 for i in instances_2]
 
-        ip_pair = dict.fromkeys(ips_1)
-        for key in ip_pair:
-            ip_pair[key] = [value for value in ips_1 if key != value]
-        openstack.check_connection_through_host(
-            access_point_ip_1, ip_pair,
-            timeout=60)
+        ip_pairs = dict.fromkeys(floating_1)
+        for ip_key in ip_pairs:
+            ip_pairs[ip_key] = [ip for ip in floating_1 if ip_key != ip]
+
+        openstack.check_connection_through_host(remote=access_point_ip_1,
+                                                ip_pair=ip_pairs,
+                                                timeout=60)
 
         self.show_step(7)
-        for key in ip_pair:
-            ip_pair[key] = ips_2
-        openstack.check_connection_through_host(
-            access_point_ip_1, ip_pair,
-            result_of_command=1)
+        ip_pairs = {ip_key: floating_2 for ip_key in ip_pairs}
+        openstack.check_connection_through_host(remote=access_point_ip_1,
+                                                ip_pair=ip_pairs,
+                                                result_of_command=1)
 
         self.show_step(8)
         self.show_step(9)
         for instance in instances_1:
-            ip = os_conn.get_nova_instance_ip(
-                instance, net_name=network['name'])
-            port = [
-                p
-                for p in os_conn.neutron.list_ports()['ports']
-                if p['fixed_ips'][0]['ip_address'] == ip].pop()
-            instance.interface_detach(
-                port["id"])
-            instance.interface_attach(
-                None, default_net.id, None)
-            instance.reboot()  # instead of restart network
+            ip = os_conn.get_nova_instance_ip(instance, net_name=net1['name'])
+            port = [p for p in os_conn.neutron.list_ports()['ports']
+                    if p['fixed_ips'][0]['ip_address'] == ip].pop()
+            instance.interface_detach(port['id'])
+            instance.interface_attach(None, default_net.id, None)
+            instance.reboot()  # instead of network restart
 
         self.show_step(10)
         ips = []
@@ -2150,15 +2139,13 @@ class TestDVSSystem(TestBasic):
         for instance in instances:
             assert_true(instance.security_groups.pop()['name'] == 'default')
             ips.append(os_conn.get_nova_instance_ip(
-                instance, net_name=self.inter_net_name))
+                srv=instance, net_name=self.inter_net_name))
 
         self.show_step(11)
-        ip_pair = dict.fromkeys(ips_2)
-        for key in ip_pair:
-            ip_pair[key] = ips
-        openstack.check_connection_through_host(
-            access_point_ip_2, ip_pair,
-            timeout=60 * 5)
+        ip_pair = {ip_key: ips for ip_key in floating_2}
+        openstack.check_connection_through_host(remote=access_point_ip_2,
+                                                ip_pair=ip_pair,
+                                                timeout=60 * 5)
         self.show_step(12)
         self.show_step(13)
         for instance in instances:
@@ -2166,14 +2153,14 @@ class TestDVSSystem(TestBasic):
             instance.add_security_group(sg1.name)
         for key in ip_pair:
             ip_pair[key] = [value for value in ips if key != value]
-        openstack.check_connection_through_host(
-            access_point_ip_2, ip_pair,
-            timeout=60 * 2)
+        openstack.check_connection_through_host(remote=access_point_ip_2,
+                                                ip_pair=ip_pair,
+                                                timeout=60 * 2)
 
         self.show_step(14)
-        openstack.check_connection_through_host(
-            access_point_ip_2, ip_pair,
-            result_of_command=1)
+        openstack.check_connection_through_host(remote=access_point_ip_2,
+                                                ip_pair=ip_pair,
+                                                result_of_command=1)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_port_security_group"])
