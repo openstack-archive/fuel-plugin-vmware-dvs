@@ -847,7 +847,7 @@ Steps
 
     1. Set up for system tests.
     2. Launch ubuntu cloud image.
-    3. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    3. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the default router.
     4. Create security groups:
        SG_web
        SG_db
@@ -932,7 +932,7 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the default router.
     3. Create security groups:
        SG1
        SG2
@@ -985,7 +985,7 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the default router.
     3. Create security SG1 group with rules:
        Ingress rule with ip protocol 'icmp', port range any, SG group 'SG1'
        Egress rule with ip protocol 'icmp', port range any, SG group 'SG1'
@@ -1037,7 +1037,7 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the default router.
     3. Create security SG1 group with rules:
        Ingress rule with ip protocol 'icmp', port range any, SG group 'SG1'
        Egress rule with ip protocol 'icmp', port range any, SG group 'SG1'
@@ -1088,7 +1088,7 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the router01.
+    2. Create net_1: net01__subnet, 192.168.1.0/24, and attach it to the default router.
     3. Create instance 'VM1' of vcenter availability zone in the default internal network. Associate floating ip.
     4. Create instance 'VM2' of nova availability zone in the 'net1'network.
     5. Create security groups:
@@ -1151,7 +1151,7 @@ Steps
     5. Run the command below on the Fuel Master node:
         `fuel --env <env_id> node --node-id <node_ids_separeted_by_coma> --tasks setup_repositories`
         And wait until task is done.
-    6. Log into controller node and check plugins services are alive and their PID are changed.
+    6. Log into controller node and check plugins services are alive and their PID are not changed.
     7. Check all nodes remain in ready status.
     8. Rerun OSTF.
 
