@@ -64,7 +64,7 @@ Steps
 #####
 
     1. Install DVS plugin on master node.
-    2. Create a new environment with following parameters:
+    2. Create a new environment with the following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
         * Storage: default
@@ -81,10 +81,9 @@ Steps
     7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers.
     8. Verify networks.
     9. Deploy cluster.
-    10. Run OSTF
+    10. Run OSTF.
     11. Launch instances in nova and vcenter availability zones.
-    12. Verify connection between instances. Send ping.
-        Check that ping get reply.
+    12. Verify connection between instances. Send ping, check that ping get reply.
     13. Shutdown controller with vmclusters.
     14. Check that vcenter-vmcluster migrates to another controller.
     15. Verify connection between instances.
@@ -123,7 +122,7 @@ Steps
 #####
 
     1. Install DVS plugin on master node.
-    2. Create a new environment with following parameters:
+    2. Create a new environment with the following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
         * Storage: default
@@ -142,8 +141,8 @@ Steps
     9. Deploy cluster.
     10. Run OSTF.
     11. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
-    12. Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
-    13. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
+    12. Launch instance VM_2 with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
+    13. Check connection between instances, send ping from VM_1 to VM_2 and vice versa.
     14. Reboot vcenter.
     15. Check that controller lost connection with vCenter.
     16. Wait for vCenter.
@@ -202,9 +201,9 @@ Steps
     8. Verify networks.
     9. Deploy cluster.
     10. Run OSTF.
-    11. Launch instance VM_1 with image TestVM,  nova availability zone and flavor m1.micro.
-    12. Launch instance VM_2  with image TestVM-VMDK,  vcenter availability zone and flavor m1.micro.
-    13. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
+    11. Launch instance VM_1 with image TestVM, nova availability zone and flavor m1.micro.
+    12. Launch instance VM_2 with image TestVM-VMDK, vcenter availability zone and flavor m1.micro.
+    13. Check connection between instances, send ping from VM_1 to VM_2 and vice versa.
     14. Reboot vcenter.
     15. Check that ComputeVMware lost connection with vCenter.
     16. Wait for vCenter.
@@ -261,14 +260,12 @@ Steps
     7. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers.
     8. Verify networks.
     9. Deploy cluster.
-    10. Run OSTF
+    10. Run OSTF.
     11. Launch instances in nova and vcenter availability zones.
-    12. Verify connection between instances. Send ping.
-        Check that ping get reply.
-    13. Reset controller with  vmclusters services.
+    12. Verify connection between instances. Send ping, check that ping get reply.
+    13. Reset controller with vmclusters services.
     14. Check that vmclusters services migrate to another controller.
-    15. Verify connection between instances.
-        Send ping, check that ping get reply.
+    15. Verify connection between instances. Send ping, check that ping get reply.
 
 
 Expected result

@@ -105,15 +105,15 @@ Steps
         * Storage: default
         * Additional services: default
     3. Go to Network tab -> Other subtab and check DVS plugin section is displayed with all required GUI elements:
-       'Neutron VMware DVS ML2 plugin' check box
-       "Use the VMware DVS firewall driver" check box
-       "Enter the cluster to dvSwitch mapping." text field with description 'List of ClusterName:SwitchName pairs, separated by semicolon. '
+       'Neutron VMware DVS ML2 plugin' checkbox
+       'Use the VMware DVS firewall driver' checkbox
+       'Enter the cluster to dvSwitch mapping.' text field with description 'List of ClusterName:SwitchName pairs, separated by semicolon.'
        'Versions' radio button with <plugin version>
-    4. Verify that check box "Neutron VMware DVS ML2 plugin" is enabled by default.
-    5. Verify that user can disable -> enable the DVS plugin by clicking on the checkbox “Neutron VMware DVS ML2 plugin”
-    6. Verify that check box "Use the VMware DVS firewall driver" is enabled by default.
+    4. Verify that checkbox 'Neutron VMware DVS ML2 plugin' is enabled by default.
+    5. Verify that user can disable/enable the DVS plugin by clicking on the checkbox 'Neutron VMware DVS ML2 plugin'.
+    6. Verify that checkbox 'Use the VMware DVS firewall driver' is enabled by default.
     7. Verify that all labels of the DVS plugin section have the same font style and color.
-    8. Verify that all elements of the DVS plugin section are vertically aligned
+    8. Verify that all elements of the DVS plugin section are vertically aligned.
 
 
 Expected result
@@ -184,7 +184,7 @@ dvs_vcenter_bvt
 Description
 ###########
 
-Check deployment with VMware DVS plugin, 3 Controllers, Compute, 2 CephOSD, CinderVMware and computeVMware roles.
+Check deployment with VMware DVS plugin, 3 Controllers, 3 Compute + CephOSD and CinderVMware + computeVMware roles.
 
 
 Complexity
