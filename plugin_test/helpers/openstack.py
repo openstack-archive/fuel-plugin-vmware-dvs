@@ -337,12 +337,13 @@ def check_service(ip, commands):
                          example of commands:
                          ['nova-manage service list | grep vcenter-vmcluster1'
         """
-        SSHManager.execute_on_remote(ip=ip, cmd='source openrc')
+        ssh_manager = SSHManager()
+        ssh_manager.execute_on_remote(ip=ip, cmd='source openrc')
 
         for cmd in commands:
             wait(
                 lambda:
-                ':-)' in SSHManager.execute_on_remote(ip=ip,
+                ':-)' in ssh_manager.execute_on_remote(ip=ip,
                                                       cmd=cmd)['stdout'][-1],
                 timeout=200)
 

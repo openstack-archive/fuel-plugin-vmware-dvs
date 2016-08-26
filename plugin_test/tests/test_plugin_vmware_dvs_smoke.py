@@ -54,8 +54,7 @@ class TestDVSSmoke(TestBasic):
 
         self.show_step(1)
         self.show_step(2)
-        plugin.install_dvs_plugin(
-            self.ssh_manager.admin_ip)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         cmd = 'fuel plugins list'
 
