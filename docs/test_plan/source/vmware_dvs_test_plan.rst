@@ -117,33 +117,33 @@ Target Test Items
 * Install/uninstall Fuel Vmware-DVS plugin
 * Deploy Cluster with Fuel Vmware-DVS plugin by Fuel
     * Roles of nodes
-        * controller
-        * compute
-        * cinder
-        * mongo
-        * compute-vmware
-        * cinder-vmware
+        * Controller
+        * Compute
+        * Cinder
+        * Mongo
+        * Compute-VMware
+        * Cinder-VMware
     * Hypervisors:
-        * KVM+Vcenter
-        * Qemu+Vcenter
+        * KVM + vCenter
+        * Qemu + vCenter
     * Storage:
         * Ceph
         * Cinder
         * VMWare vCenter/ESXi datastore for images
     * Network
-        * Neutron with Vlan segmentation
+        * Neutron with VLAN segmentation
         * HA + Neutron with VLAN
     * Additional components
         * Ceilometer
         * Health Check
     * Upgrade master node
 * MOS and VMware-DVS plugin
-    * Computes(Nova)
+    * Computes (Nova)
         * Launch and manage instances
         * Launch instances in batch
     * Networks (Neutron)
-        * Create and manage public and private networks.
-        * Create and manage routers.
+        * Create and manage public and private networks
+        * Create and manage routers
         * Port binding / disabling
         * Port security
         * Security groups
@@ -158,7 +158,7 @@ Target Test Items
         * Create and manage projects
         * Create and manage users
     * Glance
-        * Create  and manage images
+        * Create and manage images
 * GUI
     * Fuel UI
 * CLI
@@ -168,13 +168,13 @@ Target Test Items
 Test approach
 *************
 
-The project test approach consists of Smoke,  Integration, System, Regression
-Failover and Acceptance  test levels.
+The project test approach consists of Smoke, Integration, System, Regression
+Failover and Acceptance test levels.
 
 **Smoke testing**
 
 The goal of smoke testing is to ensure that the most critical features of Fuel
-VMware DVS plugin work  after new build delivery. Smoke tests will be used by
+VMware DVS plugin work after new build delivery. Smoke tests will be used by
 QA to accept software builds from Development team.
 
 **Integration and System testing**
@@ -185,8 +185,8 @@ without gaps in dataflow.
 
 **Regression testing**
 
-The goal of regression testing is to verify that key features of  Fuel VMware
-DVS plugin  are not affected by any changes performed during preparation to
+The goal of regression testing is to verify that key features of Fuel VMware
+DVS plugin are not affected by any changes performed during preparation to
 release (includes defects fixing, new features introduction and possible
 updates).
 
@@ -199,7 +199,7 @@ malfunctions with undue loss of data or data integrity.
 **Acceptance testing**
 
 The goal of acceptance testing is to ensure that Fuel VMware DVS plugin has
-reached a level of stability that meets requirements  and acceptance criteria.
+reached a level of stability that meets requirements and acceptance criteria.
 
 
 ***********************
@@ -256,7 +256,7 @@ Project testing activities are to be resulted in the following reporting documen
 Acceptance criteria
 ===================
 
-* All acceptance criteria for user stories are met.
+* All acceptance criteria for user stories are met
 * All test cases are executed. BVT tests are passed
 * Critical and high issues are fixed
 * All required documents are delivered
