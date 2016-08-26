@@ -41,7 +41,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     def get_network_template(self, template_name):
-        """Get netwok template.
+        """Get network template.
 
         param: template_name: type string, name of file
         """
@@ -61,7 +61,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
             1. Upload plugins to the master node.
             2. Install plugin.
             3. Create cluster with vcenter.
-            4. Set CephOSD as backend for Glance and Cinder
+            4. Set CephOSD as backend for Glance and Cinder.
             5. Add nodes with following roles:
                 controller
                 compute-vmware
@@ -70,8 +70,8 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
                 3 ceph-osd
             6. Upload network template.
             7. Check network configuration.
-            8. Deploy the cluster
-            9. Run OSTF
+            8. Deploy the cluster.
+            9. Run OSTF.
 
         Duration 2.5 hours
 
@@ -80,9 +80,12 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         """
         self.env.revert_snapshot("ready_with_9_slaves")
 
-        plugin.install_dvs_plugin(
-            self.ssh_manager.admin_ip)
+        self.show_step(1)
+        self.show_step(2)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
+        self.show_step(3)
+        self.show_step(4)
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
             mode=DEPLOYMENT_MODE,
@@ -101,29 +104,26 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
 
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {
-                'slave-01': ['controller'],
-                'slave-02': ['compute-vmware'],
-                'slave-03': ['compute-vmware'],
-                'slave-04': ['compute'],
-                'slave-05': ['ceph-osd'],
-                'slave-06': ['ceph-osd'],
-                'slave-07': ['ceph-osd'],
-            },
-            update_interfaces=False
-        )
+        self.show_step(5)
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute-vmware'],
+                                    'slave-03': ['compute-vmware'],
+                                    'slave-04': ['compute'],
+                                    'slave-05': ['ceph-osd'],
+                                    'slave-06': ['ceph-osd'],
+                                    'slave-07': ['ceph-osd'],},
+                                   update_interfaces=False)
 
         # Configure VMWare vCenter settings
+        self.show_step(6)
+
         target_node_1 = self.node_name('slave-02')
         target_node_2 = self.node_name('slave-03')
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            target_node_1=target_node_1,
-            target_node_2=target_node_2,
-            multiclusters=True
-        )
+        self.fuel_web.vcenter_configure(cluster_id,
+                                        target_node_1=target_node_1,
+                                        target_node_2=target_node_2,
+                                        multiclusters=True)
 
         network_template = self.get_network_template('default')
         self.fuel_web.client.upload_network_template(
@@ -138,21 +138,24 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         logger.debug('Networks: {0}'.format(
             self.fuel_web.client.get_network_groups()))
 
+        self.show_step(7)
         self.fuel_web.verify_network(cluster_id)
 
+        self.show_step(8)
         self.fuel_web.deploy_cluster_wait(cluster_id, timeout=180 * 60)
-
         self.fuel_web.verify_network(cluster_id)
 
-        self.check_ipconfig_for_template(cluster_id, network_template,
-                                         networks)
+        self.check_ipconfig_for_template(
+            cluster_id, network_template, networks)
         self.check_services_networks(cluster_id, network_template)
 
-        self.fuel_web.run_ostf(cluster_id=cluster_id,
-                               timeout=3600,
-                               test_sets=['smoke', 'sanity',
-                                          'ha', 'tests_platform'])
-        self.check_ipconfig_for_template(cluster_id, network_template,
-                                         networks)
+        self.show_step(9)
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id,
+            timeout=3600,
+            test_sets=['smoke', 'sanity', 'ha', 'tests_platform'])
+
+        self.check_ipconfig_for_template(
+            cluster_id, network_template, networks)
 
         self.check_services_networks(cluster_id, network_template)
