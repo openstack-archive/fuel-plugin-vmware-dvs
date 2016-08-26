@@ -59,19 +59,17 @@ class TestDVSDestructive(TestBasic):
     cmds = ['nova-manage service list | grep vcenter-vmcluster1',
             'nova-manage service list | grep vcenter-vmcluster2']
 
-    networks = [
-        {'name': 'net_1',
-         'subnets': [
-             {'name': 'subnet_1',
-              'cidr': '192.168.112.0/24'}
-         ]
-         },
-        {'name': 'net_2',
-         'subnets': [
-             {'name': 'subnet_1',
-              'cidr': '192.168.113.0/24'}
-         ]
-         }
+    networks = [{
+        'name': 'net_1',
+        'subnets': [
+            {'name': 'subnet_1',
+             'cidr': '192.168.112.0/24'}
+        ]}, {
+        'name': 'net_2',
+        'subnets': [
+            {'name': 'subnet_1',
+             'cidr': '192.168.113.0/24'}
+        ]}
     ]
 
     # defaults
@@ -95,42 +93,41 @@ class TestDVSDestructive(TestBasic):
             SERVTEST_PASSWORD,
             SERVTEST_TENANT)
 
-        # create security group with rules for ssh and ping
+        # Create security group with rules for ssh and ping
         security_group = admin.create_sec_group_for_ssh()
 
-        default_sg = [
-            sg
-            for sg in admin.neutron.list_security_groups()['security_groups']
-            if sg['tenant_id'] == admin.get_tenant(SERVTEST_TENANT).id
-            if sg['name'] == 'default'][0]
+        _sec_groups = admin.neutron.list_security_groups()['security_groups']
+        _serv_tenant_id = admin.get_tenant(SERVTEST_TENANT).id
+        default_sg = [sg for sg in _sec_groups
+                      if sg['tenant_id'] == _serv_tenant_id and
+                      sg['name'] == 'default'][0]
 
         network = admin.nova.networks.find(label=self.inter_net_name)
 
-        # create access point server
-        access_point, access_point_ip = openstack.create_access_point(
+        # Create access point server
+        _, access_point_ip = openstack.create_access_point(
             os_conn=admin, nics=[{'net-id': network.id}],
             security_groups=[security_group.name, default_sg['name']])
 
         self.show_step(11)
         self.show_step(12)
         instances = openstack.create_instances(
-            os_conn=admin, nics=[{'net-id': network.id}],
+            os_conn=admin,
+            nics=[{'net-id': network.id}],
             vm_count=1,
             security_groups=[default_sg['name']])
         openstack.verify_instance_state(admin)
 
         # Get private ips of instances
-        ips = []
-        for instance in instances:
-            ips.append(admin.get_nova_instance_ip(
-                instance, net_name=self.inter_net_name))
+        ips = [admin.get_nova_instance_ip(i, net_name=self.inter_net_name)
+               for i in instances]
         time.sleep(30)
         self.show_step(13)
         openstack.ping_each_other(ips=ips, access_point_ip=access_point_ip)
 
         self.show_step(14)
-        vcenter_name = [
-            name for name in self.WORKSTATION_NODES if 'vcenter' in name].pop()
+        vcenter_name = [name for name in self.WORKSTATION_NODES
+                        if 'vcenter' in name].pop()
         node = vmrun.Vmrun(
             self.host_type,
             self.path_to_vmx_file.format(vcenter_name),
@@ -143,13 +140,13 @@ class TestDVSDestructive(TestBasic):
         wait(lambda: not icmp_ping(self.VCENTER_IP),
              interval=1,
              timeout=10,
-             timeout_msg='Vcenter is still available.')
+             timeout_msg='vCenter is still available.')
 
         self.show_step(16)
         wait(lambda: icmp_ping(self.VCENTER_IP),
              interval=5,
              timeout=120,
-             timeout_msg='Vcenter is not available.')
+             timeout_msg='vCenter is not available.')
 
         self.show_step(17)
         openstack.ping_each_other(ips=ips, access_point_ip=access_point_ip)
@@ -178,12 +175,12 @@ class TestDVSDestructive(TestBasic):
         self.ssh_manager.execute_on_remote(
             ip=self.ssh_manager.admin_ip,
             cmd=cmd,
-            assert_ec_equal=[1]
-        )
+            assert_ec_equal=[1])
 
         self.show_step(3)
         output = self.ssh_manager.execute_on_remote(
-            ip=self.ssh_manager.admin_ip, cmd='fuel plugins list')['stdout']
+            ip=self.ssh_manager.admin_ip,
+            cmd='fuel plugins list')['stdout']
         assert_true(plugin.plugin_name in output[-1].split(' '),
                     "Plugin '{0}' was removed".format(plugin.plugin_name))
 
@@ -205,7 +202,6 @@ class TestDVSDestructive(TestBasic):
             7. Enable sub_net port of all instances.
             8. Verify that instances communicate between each other.
                Send icmp ping between instances.
-
 
         Duration: 1,5 hours
 
@@ -235,8 +231,7 @@ class TestDVSDestructive(TestBasic):
 
         logger.info("Check network was created.")
         assert_true(
-            os_conn.get_network(network['name'])['id'] == network['id']
-        )
+            os_conn.get_network(network['name'])['id'] == network['id'])
 
         logger.info("Add net_1 to default router")
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
@@ -246,42 +241,37 @@ class TestDVSDestructive(TestBasic):
         self.show_step(3)
         self.show_step(4)
         instances = openstack.create_instances(
-            os_conn=os_conn, nics=[{'net-id': network['id']}], vm_count=1,
-            security_groups=[security_group.name]
-        )
+            os_conn=os_conn,
+            nics=[{'net-id': network['id']}],
+            vm_count=1,
+            security_groups=[security_group.name])
         openstack.verify_instance_state(os_conn)
 
         ports = os_conn.neutron.list_ports()['ports']
         fips = openstack.create_and_assign_floating_ips(os_conn, instances)
 
-        inst_ips = [os_conn.get_nova_instance_ip(
-            instance, net_name=network['name']) for instance in instances]
+        inst_ips = [os_conn.get_nova_instance_ip(i, net_name=network['name'])
+                    for i in instances]
         inst_ports = [p for p in ports
                       if p['fixed_ips'][0]['ip_address'] in inst_ips]
 
         self.show_step(5)
         for port in inst_ports:
-            os_conn.neutron.update_port(
-                port['id'], {'port': {'admin_state_up': False}}
-            )
+            os_conn.neutron.update_port(port['id'],
+                                        {'port': {'admin_state_up': False}})
 
         self.show_step(6)
-        # TODO(vgorin) create better solution for this step
         try:
             openstack.ping_each_other(fips)
-            checker = 1
         except Exception as e:
             logger.info(e)
-            checker = 0
-
-        if checker:
+        else:
             fail('Ping is available between instances')
 
         self.show_step(7)
         for port in inst_ports:
-            os_conn.neutron.update_port(
-                port['id'], {'port': {'admin_state_up': True}}
-            )
+            os_conn.neutron.update_port(port['id'],
+                                        {'port': {'admin_state_up': True}})
 
         self.show_step(8)
         openstack.ping_each_other(fips, timeout=90)
@@ -325,14 +315,12 @@ class TestDVSDestructive(TestBasic):
 
         self.show_step(3)
         self.show_step(4)
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller'],
-             'slave-02': ['controller'],
-             'slave-03': ['controller'],
-             'slave-04': ['compute'],
-             'slave-05': ['compute']}
-        )
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['controller'],
+                                    'slave-03': ['controller'],
+                                    'slave-04': ['compute'],
+                                    'slave-05': ['compute']})
         self.show_step(6)
         self.fuel_web.vcenter_configure(cluster_id, multiclusters=True)
 
@@ -340,8 +328,7 @@ class TestDVSDestructive(TestBasic):
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.show_step(8)
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
         self.show_step(9)
         os_ip = self.fuel_web.get_public_vip(cluster_id)
@@ -354,9 +341,10 @@ class TestDVSDestructive(TestBasic):
 
         network = os_conn.nova.networks.find(label=self.inter_net_name)
         instances = openstack.create_instances(
-            os_conn=os_conn, nics=[{'net-id': network.id}], vm_count=1,
-            security_groups=[security_group.name]
-        )
+            os_conn=os_conn,
+            nics=[{'net-id': network.id}],
+            vm_count=1,
+            security_groups=[security_group.name])
         openstack.verify_instance_state(os_conn)
         openstack.create_and_assign_floating_ips(os_conn, instances)
 
@@ -393,11 +381,9 @@ class TestDVSDestructive(TestBasic):
 
         self.show_step(2)
         srv_list = os_conn.get_servers()
-        fips = []
-        for srv in srv_list:
-            fips.append(os_conn.get_nova_instance_ip(
-                srv, net_name=self.inter_net_name, addrtype='floating'))
-
+        fips = [os_conn.get_nova_instance_ip(s, net_name=self.inter_net_name,
+                                             addrtype='floating')
+                for s in srv_list]
         openstack.ping_each_other(fips)
 
         d_ctrl = self.fuel_web.get_nailgun_primary_node(
@@ -443,10 +429,9 @@ class TestDVSDestructive(TestBasic):
 
         self.show_step(2)
         srv_list = os_conn.get_servers()
-        fips = []
-        for srv in srv_list:
-            fips.append(os_conn.get_nova_instance_ip(
-                srv, net_name=self.inter_net_name, addrtype='floating'))
+        fips = [os_conn.get_nova_instance_ip(s, net_name=self.inter_net_name,
+                                             addrtype='floating')
+                for s in srv_list]
         openstack.ping_each_other(fips)
 
         n_ctrls = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
@@ -503,7 +488,6 @@ class TestDVSDestructive(TestBasic):
             17. Ensure that all instances from vCenter displayed in dashboard.
             18. Run OSTF.
 
-
         Duration: 2.5 hours
 
         """
@@ -525,13 +509,11 @@ class TestDVSDestructive(TestBasic):
         self.show_step(3)
         self.show_step(4)
         self.show_step(5)
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller'],
-             'slave-02': ['compute'],
-             'slave-03': ['cinder-vmware'],
-             'slave-04': ['cinder']}
-        )
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute'],
+                                    'slave-03': ['cinder-vmware'],
+                                    'slave-04': ['cinder']})
 
         self.show_step(6)
         plugin.enable_plugin(cluster_id, self.fuel_web)
@@ -593,7 +575,6 @@ class TestDVSDestructive(TestBasic):
             17. Ensure that all instances from vCenter displayed in dashboard.
             18. Run Smoke OSTF.
 
-
         Duration: 2.5 hours
 
         """
@@ -615,25 +596,21 @@ class TestDVSDestructive(TestBasic):
         self.show_step(3)
         self.show_step(4)
         self.show_step(5)
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller'],
-             'slave-02': ['compute'],
-             'slave-03': ['cinder-vmware'],
-             'slave-04': ['cinder'],
-             'slave-05': ['compute-vmware']}
-        )
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute'],
+                                    'slave-03': ['cinder-vmware'],
+                                    'slave-04': ['cinder'],
+                                    'slave-05': ['compute-vmware']})
 
         self.show_step(6)
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
         self.show_step(7)
         target_node_1 = self.node_name('slave-05')
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            target_node_1=target_node_1,
-            multiclusters=False
-        )
+        self.fuel_web.vcenter_configure(cluster_id,
+                                        target_node_1=target_node_1,
+                                        multiclusters=False)
 
         self.show_step(8)
         self.fuel_web.verify_network(cluster_id)

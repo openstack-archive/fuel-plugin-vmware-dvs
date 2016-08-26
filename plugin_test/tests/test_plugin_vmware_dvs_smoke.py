@@ -59,19 +59,16 @@ class TestDVSSmoke(TestBasic):
         cmd = 'fuel plugins list'
 
         output = self.ssh_manager.execute_on_remote(
-            ip=self.ssh_manager.admin_ip,
-            cmd=cmd)['stdout'].pop().split(' ')
+            ip=self.ssh_manager.admin_ip, cmd=cmd)['stdout'].pop().split(' ')
 
         # check name
         assert_true(
             plugin.plugin_name in output,
-            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
-        )
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name))
         # check version
         assert_true(
             plugin.DVS_PLUGIN_VERSION in output,
-            "Plugin '{0}' is not installed.".format(plugin.plugin_name)
-        )
+            "Plugin '{0}' is not installed.".format(plugin.plugin_name))
         self.env.make_snapshot("dvs_install", is_make=True)
 
     @test(depends_on=[dvs_install],
@@ -85,7 +82,6 @@ class TestDVSSmoke(TestBasic):
             2. Remove plugin.
             3. Verify that plugin is removed, run command 'fuel plugins'.
 
-
         Duration: 5 min
 
         """
@@ -96,11 +92,9 @@ class TestDVSSmoke(TestBasic):
         cmd = 'fuel plugins --remove {0}=={1}'.format(
             plugin.plugin_name, plugin.DVS_PLUGIN_VERSION)
 
-        self.ssh_manager.execute_on_remote(
-            ip=self.ssh_manager.admin_ip,
-            cmd=cmd,
-            err_msg='Can not remove plugin.'
-        )
+        self.ssh_manager.execute_on_remote(ip=self.ssh_manager.admin_ip,
+                                           cmd=cmd,
+                                           err_msg='Can not remove plugin.')
 
         self.show_step(3)
         output = self.ssh_manager.execute_on_remote(
@@ -109,8 +103,7 @@ class TestDVSSmoke(TestBasic):
 
         assert_true(
             plugin.plugin_name not in output,
-            "Plugin '{0}' is not removed".format(plugin.plugin_name)
-        )
+            "Plugin '{0}' is not removed".format(plugin.plugin_name))
 
     @test(depends_on=[dvs_install],
           groups=["dvs_vcenter_smoke"])
@@ -150,22 +143,17 @@ class TestDVSSmoke(TestBasic):
                 "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
-        plugin.enable_plugin(
-            cluster_id, self.fuel_web, multiclusters=False)
+        plugin.enable_plugin(cluster_id, self.fuel_web, multiclusters=False)
 
         # Assign role to node
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {'slave-01': ['controller']}
-        )
+        self.fuel_web.update_nodes(cluster_id, {'slave-01': ['controller']})
 
         # Configure VMWare vCenter settings
         self.fuel_web.vcenter_configure(cluster_id)
 
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
 
 @test(groups=["plugins", 'dvs_vcenter_bvt'])
@@ -209,8 +197,7 @@ class TestDVSBVT(TestBasic):
         """
         self.env.revert_snapshot("ready_with_9_slaves")
 
-        plugin.install_dvs_plugin(
-            self.ssh_manager.admin_ip)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         # Configure cluster with 2 vcenter clusters and vcenter glance
         cluster_id = self.fuel_web.create_cluster(
@@ -236,22 +223,18 @@ class TestDVSBVT(TestBasic):
              'slave-04': ['compute', 'ceph-osd'],
              'slave-05': ['compute', 'ceph-osd'],
              'slave-06': ['compute', 'ceph-osd'],
-             'slave-07': ['compute-vmware', 'cinder-vmware']}
-        )
+             'slave-07': ['compute-vmware', 'cinder-vmware']})
 
         # Configure VMWare vCenter settings
         target_node_2 = self.fuel_web.get_nailgun_node_by_name('slave-07')
         target_node_2 = target_node_2['hostname']
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            target_node_2=target_node_2,
-            multiclusters=True
-        )
+        self.fuel_web.vcenter_configure(cluster_id,
+                                        target_node_2=target_node_2,
+                                        multiclusters=True)
 
         self.fuel_web.verify_network(cluster_id, timeout=60 * 15)
         self.fuel_web.deploy_cluster_wait(cluster_id, timeout=3600 * 3)
 
-        self.fuel_web.run_ostf(
-            cluster_id=cluster_id, test_sets=['smoke'])
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
         self.env.make_snapshot("dvs_bvt", is_make=True)

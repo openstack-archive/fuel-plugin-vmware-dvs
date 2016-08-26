@@ -41,7 +41,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         return self.fuel_web.get_nailgun_node_by_name(name_node)['hostname']
 
     def get_network_template(self, template_name):
-        """Get netwok template.
+        """Get network template.
 
         param: template_name: type string, name of file
         """
@@ -80,8 +80,7 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
         """
         self.env.revert_snapshot("ready_with_9_slaves")
 
-        plugin.install_dvs_plugin(
-            self.ssh_manager.admin_ip)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
         cluster_id = self.fuel_web.create_cluster(
             name=self.__class__.__name__,
@@ -101,29 +100,23 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
 
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
-        self.fuel_web.update_nodes(
-            cluster_id,
-            {
-                'slave-01': ['controller'],
-                'slave-02': ['compute-vmware'],
-                'slave-03': ['compute-vmware'],
-                'slave-04': ['compute'],
-                'slave-05': ['ceph-osd'],
-                'slave-06': ['ceph-osd'],
-                'slave-07': ['ceph-osd'],
-            },
-            update_interfaces=False
-        )
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute-vmware'],
+                                    'slave-03': ['compute-vmware'],
+                                    'slave-04': ['compute'],
+                                    'slave-05': ['ceph-osd'],
+                                    'slave-06': ['ceph-osd'],
+                                    'slave-07': ['ceph-osd'],},
+                                   update_interfaces=False)
 
         # Configure VMWare vCenter settings
         target_node_1 = self.node_name('slave-02')
         target_node_2 = self.node_name('slave-03')
-        self.fuel_web.vcenter_configure(
-            cluster_id,
-            target_node_1=target_node_1,
-            target_node_2=target_node_2,
-            multiclusters=True
-        )
+        self.fuel_web.vcenter_configure(cluster_id,
+                                        target_node_1=target_node_1,
+                                        target_node_2=target_node_2,
+                                        multiclusters=True)
 
         network_template = self.get_network_template('default')
         self.fuel_web.client.upload_network_template(
@@ -139,20 +132,19 @@ class TestNetworkTemplates(TestNetworkTemplatesBase, TestBasic):
             self.fuel_web.client.get_network_groups()))
 
         self.fuel_web.verify_network(cluster_id)
-
         self.fuel_web.deploy_cluster_wait(cluster_id, timeout=180 * 60)
-
         self.fuel_web.verify_network(cluster_id)
 
-        self.check_ipconfig_for_template(cluster_id, network_template,
-                                         networks)
+        self.check_ipconfig_for_template(
+            cluster_id, network_template, networks)
         self.check_services_networks(cluster_id, network_template)
 
-        self.fuel_web.run_ostf(cluster_id=cluster_id,
-                               timeout=3600,
-                               test_sets=['smoke', 'sanity',
-                                          'ha', 'tests_platform'])
-        self.check_ipconfig_for_template(cluster_id, network_template,
-                                         networks)
+        self.fuel_web.run_ostf(
+            cluster_id=cluster_id,
+            timeout=3600,
+            test_sets=['smoke', 'sanity', 'ha', 'tests_platform'])
+
+        self.check_ipconfig_for_template(
+            cluster_id, network_template, networks)
 
         self.check_services_networks(cluster_id, network_template)
