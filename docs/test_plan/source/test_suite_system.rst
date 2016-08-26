@@ -15,7 +15,7 @@ dvs_vcenter_systest_setup
 Description
 ###########
 
-Deploy environment in DualHypervisors mode with 3 controllers, 2 compute-vmware and 1 compute nodes. Nova Compute instances are running on controller nodes.
+Deploy environment in DualHypervisors mode with 1 controller, 1 compute-vmware and 2 compute nodes. Nova Compute instances are running on controller nodes.
 
 
 Complexity
@@ -86,7 +86,7 @@ Steps
     5. Remove private network net_01.
     6. Check that network net_01 is not present in the vSphere.
     7. Add private network net_01.
-    8. Check that networks is  present in the vSphere.
+    8. Check that networks is present in the vSphere.
 
 
 Expected result
@@ -160,14 +160,14 @@ Steps
 
     1. Set up for system tests.
     2. Log in to Horizon Dashboard.
-    3. Navigate to Project ->  Compute -> Instances
+    3. Navigate to Project -> Compute -> Instances
     4. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
-    5. Launch instance VM_2  with image TestVM-VMDK, availability zone  vcenter and flavor m1.micro.
-    6. Verify that instances  communicate between each other. Send icmp ping from VM_1 to VM_2  and vice versa.
+    5. Launch instance VM_2 with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
+    6. Verify that instances communicate between each other. Send icmp ping from VM_1 to VM_2 and vice versa.
     7. Disable interface of VM_1.
-    8. Verify that instances  don't communicate between each other. Send icmp ping from VM_2 to VM_1  and vice versa.
+    8. Verify that instances don't communicate between each other. Send icmp ping from VM_2 to VM_1 and vice versa.
     9. Enable interface of VM_1.
-    10. Verify that instances  communicate between each other. Send icmp ping from VM_1 to VM_2  and vice versa.
+    10. Verify that instances communicate between each other. Send icmp ping from VM_1 to VM_2 and vice versa.
 
 
 Expected result
@@ -204,13 +204,13 @@ Steps
     1. Set up for system tests.
     2. Log in to Horizon Dashboard.
     3. Add two private networks (net01, and net02).
-    4. Add one  subnet (net01_subnet01: 192.168.101.0/24, net02_subnet01, 192.168.102.0/24) to each network.
+    4. Add one subnet (net01_subnet01: 192.168.101.0/24, net02_subnet01, 192.168.102.0/24) to each network.
     5. Launch instance VM_1 with image TestVM and flavor m1.micro in nova availability zone.
-    6. Launch instance VM_2  with image TestVM-VMDK and flavor m1.micro vcenter availability zone.
+    6. Launch instance VM_2 with image TestVM-VMDK and flavor m1.micro vcenter availability zone.
     7. Check abilities to assign multiple vNIC net01 and net02 to VM_1.
     8. Check abilities to assign multiple vNIC net01 and net02 to VM_2.
     9. Check that both interfaces on each instance have an IP address. To activate second interface on cirros edit the /etc/network/interfaces and restart network: "sudo /etc/init.d/S40network restart"
-    10. Send icmp ping from VM_1 to VM_2  and vice versa.
+    10. Send icmp ping from VM_1 to VM_2 and vice versa.
 
 
 Expected result
@@ -219,7 +219,7 @@ Expected result
 VM_1 and VM_2 should be attached to multiple vNIC net01 and net02. Pings should get a response.
 
 
-Check connection between instances  in one default tenant.
+Check connection between instances in one default tenant.
 ----------------------------------------------------------
 
 
@@ -245,10 +245,10 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Navigate to Project ->  Compute -> Instances
+    2. Navigate to Project -> Compute -> Instances.
     3. Launch instance VM_1 with image TestVM and flavor m1.micro in nova availability zone.
     4. Launch instance VM_2 with image TestVM-VMDK and flavor m1.micro in vcenter availability zone.
-    5. Verify that VM_1 and VM_2 on different hypervisors  communicate between each other. Send icmp ping from VM_1 of vCenter to VM_2 from Qemu/KVM and vice versa.
+    5. Verify that VM_1 and VM_2 on different hypervisors communicate between each other. Send icmp ping from VM_1 of vCenter to VM_2 from Qemu/KVM and vice versa.
 
 
 Expected result
@@ -285,10 +285,10 @@ Steps
     1. Set up for system tests.
     2. Log in to Horizon Dashboard.
     3. Create tenant net_01 with subnet.
-    4. Navigate to Project ->  Compute -> Instances
+    4. Navigate to Project -> Compute -> Instances.
     5. Launch instance VM_1 with image TestVM and flavor m1.micro in nova availability zone in net_01
     6. Launch instance VM_2 with image TestVM-VMDK and flavor m1.micro in vcenter availability zone in net_01
-    7. Verify that instances on same tenants communicate between each other. Send icmp ping from VM_1 to VM_2  and vice versa.
+    7. Verify that instances on same tenants communicate between each other. Send icmp ping from VM_1 to VM_2 and vice versa.
 
 
 Expected result
@@ -297,7 +297,7 @@ Expected result
 Pings should get a response.
 
 
-Check connectivity between instances attached to different networks with and within a router between them.
+Check connectivity between instances attached to different networks with and without a router between them.
 ----------------------------------------------------------------------------------------------------------
 
 
@@ -310,7 +310,7 @@ dvs_different_networks
 Description
 ###########
 
-Check connectivity between instances attached to different networks with and within a router between them.
+Check connectivity between instances attached to different networks with and without a router between them.
 
 
 Complexity
@@ -333,11 +333,11 @@ Steps
     9. Launch instances in the net02 with image TestVM and flavor m1.micro in nova az.
     10. Launch instances in the net02 with image TestVM-VMDK and flavor m1.micro in vcenter az.
     11. Verify that instances of same networks communicate between each other via private ip.
-         Send icmp ping between instances.
+        Send icmp ping between instances.
     12. Verify that instances of different networks don't communicate between each other via private ip.
     13. Delete net_02 from Router_02 and add it to the Router_01.
     14. Verify that instances of different networks communicate between each other via private ip.
-         Send icmp ping between instances.
+        Send icmp ping between instances.
 
 
 Expected result
@@ -375,15 +375,15 @@ Steps
     2. Log in to Horizon Dashboard.
     3. Create non-admin tenant with name 'test_tenant': Identity -> Projects-> Create Project. On tab Project Members add admin with admin and member.
     4. Navigate to Project -> Network -> Networks
-    5. Create network  with  subnet.
-    6. Navigate to Project ->  Compute -> Instances
-    7. Launch instance VM_1  with image TestVM-VMDK in the vcenter availability zone.
+    5. Create network with subnet.
+    6. Navigate to Project -> Compute -> Instances
+    7. Launch instance VM_1 with image TestVM-VMDK in the vcenter availability zone.
     8. Navigate to test_tenant.
-    9. Navigate to Project -> Network -> Networks
+    9. Navigate to Project -> Network -> Networks.
     10. Create Router, set gateway and add interface.
-    11. Navigate to Project ->  Compute -> Instances
+    11. Navigate to Project -> Compute -> Instances
     12. Launch instance VM_2 with image TestVM-VMDK in the vcenter availability zone.
-    13. Verify that instances on different tenants don't communicate between each other. Send icmp ping from VM_1 of admin tenant to VM_2  of test_tenant and vice versa.
+    13. Verify that instances on different tenants don't communicate between each other. Send icmp ping from VM_1 of admin tenant to VM_2 of test_tenant and vice versa.
 
 
 Expected result
@@ -421,14 +421,14 @@ Steps
     2. Log in to Horizon Dashboard.
     3. Create net_01: net01_subnet, 192.168.112.0/24 and attach it to default router.
     4. Launch instance VM_1 of nova availability zone with image TestVM and flavor m1.micro in the default internal network.
-    5. Launch instance VM_2  of vcenter availability zone with image TestVM-VMDK and flavor m1.micro in the net_01.
+    5. Launch instance VM_2 of vcenter availability zone with image TestVM-VMDK and flavor m1.micro in the net_01.
     6. Send ping from instances VM_1 and VM_2 to 8.8.8.8 or other outside ip.
 
 
 Expected result
 ###############
 
-Pings should  get a response
+Pings should get a response
 
 
 Check connectivity instances to public network with floating ip.
@@ -460,7 +460,7 @@ Steps
     2. Log in to Horizon Dashboard.
     3. Create net01: net01__subnet, 192.168.112.0/24 and attach it to the default router.
     4. Launch instance VM_1 of nova availability zone with image TestVM and flavor m1.micro in the default internal network. Associate floating ip.
-    5. Launch instance VM_2 of vcenter availability zone with image TestVM-VMDK  and flavor m1.micro in the net_01. Associate floating ip.
+    5. Launch instance VM_2 of vcenter availability zone with image TestVM-VMDK and flavor m1.micro in the net_01. Associate floating ip.
     6. Send ping from instances VM_1 and VM_2 to 8.8.8.8 or other outside ip.
 
 
@@ -497,18 +497,18 @@ Steps
 
     1. Set up for system tests.
     2. Create non default network with subnet net_01.
-    3. Launch 2 instances  of vcenter availability zone and 2 instances of nova availability zone in the tenant network net_01
-    4. Launch 2 instances  of vcenter availability zone and 2 instances of nova availability zone in the internal tenant network.
+    3. Launch 2 instances of vcenter availability zone and 2 instances of nova availability zone in the tenant network net_01
+    4. Launch 2 instances of vcenter availability zone and 2 instances of nova availability zone in the internal tenant network.
     5. Attach net_01 to default router.
     6. Create security group SG_1 to allow ICMP traffic.
     7. Add Ingress rule for ICMP protocol to SG_1.
     8. Create security groups SG_2 to allow TCP traffic 22 port.
     9. Add Ingress rule for TCP protocol to SG_2.
-    10. Remove default security group and attach SG_1 and SG_2 to VMs
+    10. Remove default security group and attach SG_1 and SG_2 to VMs.
     11. Check ping is available between instances.
     12. Check ssh connection is available between instances.
     13. Delete all rules from SG_1 and SG_2.
-    14. Check that ssh aren't available to instances.
+    14. Check that ssh isn't available to instances.
     15. Add Ingress and egress rules for TCP protocol to SG_2.
     16. Check ssh connection is available between instances.
     17. Check ping is not available between instances.
@@ -556,7 +556,7 @@ Steps
 
     1. Set up for system tests.
     2. Log in to Horizon Dashboard.
-    3. Launch 2 instances on each  hypervisors.
+    3. Launch 2 instances on each hypervisor.
     4. Verify that traffic can be successfully sent from and received on the MAC and IP address associated with the logical port.
     5. Configure a new IP address on the instance associated with the logical port.
     6. Confirm that the instance cannot communicate with that IP address.
@@ -616,7 +616,7 @@ Steps
         * network: net1 with ip 10.0.0.5
         * SG: SG_1
     10. In tenant 'test_2' create net2 and subnet2 with CIDR 10.0.0.0/24.
-    11. In tenant 'test_2' Create Router 'router_2' with external floating network
+    11. In tenant 'test_2' create Router 'router_2' with external floating network
     12. In tenant 'test_2' attach interface of net2, subnet2 to router_2
     13. In tenant "test_2" create security group "SG_2" and add rule that allows ingress icmp traffic.
     14. In tenant "test_2" launch instance:
@@ -633,16 +633,16 @@ Steps
          * flavor: m1.micro
          * network: net2 with ip 10.0.0.5
          * SG: SG_2
-    16. Assign floating ips for each instance
-    17. Check instances in tenant_1 communicate between each other by internal ip
-    18. Check instances in tenant_2 communicate between each other by internal ip
+    16. Assign floating ips for each instance.
+    17. Check instances in tenant_1 communicate between each other by internal ip.
+    18. Check instances in tenant_2 communicate between each other by internal ip.
     19. Check instances in different tenants communicate between each other by floating ip.
 
 
 Expected result
 ###############
 
-Pings should  get a response.
+Pings should get a response.
 
 
 Check creation instance in the one group simultaneously.
@@ -671,11 +671,11 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Navigate to Project -> Compute -> Instances
+    2. Navigate to Project -> Compute -> Instances.
     3. Launch few instances simultaneously with image TestVM and flavor m1.micro in nova availability zone in default internal network.
-    4. Launch few instances simultaneously with image TestVM-VMDK and flavor m1.micro in vcenter availability zone in  default internal network.
+    4. Launch few instances simultaneously with image TestVM-VMDK and flavor m1.micro in vcenter availability zone in default internal network.
     5. Check connection between instances (ping, ssh).
-    6. Delete all instances from horizon simultaneously.
+    6. Delete all instances from Horizon simultaneously.
 
 
 Expected result
@@ -726,7 +726,7 @@ Steps
     7. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on controllers.
     8. Verify networks.
     9. Deploy cluster.
-    10. Create  instances for each of hypervisor's type
+    10. Create instances for each of hypervisor's type
     11. Create 2 volumes each in his own availability zone.
     12. Attach each volume to his instance.
 
@@ -800,17 +800,19 @@ Steps
     1. Upload plugins to the master node.
     2. Install plugin.
     3. Create cluster with vcenter.
-    4. Set CephOSD as backend for Glance and Cinder
+    4. Set CephOSD as backend for Glance and Cinder.
     5. Add nodes with following roles:
-                       controller
-                       compute-vmware
-                       compute-vmware
-                       compute
-                       3 ceph-osd
+           * Controller
+           * Compute-VMware
+           * Compute-VMware
+           * Compute
+           * Ceph-OSD
+           * Ceph-OSD
+           * Ceph-OSD
     6. Upload network template.
     7. Check network configuration.
-    8. Deploy the cluster
-    9. Run OSTF
+    8. Deploy the cluster.
+    9. Run OSTF.
 
 
 Expected result
@@ -832,8 +834,7 @@ dvs_vcenter_remote_sg
 Description
 ###########
 
-Verify that network traffic is allowed/prohibited to instances according security groups
-rules.
+Verify that network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Complexity
@@ -859,41 +860,41 @@ Steps
        SG_man
        SG_DNS
     6. Add rules to SG_web:
-       Ingress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
-       Ingress rule with ip protocol 'tcp' , port range 3306-3306, SG group 'SG_db'
-       Ingress rule with ip protocol 'tcp' , port range 22-22, SG group 'SG_man
-       Engress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
-       Egress rule with ip protocol 'tcp' , port range 3306-3306, SG group 'SG_db'
-       Egress rule with ip protocol 'tcp' , port range 22-22, SG group 'SG_man
+       Ingress rule with ip protocol 'http', port range 80-80, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'tcp', port range 3306-3306, SG group 'SG_db'
+       Ingress rule with ip protocol 'tcp', port range 22-22, SG group 'SG_man
+       Egress rule with ip protocol 'http', port range 80-80, ip range 0.0.0.0/0
+       Egress rule with ip protocol 'tcp', port range 3306-3306, SG group 'SG_db'
+       Egress rule with ip protocol 'tcp', port range 22-22, SG group 'SG_man
     7. Add rules to SG_db:
-       Egress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
-       Egress rule with ip protocol 'https ' , port range 443-443, ip range 0.0.0.0/0
-       Ingress rule with ip protocol 'http' , port range 80-80, ip range 0.0.0.0/0
-       Ingress rule with ip protocol 'https ' , port range 443-443, ip range 0.0.0.0/0
-       Ingress rule with ip protocol 'tcp' , port range 3306-3306, SG group 'SG_web'
-       Ingress rule with ip protocol 'tcp' , port range 22-22, SG group 'SG_man'
-       Egress rule with ip protocol 'tcp' , port range 3306-3306, SG group 'SG_web'
-       Egress rule with ip protocol 'tcp' , port range 22-22, SG group 'SG_man'
+       Egress rule with ip protocol 'http', port range 80-80, ip range 0.0.0.0/0
+       Egress rule with ip protocol 'https', port range 443-443, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'http', port range 80-80, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'https', port range 443-443, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'tcp', port range 3306-3306, SG group 'SG_web'
+       Ingress rule with ip protocol 'tcp', port range 22-22, SG group 'SG_man'
+       Egress rule with ip protocol 'tcp', port range 3306-3306, SG group 'SG_web'
+       Egress rule with ip protocol 'tcp', port range 22-22, SG group 'SG_man'
     8. Add rules to SG_DNS:
-       Ingress rule with ip protocol 'udp ' , port range 53-53, ip-prefix 'ip DNS server'
-       Egress rule with ip protocol 'udp ' , port range 53-53, ip-prefix 'ip DNS server'
-       Ingress rule with ip protocol 'tcp' , port range 53-53, ip-prefix 'ip DNS server'
-       Egress rule with ip protocol 'tcp' , port range 53-53, ip-prefix 'ip DNS server'
+       Ingress rule with ip protocol 'udp', port range 53-53, ip-prefix 'ip DNS server'
+       Egress rule with ip protocol 'udp', port range 53-53, ip-prefix 'ip DNS server'
+       Ingress rule with ip protocol 'tcp', port range 53-53, ip-prefix 'ip DNS server'
+       Egress rule with ip protocol 'tcp', port range 53-53, ip-prefix 'ip DNS server'
     9. Add rules to SG_man:
-       Ingress rule with ip protocol 'tcp' , port range 22-22, ip range 0.0.0.0/0
-       Egress rule with ip protocol 'tcp' , port range 22-22, ip range 0.0.0.0/0
+       Ingress rule with ip protocol 'tcp', port range 22-22, ip range 0.0.0.0/0
+       Egress rule with ip protocol 'tcp', port range 22-22, ip range 0.0.0.0/0
     10. Launch following instances in net_1 from image 'ubuntu':
         instance 'webserver' of vcenter az with SG_web, SG_DNS
         instance 'mysqldb ' of vcenter az with SG_db, SG_DNS
         instance 'manage' of nova az with SG_man, SG_DNS
-    11. Verify that  traffic is enabled to instance 'webserver' from internet by http port 80.
-    12. Verify that  traffic is enabled to instance 'webserver' from VM 'manage' by tcp port 22.
+    11. Verify that traffic is enabled to instance 'webserver' from the internet by http port 80.
+    12. Verify that traffic is enabled to instance 'webserver' from VM 'manage' by tcp port 22.
     13. Verify that traffic is enabled to instance 'webserver' from VM 'mysqldb' by tcp port 3306.
-    14. Verify that traffic is enabled to internet from instance ' mysqldb' by https port 443.
-    15. Verify that traffic is enabled to instance ' mysqldb' from VM 'manage' by tcp port 22.
-    16. Verify that traffic is enabled to instance ' manage' from internet by tcp port 22.
-    17. Verify that traffic is not enabled to instance ' webserver' from internet by tcp port 22.
-    18. Verify that traffic is not enabled to instance ' mysqldb' from internet by tcp port 3306.
+    14. Verify that traffic is enabled to internet from instance 'mysqldb' by https port 443.
+    15. Verify that traffic is enabled to instance 'mysqldb' from VM 'manage' by tcp port 22.
+    16. Verify that traffic is enabled to instance 'manage' from internet by tcp port 22.
+    17. Verify that traffic is not enabled to instance 'webserver' from internet by tcp port 22.
+    18. Verify that traffic is not enabled to instance 'mysqldb' from internet by tcp port 3306.
     19. Verify that traffic is not enabled to instance 'manage' from internet by http port 80.
     20. Verify that traffic is enabled to all instances from DNS server by udp/tcp port 53 and vice versa.
 
@@ -901,8 +902,7 @@ Steps
 Expected result
 ###############
 
-Network traffic is allowed/prohibited to instances according security groups
-rules.
+Network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Security group rules with remote group id simple.
@@ -918,8 +918,7 @@ dvs_remote_sg_simple
 Description
 ###########
 
-Verify that network traffic is allowed/prohibited to instances according security groups
-rules.
+Verify that network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Complexity
@@ -955,8 +954,7 @@ Steps
 Expected result
 ###############
 
-Network traffic is allowed/prohibited to instances according security groups
-rules.
+Network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Check attached/detached ports with security groups.
@@ -1007,8 +1005,7 @@ Steps
 Expected result
 ###############
 
-Verify that network traffic is allowed/prohibited to instances according security groups
-rules.
+Verify that network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Check launch and remove instances in the one group simultaneously with few security groups.
@@ -1043,23 +1040,22 @@ Steps
        Egress rule with ip protocol 'icmp', port range any, SG group 'SG1'
        Ingress rule with ssh protocol 'tcp', port range 22, SG group 'SG1'
        Egress rule with ssh protocol 'tcp', port range 22, SG group 'SG1'
-    4. Create security Sg2 group with rules:
+    4. Create security SG2 group with rules:
        Ingress rule with ssh protocol 'tcp', port range 22, SG group 'SG2'
        Egress rule with ssh protocol 'tcp', port range 22, SG group 'SG2'
-    5. Launch a few instances of vcenter availability zone with Default SG +SG1+SG2  in net1 in one batch.
-    6. Launch a few instances of nova availability zone with Default SG +SG1+SG2  in net1 in one batch.
+    5. Launch a few instances of vcenter availability zone with Default SG + SG1 + SG2 in net_1 in one batch.
+    6. Launch a few instances of nova availability zone with Default SG + SG1 + SG2 in net_1 in one batch.
     7. Verify that icmp/ssh is enabled between instances.
     8. Remove all instances.
-    9. Launch a few instances of nova availability zone with Default SG +SG1+SG2  in net1 in one batch.
-    10. Launch a few instances of vcenter availability zone with Default SG +SG1+SG2  in net1 in one batch.
+    9. Launch a few instances of nova availability zone with Default SG + SG1 + SG2 in net_1 in one batch.
+    10. Launch a few instances of vcenter availability zone with Default SG + SG1 + SG2 in net_1 in one batch.
     11. Verify that icmp/ssh is enabled between instances.
 
 
 Expected result
 ###############
 
-Verify that network traffic is allowed/prohibited to instances according security groups
-rules.
+Verify that network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Security group rules with remote ip prefix.
@@ -1102,18 +1098,17 @@ Steps
        Ingress rule with ip protocol 'tcp', port range any, <internal ip of VM2>
        Egress rule with ip protocol 'tcp', port range any, <internal ip of VM2>
     9. Launch 2 instance 'VM3' and 'VM4' of vcenter az with SG1 and SG2 in net1.
-       Launch 2 instance 'VM5' and 'VM6'  of nova az with SG1 and SG2 in net1.
-    10. Verify that icmp ping is enabled from 'VM3',  'VM4' ,  'VM5' and 'VM6'  to VM1 and vice versa.
-    11. Verify that icmp ping is blocked between 'VM3',  'VM4' ,  'VM5' and 'VM6' and vice versa.
-    12. Verify that ssh is enabled from 'VM3',  'VM4' ,  'VM5' and 'VM6'  to VM2 and vice versa.
-    13. Verify that ssh is blocked between 'VM3',  'VM4' ,  'VM5' and 'VM6' and vice versa.
+       Launch 2 instance 'VM5' and 'VM6' of nova az with SG1 and SG2 in net1.
+    10. Verify that icmp ping is enabled from 'VM3', 'VM4', 'VM5' and 'VM6' to VM1 and vice versa.
+    11. Verify that icmp ping is blocked between 'VM3', 'VM4', 'VM5' and 'VM6' and vice versa.
+    12. Verify that ssh is enabled from 'VM3', 'VM4', 'VM5' and 'VM6' to VM2 and vice versa.
+    13. Verify that ssh is blocked between 'VM3', 'VM4', 'VM5' and 'VM6' and vice versa.
 
 
 Expected result
 ###############
 
-Verify that network traffic is allowed/prohibited to instances according security groups
-rules.
+Verify that network traffic is allowed/prohibited to instances according security groups rules.
 
 
 Fuel create mirror and update core repos on cluster with DVS
@@ -1143,14 +1138,14 @@ Steps
 
     1. Setup for system tests
     2. Log into controller node via Fuel CLI and get PID of services which were
-        launched by plugin and store them.
+       launched by plugin and store them.
     3. Launch the following command on the Fuel Master node:
-        `fuel-mirror create -P ubuntu -G mos ubuntu`
+       `fuel-mirror create -P ubuntu -G mos ubuntu`
     4. Run the command below on the Fuel Master node:
-        `fuel-mirror apply -P ubuntu -G mos ubuntu --env <env_id> --replace`
+       `fuel-mirror apply -P ubuntu -G mos ubuntu --env <env_id> --replace`
     5. Run the command below on the Fuel Master node:
-        `fuel --env <env_id> node --node-id <node_ids_separeted_by_coma> --tasks setup_repositories`
-        And wait until task is done.
+       `fuel --env <env_id> node --node-id <node_ids_separeted_by_coma> --tasks setup_repositories`
+       And wait until task is done.
     6. Log into controller node and check plugins services are alive and their PID are not changed.
     7. Check all nodes remain in ready status.
     8. Rerun OSTF.
@@ -1163,8 +1158,8 @@ Cluster (nodes) should remain in ready state.
 OSTF test should be passed on rerun
 
 
-Modifying env with DVS plugin(removing/adding controller)
----------------------------------------------------------
+Modifying env with DVS plugin (removing/adding controller)
+----------------------------------------------------------
 
 ID
 ##
@@ -1186,7 +1181,7 @@ core
 Steps
 #####
 
-    1. Install DVS plugin
+    1. Install DVS plugin.
     2. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation + Neutron with DVS
@@ -1202,15 +1197,15 @@ Steps
     5. Configure DVS plugin.
     6. Configure VMware vCenter Settings.
     7. Verify networks.
-    8. Deploy changes
-    9. Run OSTF
+    8. Deploy changes.
+    9. Run OSTF.
     10. Remove controller on which DVS agent is run.
-    11. Deploy changes
-    12. Rerun OSTF
-    13. Add 1 nodes with controller role to the cluster
-    14. Verify networks
-    15. Redeploy changes
-    16. Rerun OSTF
+    11. Deploy changes.
+    12. Rerun OSTF.
+    13. Add 1 nodes with controller role to the cluster.
+    14. Verify networks.
+    15. Redeploy changes.
+    16. Rerun OSTF.
 
 Expected result
 ###############
@@ -1242,14 +1237,14 @@ Steps
 #####
 
     1. Set up for system tests.
-    2. Remove compute from the cluster
-    3. Verify networks
-    4. Deploy changes
-    5. Rerun OSTF
-    6. Add 1 node with compute role to the cluster
-    7. Verify networks
-    8. Redeploy changes
-    9. Rerun OSTF
+    2. Remove compute from the cluster.
+    3. Verify networks.
+    4. Deploy changes.
+    5. Rerun OSTF.
+    6. Add 1 node with compute role to the cluster.
+    7. Verify networks.
+    8. Redeploy changes.
+    9. Rerun OSTF.
 
 Expected result
 ###############
@@ -1280,7 +1275,7 @@ core
 Steps
 #####
 
-    1. Install DVS plugin
+    1. Install DVS plugin.
     2. Create a new environment with following parameters:
         * Compute: KVM/QEMU with vCenter
         * Networking: Neutron with VLAN segmentation
@@ -1297,10 +1292,10 @@ Steps
     8. Add 1 node with compute-vmware role,configure Nova Compute instance on compute-vmware and redeploy cluster.
     9. Verify that previously created instance is working.
     10. Run OSTF tests.
-    11. Delete compute-vmware
-    12. Redeploy changes
+    11. Delete compute-vmware.
+    12. Redeploy changes.
     13. Verify that previously created instance is working.
-    14. Run OSTF
+    14. Run OSTF.
 
 Expected result
 ###############
