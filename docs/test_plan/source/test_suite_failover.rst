@@ -142,7 +142,7 @@ Steps
     9. Deploy cluster.
     10. Run OSTF.
     11. Launch instance VM_1 with image TestVM, availability zone nova and flavor m1.micro.
-    12. Launch instance VM_2  with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
+    12. Launch instance VM_2 with image TestVM-VMDK, availability zone vcenter and flavor m1.micro.
     13. Check connection between instances, send ping from VM_1 to VM_2 and vice verse.
     14. Reboot vcenter.
     15. Check that controller lost connection with vCenter.

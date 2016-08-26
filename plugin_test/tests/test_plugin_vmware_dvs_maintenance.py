@@ -54,7 +54,7 @@ class TestDVSMaintenance(TestBasic):
         """Deploy cluster with plugin and vmware datastore backend.
 
         Scenario:
-            1. Upload plugins to the master node
+            1. Upload plugins to the master node.
             2. Install plugin.
             3. Create cluster with vcenter.
             4. Add 3 node with controller role.
@@ -62,8 +62,8 @@ class TestDVSMaintenance(TestBasic):
             6. Add 1 node with compute-vmware + cinder vmware role.
             7. Deploy the cluster.
             8. Run OSTF.
-            9. Create non default network.
-            10. Create Security groups
+            9. Create non default network net_1.
+            10. Create Security groups.
             11. Launch instances with created network in nova and vcenter az.
             12. Attached created security groups to instances.
             13. Check connection between instances from different az.
@@ -81,39 +81,36 @@ class TestDVSMaintenance(TestBasic):
             SERVTEST_TENANT)
 
         tenant = os_conn.get_tenant(SERVTEST_TENANT)
-        # Create non default network with subnet.
+        # Create non default network with subnet
         logger.info('Create network {}'.format(self.net_data[0].keys()[0]))
-        network = os_conn.create_network(
+        net_1 = os_conn.create_network(
             network_name=self.net_data[0].keys()[0],
             tenant_id=tenant.id)['network']
 
         subnet = os_conn.create_subnet(
-            subnet_name=network['name'],
-            network_id=network['id'],
+            subnet_name=net_1['name'],
+            network_id=net_1['id'],
             cidr=self.net_data[0][self.net_data[0].keys()[0]],
             ip_version=4)
 
-        # Check that network are created.
-        assert_true(
-            os_conn.get_network(network['name'])['id'] == network['id']
-        )
+        # Check that network are created
+        assert_true(os_conn.get_network(net_1['name'])['id'] == net_1['id'])
+
         # Add net_1 to default router
         router = os_conn.get_router(os_conn.get_network(self.ext_net_name))
-        os_conn.add_router_interface(
-            router_id=router["id"],
-            subnet_id=subnet["id"])
-        # Launch instance 2 VMs of vcenter and 2 VMs of nova
-        # in the tenant network net_01
-        openstack.create_instances(
-            os_conn=os_conn, vm_count=1,
-            nics=[{'net-id': network['id']}]
-        )
-        # Launch instance 2 VMs of vcenter and 2 VMs of nova
-        # in the default network
-        network = os_conn.nova.networks.find(label=self.inter_net_name)
-        instances = openstack.create_instances(
-            os_conn=os_conn, vm_count=1,
-            nics=[{'net-id': network.id}])
+        os_conn.add_router_interface(router_id=router["id"],
+                                     subnet_id=subnet["id"])
+
+        # Launch 2 vcenter VMs and 2 nova VMs in the tenant network net_01
+        openstack.create_instances(os_conn=os_conn,
+                                   vm_count=1,
+                                   nics=[{'net-id': net_1['id']}])
+
+        # Launch 2 vcenter VMs and 2 nova VMs in the default network
+        net_1 = os_conn.nova.networks.find(label=self.inter_net_name)
+        instances = openstack.create_instances(os_conn=os_conn,
+                                               vm_count=1,
+                                               nics=[{'net-id': net_1.id}])
         openstack.verify_instance_state(os_conn)
 
         # Create security groups SG_1 to allow ICMP traffic.
@@ -121,32 +118,24 @@ class TestDVSMaintenance(TestBasic):
         # Create security groups SG_2 to allow TCP traffic 22 port.
         # Add Ingress rule for TCP protocol to SG_2
         sec_name = ['SG1', 'SG2']
-        sg1 = os_conn.nova.security_groups.create(
-            sec_name[0], "descr")
-        sg2 = os_conn.nova.security_groups.create(
-            sec_name[1], "descr")
-        rulesets = [
-            {
-                # ssh
-                'ip_protocol': 'tcp',
-                'from_port': 22,
-                'to_port': 22,
-                'cidr': '0.0.0.0/0',
-            },
-            {
-                # ping
-                'ip_protocol': 'icmp',
-                'from_port': -1,
-                'to_port': -1,
-                'cidr': '0.0.0.0/0',
-            }
-        ]
-        os_conn.nova.security_group_rules.create(
-            sg1.id, **rulesets[0]
-        )
-        os_conn.nova.security_group_rules.create(
-            sg2.id, **rulesets[1]
-        )
+        sg1 = os_conn.nova.security_groups.create(sec_name[0], "descr")
+        sg2 = os_conn.nova.security_groups.create(sec_name[1], "descr")
+        rulesets = [{
+            # ssh
+            'ip_protocol': 'tcp',
+            'from_port': 22,
+            'to_port': 22,
+            'cidr': '0.0.0.0/0',
+        }, {
+            # ping
+            'ip_protocol': 'icmp',
+            'from_port': -1,
+            'to_port': -1,
+            'cidr': '0.0.0.0/0',
+        }]
+        os_conn.nova.security_group_rules.create(sg1.id, **rulesets[0])
+        os_conn.nova.security_group_rules.create(sg2.id, **rulesets[1])
+
         # Remove default security group and attach SG_1 and SG2 to VMs
         srv_list = os_conn.get_servers()
         for srv in srv_list:
@@ -154,6 +143,7 @@ class TestDVSMaintenance(TestBasic):
             srv.add_security_group(sg1.id)
             srv.add_security_group(sg2.id)
         fip = openstack.create_and_assign_floating_ips(os_conn, instances)
+
         # Check ping between VMs
         ip_pair = dict.fromkeys(fip)
         for key in ip_pair:
