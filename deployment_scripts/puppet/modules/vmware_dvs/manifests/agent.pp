@@ -26,6 +26,17 @@
 # [*vsphere_password*]
 #   (required) String. This is a password of VMware vSphere user.
 #
+# [*vsphere_insecure*]
+#   (optional) If true, the ESX/vCenter server certificate is not verified.
+#   If false, then the default CA truststore is used for verification.
+#   Defaults to 'True'.
+#
+# [*vsphere_ca_file*]
+#   (optional) The hash name of the CA bundle file and data in format of:
+#   Example:
+#   "{"vc_ca_file"=>{"content"=>"RSA", "name"=>"vcenter-ca.pem"}}"
+#   Defaults to undef.
+#
 # [*network_maps*]
 #   (required) String. This is a name of DVS.
 #
@@ -50,6 +61,8 @@ define vmware_dvs::agent(
   $vsphere_hostname    = '192.168.0.1',
   $vsphere_login       = 'administrator@vsphere.local',
   $vsphere_password    = 'StrongPassword!',
+  $vsphere_insecure    = true,
+  $vsphere_ca_file     = undef,
   $network_maps        = 'physnet1:dvSwitch1',
   $use_fw_driver       = true,
   $neutron_url_timeout = '3600',
@@ -69,6 +82,11 @@ define vmware_dvs::agent(
   $agent_log    = "/var/log/neutron/vmware-dvs-agent-${host}.log"
   $ocf_pid_dir  = '/var/run/resource-agents/ocf-neutron-dvs-agent'
   $ocf_pid      = "${ocf_pid_dir}/${agent_name}.pid"
+
+  $vcenter_ca_file     = pick($vsphere_ca_file, {})
+  $vcenter_ca_content  = pick($vcenter_ca_file['content'], {})
+  $vcenter_ca_filepath = "/etc/neutron/vmware-${host}-ca.pem"
+
 
   if $use_fw_driver {
     $fw_driver = 'networking_vsphere.agent.firewalls.vcenter_firewall.DVSFirewallDriver'
@@ -94,6 +112,22 @@ define vmware_dvs::agent(
       command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
       refreshonly => true,
     }
+  }
+
+  if ! empty($vcenter_ca_content) and ! $vsphere_insecure {
+    $agent_vcenter_ca_filepath   = $vcenter_ca_filepath
+    $agent_vcenter_insecure_real = false
+
+    file { $vcenter_ca_filepath:
+      ensure  => file,
+      content => $vcenter_ca_content,
+      mode    => '0644',
+      owner   => 'root',
+      group   => 'root',
+    }
+  } else {
+    $agent_vcenter_ca_filepath   = $::os_service_default
+    $agent_vcenter_insecure_real = $vsphere_insecure
   }
 
   file {$agent_config:

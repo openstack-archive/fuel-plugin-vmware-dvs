@@ -20,6 +20,8 @@
         agent["vsphere_hostname"] = vc["vc_host"]
         agent["vsphere_login"] = vc["vc_user"]
         agent["vsphere_password"] = vc["vc_password"]
+        agent["vsphere_insecure"] = vc["vc_insecure"]
+        agent["vsphere_ca_file"] = vc["vc_ca_file"]
         cluster = vc["vc_cluster"]
         if netmaps.include? ':'
           vds = netmaps.split(";").collect{|k| k.split(":")}.select{|x| x[0] == cluster}.collect{|x| x[1]}[0]
