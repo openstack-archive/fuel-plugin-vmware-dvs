@@ -44,7 +44,7 @@
 - id: vmware-dvs-set-neutron-timeout
   version: 2.1.0
   groups: ['primary-controller','controller']
-  required_for: [deploy_end]
+  required_for: [vmware-vcenter]
   requires: [openstack-network-server-nova]
   type: puppet
   parameters:

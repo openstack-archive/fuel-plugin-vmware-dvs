@@ -1,4 +1,4 @@
-#    Copyright 2015 Mirantis, Inc.
+#    Copyright 2016 Mirantis, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,22 +14,21 @@
 
 notice('MODULAR: fuel-plugin-vmware-dvs/compute-vmware')
 
-$neutron_config     = hiera_hash('neutron_config')
-$nova_hash          = hiera_hash('nova')
-
-$management_vip     = hiera('management_vip')
-$service_endpoint   = hiera('service_endpoint', $management_vip)
-$neutron_endpoint   = hiera('neutron_endpoint', $management_vip)
-$admin_password     = try_get_value($neutron_config, 'keystone/admin_password')
-$admin_tenant_name  = try_get_value($neutron_config,
-                                  'keystone/admin_tenant', 'services')
-$admin_username     = try_get_value($neutron_config,
-                                  'keystone/admin_user', 'neutron')
-$region_name        = hiera('region', 'RegionOne')
-$auth_api_version   = 'v3'
-$admin_identity_uri = "http://${service_endpoint}:35357"
-$admin_auth_url     = "${admin_identity_uri}/${auth_api_version}"
-$neutron_url        = "http://${neutron_endpoint}:9696"
+$neutron_config      = hiera_hash('neutron_config')
+$management_vip      = hiera('management_vip')
+$service_endpoint    = hiera('service_endpoint', $management_vip)
+$neutron_endpoint    = hiera('neutron_endpoint', $management_vip)
+$admin_password      = try_get_value($neutron_config, 'keystone/admin_password')
+$admin_tenant_name   = try_get_value($neutron_config,
+                                   'keystone/admin_tenant', 'services')
+$admin_username      = try_get_value($neutron_config,
+                                   'keystone/admin_user', 'neutron')
+$region_name         = hiera('region', 'RegionOne')
+$auth_api_version    = 'v3'
+$admin_identity_uri  = "http://${service_endpoint}:35357"
+$admin_auth_url      = "${admin_identity_uri}/${auth_api_version}"
+$neutron_url         = "http://${neutron_endpoint}:9696"
+$neutron_url_timeout = '3600'
 
 class {'::vmware_dvs::compute':
   admin_password      => $admin_password,
@@ -38,5 +37,5 @@ class {'::vmware_dvs::compute':
   admin_username      => $admin_username,
   admin_auth_url      => $admin_auth_url,
   neutron_url         => $neutron_url,
-  neutron_url_timeout => '3600',
+  neutron_url_timeout => $neutron_url_timeout,
 }

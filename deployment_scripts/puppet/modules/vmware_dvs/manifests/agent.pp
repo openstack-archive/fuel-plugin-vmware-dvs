@@ -1,4 +1,4 @@
-#    Copyright 2015 Mirantis, Inc.
+#    Copyright 2016 Mirantis, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -11,25 +11,29 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+#
 # === Parameters
 #
 # [*host*]
 #   (required) String. The host parameter for nova-compute process
+#   Defaults to 'vcenter-servicename'.
 #
 # [*vsphere_hostname*]
 #   (required) String. This is a name or ip of VMware vSphere server.
+#   Defaults to '192.168.0.1'.
 #
 # [*vsphere_login*]
 #   (required) String. This is a name of VMware vSphere user.
+#   Defaults to 'administrator@vsphere.local'.
 #
 # [*vsphere_password*]
 #   (required) String. This is a password of VMware vSphere user.
+#   Defaults to 'StrongPassword!'.
 #
 # [*vsphere_insecure*]
 #   (optional) If true, the ESX/vCenter server certificate is not verified.
 #   If false, then the default CA truststore is used for verification.
-#   Defaults to 'True'.
+#   Defaults to 'true'.
 #
 # [*vsphere_ca_file*]
 #   (optional) The hash name of the CA bundle file and data in format of:
@@ -39,23 +43,24 @@
 #
 # [*network_maps*]
 #   (required) String. This is a name of DVS.
-#
-# [*neutron_url_timeout*]
-#   (required) String. This is the timeout for neutron.
+#   Defaults to 'physnet1:dvSwitch1'.
 #
 # [*use_fw_driver*]
 #   (optional) Boolean. Use firewall driver or mock.
+#   Defaults to true.
 #
 # [*py_root*]
 #   (optional) String. Path for python's dist-packages.
+#   Defaults to '/usr/lib/python2.7/dist-packages'
 #
 # [*ha_enabled*]
 #   (optional) Boolean. True for Corosync using.
+#   Defaults to true.
 #
 # [*primary*]
 #   (optional) Boolean. Parameter for using that cs_service.
-
-
+#   Defaults to false.
+#
 define vmware_dvs::agent(
   $host                = 'vcenter-servicename',
   $vsphere_hostname    = '192.168.0.1',
@@ -65,39 +70,30 @@ define vmware_dvs::agent(
   $vsphere_ca_file     = undef,
   $network_maps        = 'physnet1:dvSwitch1',
   $use_fw_driver       = true,
-  $neutron_url_timeout = '3600',
   $py_root             = '/usr/lib/python2.7/dist-packages',
   $ha_enabled          = true,
   $primary             = false,
 )
 {
-  $neutron_conf = '/etc/neutron/neutron.conf'
-  $ml2_conf     = '/etc/neutron/plugin.ini'
-  $ocf_dvs_name = 'ocf-neutron-dvs-agent'
-  $ocf_dvs_res  = "/usr/lib/ocf/resource.d/fuel/${ocf_dvs_name}"
-  $agent_config = "/etc/neutron/plugins/ml2/vmware_dvs-${host}.ini"
-  $agent_name   = "neutron-plugin-vmware-dvs-agent-${host}"
-  $agent_init   = "/etc/init/${agent_name}.conf"
-  $agent_initd  = "/etc/init.d/${agent_name}"
-  $agent_log    = "/var/log/neutron/vmware-dvs-agent-${host}.log"
-  $ocf_pid_dir  = '/var/run/resource-agents/ocf-neutron-dvs-agent'
-  $ocf_pid      = "${ocf_pid_dir}/${agent_name}.pid"
-
+  $neutron_conf        = '/etc/neutron/neutron.conf'
+  $ocf_dvs_name        = 'ocf-neutron-dvs-agent'
+  $ocf_dvs_res         = "/usr/lib/ocf/resource.d/fuel/${ocf_dvs_name}"
+  $agent_config        = "/etc/neutron/plugins/ml2/vmware_dvs-${host}.ini"
+  $agent_name          = "neutron-plugin-vmware-dvs-agent-${host}"
+  $agent_init          = "/etc/init/${agent_name}.conf"
+  $agent_initd         = "/etc/init.d/${agent_name}"
+  $agent_log           = "/var/log/neutron/vmware-dvs-agent-${host}.log"
+  $ocf_pid_dir         = '/var/run/resource-agents/ocf-neutron-dvs-agent'
+  $ocf_pid             = "${ocf_pid_dir}/${agent_name}.pid"
   $vcenter_ca_file     = pick($vsphere_ca_file, {})
   $vcenter_ca_content  = pick($vcenter_ca_file['content'], {})
   $vcenter_ca_filepath = "/etc/neutron/vmware-${host}-ca.pem"
-
 
   if $use_fw_driver {
     $fw_driver = 'networking_vsphere.agent.firewalls.vcenter_firewall.DVSFirewallDriver'
   }
   else {
     $fw_driver = 'networking_vsphere.agent.firewalls.noop_firewall.NoopvCenterFirewallDriver'
-  }
-
-
-  if ! defined(Nova_config['neutron/url_timeout']) {
-    nova_config {'neutron/url_timeout': value => $neutron_url_timeout}
   }
 
   if ! defined(File["${py_root}/nova.patch"]) {
@@ -169,7 +165,6 @@ define vmware_dvs::agent(
       'resource-stickiness' => '1'
     }
     $parameters         = {
-      'plugin_config'         => $ml2_conf,
       'additional_parameters' => "--config-file=${agent_config}",
       'log_file'              => $agent_log,
       'pid'                   => $ocf_pid,
