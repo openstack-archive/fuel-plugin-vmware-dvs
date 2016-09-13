@@ -403,7 +403,7 @@ class TestDVSDestructive(TestBasic):
         floating_ip = []
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
-                srv, net_name=self.inter_net_name, type='floating'))
+                srv, net_name=self.inter_net_name, addrtype='floating'))
         controller = self.fuel_web.get_nailgun_primary_node(
             self.env.d_env.nodes().slaves[0]
         )
@@ -463,7 +463,7 @@ class TestDVSDestructive(TestBasic):
         floating_ip = []
         for srv in srv_list:
             floating_ip.append(os_conn.get_nova_instance_ip(
-                srv, net_name=self.inter_net_name, type='floating'))
+                srv, net_name=self.inter_net_name, addrtype='floating'))
         controllers = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
             self.fuel_web.get_nailgun_cluster_nodes_by_roles(
                 cluster_id=cluster_id,
