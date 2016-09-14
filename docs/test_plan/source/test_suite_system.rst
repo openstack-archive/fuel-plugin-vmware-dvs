@@ -1302,3 +1302,47 @@ Expected result
 ###############
 
 Cluster is deployed successfully and all OSTF tests are passed.
+
+
+Enable security connection for vCenter
+--------------------------------------
+
+ID
+##
+
+dvs_secure
+
+
+Description
+###########
+
+Establish secure connection with uploaded CA bundle file.
+
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Install DVS plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute-vmware, cinder-vmware
+    4. Configure VMware vCenter Settings. Add vSphere clusters and configure Nova Compute instance on conroller and compute-vmware nodes.
+    5. Disable "Bypass vCenter certificate verification" option for vCenter and upload CA file certificate.
+    6. Deploy the cluster.
+    7. Run OSTF tests.
+    8. Check dvs agent configuration.
+
+Expected result
+###############
+
+Cluster is deployed successfully and all OSTF tests are passed. CA file was uploaded on all nodes with DVS agents and 'Insecure' option for dvs agents set as False.
