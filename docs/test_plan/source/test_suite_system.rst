@@ -183,7 +183,7 @@ Check abilities to assign multiple vNIC to a single instance.
 ID
 ##
 
-dvs_multi_vnic
+dvs_vcenter_multiple_nics
 
 
 Description
