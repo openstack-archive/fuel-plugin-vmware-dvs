@@ -45,6 +45,10 @@
 #   (required) String. This is a name of DVS.
 #   Defaults to 'physnet1:dvSwitch1'.
 #
+# [*uplink_maps*]
+#   (required) String. This is a string that explains uplinks usage policy.
+#   Defaults to undef.
+#
 # [*use_fw_driver*]
 #   (optional) Boolean. Use firewall driver or mock.
 #   Defaults to true.
@@ -69,6 +73,7 @@ define vmware_dvs::agent(
   $vsphere_insecure    = true,
   $vsphere_ca_file     = undef,
   $network_maps        = 'physnet1:dvSwitch1',
+  $uplink_maps         = undef,
   $use_fw_driver       = true,
   $py_root             = '/usr/lib/python2.7/dist-packages',
   $ha_enabled          = true,

@@ -7,9 +7,12 @@ firewall_driver=<%= @fw_driver %>
 
 [ml2_vmware]
 vsphere_login=<%= @vsphere_login %>
-network_maps=<%= @network_maps %>
 vsphere_hostname=<%= @vsphere_hostname %>
 vsphere_password=<%= @vsphere_password %>
+network_maps=<%= @network_maps %>
+<% if @uplink_maps -%>
+uplink_maps=<%= @uplink_maps%>
+<% end -%>
 insecure=<%= @agent_vcenter_insecure_real %>
 <% if @agent_vcenter_ca_filepath and @agent_vcenter_ca_filepath \
   != "<SERVICE DEFAULT>" and !@agent_vcenter_ca_filepath.empty? -%>

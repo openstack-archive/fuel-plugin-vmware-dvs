@@ -7,7 +7,7 @@
     raise(Puppet::ParseError, 'Shoud have 5 arguments!') if args.size < 4 or args[0] == ""
     vcenter = args[0]['computes']
     physnet = args[1]["predefined_networks"]["admin_internal_net"]["L2"]["physnet"]
-    netmaps = args[2]["vmware_dvs_net_maps"].delete(' ')
+    netmaps = args[2]["vmware_dvs_net_maps"].delete(' ').split("\n")
     use_fw_driver = args[2]["vmware_dvs_fw_driver"]
     current_node = args[3].split(".")[0]
     controllersp = args[4].any? {|role| role.include?("controller")}
@@ -23,12 +23,21 @@
         agent["vsphere_insecure"] = vc["vc_insecure"]
         agent["vsphere_ca_file"] = vc["vc_ca_file"]
         cluster = vc["vc_cluster"]
-        if netmaps.include? ':'
-          vds = netmaps.split(";").collect{|k| k.split(":")}.select{|x| x[0] == cluster}.collect{|x| x[1]}[0]
+        netmaps = netmaps.keep_if {|s| s =~ /^#{cluster}/}.first.split(":")
+        if netmaps.length == 4
+          vds = netmaps[1]
+          uplinks = netmaps[2] + ":" + netmaps[3]
+        elsif netmaps.length == 3
+          vds = netmaps[1]
+          uplinks = netmaps[2]
+        elsif netmaps.length == 2
+          vds = netmaps[1]
+          uplinks = false
         else
-          vds = netmaps
+          raise 'Wrong vmware_dvs_net_maps'
         end
         agent["network_maps"] = physnet + ":" + vds
+        agent["uplink_maps"] =  physnet + ":" + uplinks if uplinks
         agent["use_fw_driver"] = use_fw_driver
         agent["ha_enabled"] = controllersp
         agent["primary"] = primaryp

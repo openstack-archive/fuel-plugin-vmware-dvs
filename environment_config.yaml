@@ -15,9 +15,9 @@ attributes:
   vmware_dvs_net_maps:
     value: ""
     label: "Enter the Cluster to dvSwitch mapping."
-    description: "List of ClusterName:dvSwitchName pairs, separated by semicolon."
+    description: "List of strings with format ClusterName:dvSwitchName:TeamingUplink1;TeamingUplink2:FallbackUplink1;FallbackUplink2."
     weight: 25
-    type: "text"
+    type: "textarea"
     regex:
       source: &non_empty_string '\S'
       error: "Empty name of dvSwitch"
