@@ -15,8 +15,7 @@ dvs_vcenter_systest_setup
 Description
 ###########
 
-Deploy environment in DualHypervisors mode with 1 controller, 1 compute-vmware
-and 2 compute nodes. Nova Compute instances are running on controller nodes.
+Deploy environment in DualHypervisors mode with 1 controller, 1 compute-vmware and 2 compute nodes.
 
 
 Complexity
@@ -43,8 +42,7 @@ Steps
     5. Configure network settings.
     6. Enable and configure DVS plugin.
     7. Enable VMware vCenter/ESXi datastore for images (Glance).
-    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
-       Nova Compute instances on controllers and compute-vmware.
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers and compute-vmware.
     9. Verify networks.
     10. Deploy cluster.
     11. Run OSTF.
@@ -53,7 +51,7 @@ Steps
 Expected result
 ###############
 
-Cluster should be deployed and all OSTF test cases should be passed.
+Cluster should be deployed and all OSTF test cases should pass.
 
 
 Check abilities to create and terminate networks on DVS.
@@ -820,7 +818,7 @@ Steps
 Expected result
 ###############
 
-Cluster should be deployed and all OSTF test cases should be passed.
+Cluster should be deployed and all OSTF test cases should pass.
 
 
 Security group rules with remote group id.
@@ -1304,6 +1302,51 @@ Expected result
 ###############
 
 Cluster is deployed successfully and all OSTF tests are passed.
+
+
+Enable security connection for vCenter
+--------------------------------------
+
+ID
+##
+
+dvs_secure
+
+
+Description
+###########
+
+Establish secure connection with uploaded CA bundle file.
+
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Install DVS plugin.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute-vmware, cinder-vmware
+    4. Configure VMware vCenter Settings. Add vSphere clusters and configure Nova Compute instance on conroller and compute-vmware nodes.
+    5. Disable "Bypass vCenter certificate verification" option for vCenter and upload CA file certificate.
+    6. Deploy the cluster.
+    7. Run OSTF tests.
+    8. Check dvs agent configuration.
+
+Expected result
+###############
+
+Cluster is set to deployed successfully and all OSTF tests are passed.
+CA file was uploaded on all nodes with DVS agents and 'insecure' option for dvs agents set as False.
 
 
 Launch cluster with multiple teaming uplinks.
