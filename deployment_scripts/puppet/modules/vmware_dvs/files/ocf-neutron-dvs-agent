@@ -17,7 +17,6 @@
 # OCF instance parameters:
 #   OCF_RESKEY_binary
 #   OCF_RESKEY_config
-#   OCF_RESKEY_plugin_config
 #   OCF_RESKEY_user
 #   OCF_RESKEY_pid
 #   OCF_RESKEY_additional_parameters
@@ -35,7 +34,6 @@
 
 OCF_RESKEY_binary_default="neutron-dvs-agent"
 OCF_RESKEY_config_default="/etc/neutron/neutron.conf"
-OCF_RESKEY_plugin_config_default="/etc/neutron/plugin.ini"
 OCF_RESKEY_user_default="neutron"
 OCF_RESKEY_pid_default="${HA_RSCTMP}/${__SCRIPT_NAME}/${__SCRIPT_NAME}.pid"
 OCF_RESKEY_log_file_default="/var/log/neutron/vmware-dvs-agent-vcenter-sn.log"
@@ -45,7 +43,6 @@ OCF_RESKEY_debug_default='false'
 : ${HA_LOGFACILITY="daemon"}
 : ${OCF_RESKEY_binary=${OCF_RESKEY_binary_default}}
 : ${OCF_RESKEY_config=${OCF_RESKEY_config_default}}
-: ${OCF_RESKEY_plugin_config=${OCF_RESKEY_plugin_config_default}}
 : ${OCF_RESKEY_user=${OCF_RESKEY_user_default}}
 : ${OCF_RESKEY_pid=${OCF_RESKEY_pid_default}}
 : ${OCF_RESKEY_log_file=${OCF_RESKEY_log_file_default}}
@@ -98,14 +95,6 @@ Location of the OpenStack Neutron Service (neutron-server) configuration file
 </longdesc>
 <shortdesc lang="en">OpenStack Neutron Server (neutron-server) config file</shortdesc>
 <content type="string" default="${OCF_RESKEY_config_default}" />
-</parameter>
-
-<parameter name="plugin_config" unique="0" required="0">
-<longdesc lang="en">
-Location of the OpenStack VMware DVS agent (${OCF_RESKEY_binary}) configuration file
-</longdesc>
-<shortdesc lang="en">OpenStack VMware DVS agent (${OCF_RESKEY_binary}) config file</shortdesc>
-<content type="string" default="${OCF_RESKEY_plugin_config_default}" />
 </parameter>
 
 <parameter name="user" unique="0" required="0">
@@ -250,7 +239,7 @@ neutron_dvs_agent_start() {
     # run and detach to background neutron-dvs-agent as daemon.
     # Don't use ocf_run as we're sending the tool's output
     su ${OCF_RESKEY_user} -s /bin/sh -c "${OCF_RESKEY_binary} --config-file=$OCF_RESKEY_config \
-        --config-file=$OCF_RESKEY_plugin_config --log-file=$OCF_RESKEY_log_file $OCF_RESKEY_additional_parameters \
+        --log-file=$OCF_RESKEY_log_file $OCF_RESKEY_additional_parameters \
         >> /dev/null"' 2>&1 & echo $! > $OCF_RESKEY_pid'
     ocf_log debug "Create pid file: ${OCF_RESKEY_pid} with content $(cat ${OCF_RESKEY_pid})"
 

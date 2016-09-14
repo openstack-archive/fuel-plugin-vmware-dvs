@@ -34,8 +34,9 @@
 #
 # [*neutron_url_timeout*]
 #   (optional) String.
+#   Defaults to '3600'.
 #
-
+#
 class vmware_dvs::compute(
   $admin_password,
   $admin_tenant_name,
@@ -76,11 +77,5 @@ class vmware_dvs::compute(
     name   => $::nova::params::compute_service_name,
   }
   Nova_config<| |> ~> Service['nova-compute']
-
-  if($::operatingsystem == 'Ubuntu') {
-    tweaks::ubuntu_service_override { 'nova-network':
-      package_name => 'nova-network',
-    }
-  }
 
 }

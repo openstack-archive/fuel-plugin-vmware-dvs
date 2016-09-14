@@ -19,9 +19,9 @@ class vmware_dvs::l2 {
     $primary_controller               = roles_include($neutron_primary_controller_roles)
     $compute                          = roles_include($neutron_compute_roles)
 
-    $neutron_config = hiera_hash('neutron_config')
+    $neutron_config        = hiera_hash('neutron_config')
     $neutron_server_enable = pick($neutron_config['neutron_server_enable'], true)
-    $neutron_nodes = hiera_hash('neutron_nodes')
+    $neutron_nodes         = hiera_hash('neutron_nodes')
 
     $dpdk_config = hiera_hash('dpdk', {})
     $enable_dpdk = pick($dpdk_config['enabled'], false)
@@ -45,10 +45,10 @@ class vmware_dvs::l2 {
     prepare_network_config($network_scheme)
 
     $neutron_advanced_config = hiera_hash('neutron_advanced_configuration', { })
-    $l2_population     = try_get_value($neutron_advanced_config, 'neutron_l2_pop', false)
-    $dvr               = try_get_value($neutron_advanced_config, 'neutron_dvr', false)
-    $enable_qos        = pick($neutron_advanced_config['neutron_qos'], false)
-    $segmentation_type = try_get_value($neutron_config, 'L2/segmentation_type')
+    $l2_population           = try_get_value($neutron_advanced_config, 'neutron_l2_pop', false)
+    $dvr                     = try_get_value($neutron_advanced_config, 'neutron_dvr', false)
+    $enable_qos              = pick($neutron_advanced_config['neutron_qos'], false)
+    $segmentation_type       = try_get_value($neutron_config, 'L2/segmentation_type')
 
     if $compute and ! $dvr {
       $do_floating = false
@@ -69,11 +69,11 @@ class vmware_dvs::l2 {
     })
 
     if $segmentation_type == 'vlan' {
-      $net_role_property    = 'neutron/private'
-      $iface                = get_network_role_property($net_role_property, 'phys_dev')
-      $enable_tunneling = false
-      $network_type = 'vlan'
-      $tunnel_types = []
+      $net_role_property = 'neutron/private'
+      $iface             = get_network_role_property($net_role_property, 'phys_dev')
+      $enable_tunneling  = false
+      $network_type      = 'vlan'
+      $tunnel_types      = []
     } else {
       $net_role_property = 'neutron/mesh'
       $tunneling_ip      = get_network_role_property($net_role_property, 'ipaddr')
@@ -81,11 +81,11 @@ class vmware_dvs::l2 {
       $physical_net_mtu  = pick(get_transformation_property('mtu', $iface[0]), '1500')
 
       if $segmentation_type == 'gre' {
-        $mtu_offset = '42'
+        $mtu_offset   = '42'
         $network_type = 'gre'
       } else {
         # vxlan is the default segmentation type for non-vlan cases
-        $mtu_offset = '50'
+        $mtu_offset   = '50'
         $network_type = 'vxlan'
       }
       $tunnel_types = [$network_type]
@@ -137,9 +137,9 @@ class vmware_dvs::l2 {
       }
 
       service { 'neutron-server':
+        ensure     => $service_ensure,
         name       => $::neutron::params::server_service,
         enable     => $neutron_server_enable,
-        ensure     => $service_ensure,
         hasstatus  => true,
         hasrestart => true,
         tag        => 'neutron-service',
@@ -174,8 +174,8 @@ class vmware_dvs::l2 {
 
     # Stub for upstream neutron manifests
     package { 'neutron':
-      name   => 'binutils',
       ensure => 'installed',
+      name   => 'binutils',
     }
 
   }

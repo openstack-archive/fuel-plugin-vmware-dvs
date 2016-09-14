@@ -1,4 +1,4 @@
-notice('MODULAR: fuel-plugin-vmware-dvs/plugins/ml2.pp')
+notice('MODULAR: fuel-plugin-vmware-dvs/vmware-dvs-network-plugins-l2')
 
 class neutron {}
 class { 'neutron' :}
