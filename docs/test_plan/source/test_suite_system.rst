@@ -15,7 +15,8 @@ dvs_vcenter_systest_setup
 Description
 ###########
 
-Deploy environment in DualHypervisors mode with 1 controller, 1 compute-vmware and 2 compute nodes. Nova Compute instances are running on controller nodes.
+Deploy environment in DualHypervisors mode with 1 controller, 1 compute-vmware
+and 2 compute nodes. Nova Compute instances are running on controller nodes.
 
 
 Complexity
@@ -42,7 +43,8 @@ Steps
     5. Configure network settings.
     6. Enable and configure DVS plugin.
     7. Enable VMware vCenter/ESXi datastore for images (Glance).
-    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure Nova Compute instances on controllers and compute-vmware.
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
+       Nova Compute instances on controllers and compute-vmware.
     9. Verify networks.
     10. Deploy cluster.
     11. Run OSTF.
@@ -1302,3 +1304,178 @@ Expected result
 ###############
 
 Cluster is deployed successfully and all OSTF tests are passed.
+
+
+Launch cluster with multiple teaming uplinks.
+---------------------------------------------
+
+ID
+##
+
+dvs_multiple_uplinks_teaming
+
+Description
+###########
+
+Launch cluster with multiple teaming uplinks.
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Install DVS plugin on master node.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute
+        * Compute
+        * ComputeVMware
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin with multiple uplinks.
+       In format "luster:VDS:TU1;TU2;TU3".
+    7. Enable VMware vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
+       Nova Compute instances on controllers and compute-vmware.
+    9. Verify networks.
+    10. Deploy cluster.
+    11. Run OSTF.
+
+Expected result
+###############
+
+Cluster is deployed successfully and all OSTF tests are passed.
+
+
+Launch cluster with multiple teaming and fallback uplniks.
+----------------------------------------------------------
+
+ID
+##
+
+dvs_multiple_uplinks_teaming_fallback
+
+Description
+###########
+
+Launch cluster with multiple teaming and fallback uplinks.
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Install DVS plugin on master node.
+    2. Create a new environment with following parameters:
+        * Compute: KVM/QEMU with vCenter
+        * Networking: Neutron with VLAN segmentation
+        * Storage: default
+        * Additional services: default
+    3. Add nodes with following roles:
+        * Controller
+        * Compute
+        * Compute
+        * ComputeVMware
+    4. Configure interfaces on nodes.
+    5. Configure network settings.
+    6. Enable and configure DVS plugin with multiple uplinks.
+       In foramt "Cluster:VDS:TU1;TU2:FU3".
+    7. Enable VMware vCenter/ESXi datastore for images (Glance).
+    8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
+       Nova Compute instances on controllers and compute-vmware.
+    9. Verify networks.
+    10. Deploy cluster.
+    11. Run OSTF.
+
+Expected result
+###############
+
+Cluster is deployed successfully and all OSTF tests are passed.
+
+
+
+Disable teaming uplinks.
+------------------------
+
+
+ID
+##
+
+dvs_multiple_uplinks_disable_teaming
+
+Description
+###########
+
+Disable teaming uplinks.
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Launch cluster with 2 teaming and 1 fallback uplinks.
+    2. Run OSTF.
+    3. Up instance in default net in vCenter availability zone
+    4. Up instance in default net in nova availability zone
+    5. Disable first teaming uplink in vCenter.
+    6. Check instances are alive and functioning.
+    7. Disable all teaming uplinks in vCenter.
+    8. Check instances are alive and functioning.
+    9. Run OSTF.
+
+Expected result
+###############
+
+After disabling teaming uplinks instances are alive and functioning.
+All OSTF tests passed.
+
+
+Disabele teaming uplinks on cluster without fallback uplinks.
+-------------------------------------------------------------
+
+
+ID
+##
+
+dvs_multiple_uplinks_disable_teaming_without_fu
+
+Description
+###########
+
+Disabele teaming uplinks on cluster without fallback uplinks.
+
+Complexity
+##########
+
+core
+
+Steps
+#####
+
+    1. Launch cluster with 3 teaming.
+    2. Run OSTF.
+    3. Up instance in default net in vCenter availability zone
+    4. Up instance in default net in nova availability zone
+    5. Disable two used teaming uplinks in vCenter.
+    6. Check instances are alive and functioning.
+    7. Run OSTF.
+
+Expected result
+###############
+
+After disabling two of three teaming uplinks instances are alive and functioning.
+All OSTF tests passed.
