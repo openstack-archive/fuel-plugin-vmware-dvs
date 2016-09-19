@@ -2215,3 +2215,161 @@ class TestDVSSystem(TestBasic):
             default_net.id, {"network": {"name": 'spring'}})
 
         assert_true(os_conn.get_network('spring')['id'] == default_net.id)
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_multiple_uplinks_teaming_fallback"])
+    @log_snapshot_after_test
+    def dvs_multiple_uplinks_teaming_fallback(self):
+        """Launch cluster with multiple teaming and fallback uplinks.
+
+        Scenario:
+            1. Upload DVS plugin to the master node.
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Create a new environment with following parameters:
+                * Compute: KVM/QEMU with vCenter
+                * Networking: Neutron with VLAN segmentation
+                * Storage: default
+                * Additional services: default
+            5. Add nodes with following roles:
+                * Controller
+                * Compute
+                * Compute
+                * ComputeVMware
+            6. Configure interfaces on nodes.
+            7. Configure network settings.
+            8. Enable VMware vCenter/ESXi datastore for images (Glance).
+            9. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
+               Nova Compute instances on controllers and compute-vmware.
+            10. Enable and configure DVS plugin with multiple uplinks.
+                In foramt "Cluster:VDS:TU1;TU2:FU3".
+            11. Verify networks.
+            12. Deploy cluster.
+            13. Run OSTF.
+
+        Duration: 1.8 hours
+        Snapshot: dvs_multiple_uplinks_teaming_fallback
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        self.show_step(1)
+        self.show_step(2)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
+
+        self.show_step(3)
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+        self.show_step(4)
+        self.show_step(5)
+        self.show_step(6)
+        self.show_step(7)
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute-vmware'],
+                                    'slave-03': ['compute'],
+                                    'slave-04': ['compute']})
+
+        self.show_step(8)
+        self.show_step(9)
+        self.fuel_web.vcenter_configure(
+            cluster_id,
+            target_node_2=self.node_name('slave-02'),
+            multiclusters=True)
+
+        self.show_step(10)
+        plugin.enable_plugin(cluster_id, self.fuel_web, tu=2, fu=1)
+
+        self.show_step(11)
+        self.fuel_web.verify_network(cluster_id)
+
+        self.show_step(12)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        self.show_step(13)
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_multiple_uplinks_teaming"])
+    @log_snapshot_after_test
+    def dvs_multiple_uplinks_teaming(self):
+        """Launch cluster with multiple teaming uplinks.
+
+        Scenario:
+            1. Upload DVS plugin to the master node.
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Create a new environment with following parameters:
+                * Compute: KVM/QEMU with vCenter
+                * Networking: Neutron with VLAN segmentation
+                * Storage: default
+                * Additional services: default
+            5. Add nodes with following roles:
+                * Controller
+                * Compute
+                * Compute
+                * ComputeVMware
+            6. Configure interfaces on nodes.
+            7. Configure network settings.
+            8. Enable VMware vCenter/ESXi datastore for images (Glance).
+            9. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
+               Nova Compute instances on controllers and compute-vmware.
+            10. Enable and configure DVS plugin with multiple uplinks.
+                In format "Cluster:VDS:TU1;TU2;TU3".
+            11. Verify networks.
+            12. Deploy cluster.
+            13. Run OSTF.
+
+        Duration: 1.8 hours
+        Snapshot: dvs_multiple_uplinks_teaming
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        self.show_step(1)
+        self.show_step(2)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
+
+        self.show_step(3)
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+        self.show_step(4)
+        self.show_step(5)
+        self.show_step(6)
+        self.show_step(7)
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute-vmware'],
+                                    'slave-03': ['compute'],
+                                    'slave-04': ['compute']})
+
+        self.show_step(8)
+        self.show_step(9)
+        self.fuel_web.vcenter_configure(
+            cluster_id,
+            target_node_2=self.node_name('slave-02'),
+            multiclusters=True)
+
+        self.show_step(10)
+        plugin.enable_plugin(cluster_id, self.fuel_web, tu=3, fu=0)
+
+        self.show_step(11)
+        self.fuel_web.verify_network(cluster_id)
+
+        self.show_step(12)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        self.show_step(13)
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
