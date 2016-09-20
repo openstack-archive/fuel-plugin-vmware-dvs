@@ -13,6 +13,8 @@ License for the specific language governing permissions and limitations
 under the License.
 """
 
+import os
+import requests
 import time
 
 from devops.error import TimeoutError
@@ -22,14 +24,17 @@ from proboscis.asserts import assert_true
 
 import fuelweb_test.tests.base_test_case
 from fuelweb_test import logger
-from fuelweb_test.helpers.utils import pretty_log
 from fuelweb_test.helpers import os_actions
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test.helpers.ssh_manager import SSHManager
+from fuelweb_test.helpers.utils import pretty_log
 from fuelweb_test.settings import DEPLOYMENT_MODE
 from fuelweb_test.settings import NEUTRON_SEGMENT_TYPE
 from fuelweb_test.settings import SERVTEST_PASSWORD
 from fuelweb_test.settings import SERVTEST_TENANT
 from fuelweb_test.settings import SERVTEST_USERNAME
+from fuelweb_test.settings import VCENTER_CERT_BYPASS
+from fuelweb_test.settings import VCENTER_CERT_URL
 from helpers import openstack
 from helpers import plugin
 
@@ -81,6 +86,19 @@ class TestDVSSystem(TestBasic):
              "remote_group_id": None,
              "remote_ip_prefix": None}}
 
+    def check_config(self, host, path, settings):
+        """Return vmware glance backend conf_dict.
+
+        :param host:     host url or ip, string
+        :param path:     config path, string
+        :param settings: settings, dict
+        """
+        for key in settings.keys():
+            cmd = 'grep {1} {0} | grep -i "{2}"'.format(path, key,
+                                                        settings[key])
+            logger.debug('CMD: {}'.format(cmd))
+            SSHManager().check_call(host, cmd)
+
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
           groups=["dvs_vcenter_systest_setup"])
     @log_snapshot_after_test
@@ -88,7 +106,7 @@ class TestDVSSystem(TestBasic):
         """Deploy cluster with plugin and vmware datastore backend.
 
         Scenario:
-            1. Upload plugins to the master node.
+            1. Upload plugin to the master node.
             2. Install plugin.
             3. Create cluster with vcenter.
             4. Add 1 node with controller role.
@@ -779,7 +797,7 @@ class TestDVSSystem(TestBasic):
         """Deploy cluster with plugin and vmware datastore backend.
 
         Scenario:
-            1. Upload plugins to the master node
+            1. Upload plugin to the master node
             2. Install plugin on master node.
             3. Create a new environment with following parameters:
                     * Compute: KVM/QEMU with vCenter
@@ -787,7 +805,7 @@ class TestDVSSystem(TestBasic):
                     * Storage: default
                     * Additional services: default
             4. Enable and configure DVS plugin.
-            5. Add nodes with following roles:
+            5. Add nodes with the following roles:
                     * Controller
                     * Compute
                     * Cinder
@@ -2239,7 +2257,7 @@ class TestDVSSystem(TestBasic):
                 * Networking: Neutron with VLAN segmentation
                 * Storage: default
                 * Additional services: default
-            5. Add nodes with following roles:
+            5. Add nodes with the following roles:
                 * Controller
                 * Compute
                 * Compute
@@ -2318,7 +2336,7 @@ class TestDVSSystem(TestBasic):
                 * Networking: Neutron with VLAN segmentation
                 * Storage: default
                 * Additional services: default
-            5. Add nodes with following roles:
+            5. Add nodes with the following roles:
                 * Controller
                 * Compute
                 * Compute
@@ -2380,4 +2398,110 @@ class TestDVSSystem(TestBasic):
         self.fuel_web.deploy_cluster_wait(cluster_id)
 
         self.show_step(13)
+        self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
+
+    @test(depends_on=[SetupEnvironment.prepare_slaves_5],
+          groups=["dvs_secure"])
+    @log_snapshot_after_test
+    def dvs_secure(self):
+        """Deploy cluster with plugin and upload CA file certificate for
+        vCenter.
+
+        Scenario:
+            1. Upload plugin to the master node.
+            2. Install plugin.
+            3. Create cluster with vcenter.
+            4. Add nodes with the following roles:
+               * controller
+               * compute-vmware, cinder-vmware
+            5. Disable "Bypass vCenter certificate verification" option for
+               vCenter and upload CA file certificate.
+            6. Deploy the cluster.
+            7. Check dvs agent configuration files.
+            8. Run OSTF.
+
+        Duration: 1.8 hours
+
+        """
+        self.env.revert_snapshot("ready_with_5_slaves")
+
+        self.show_step(1)
+        self.show_step(2)
+        plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
+
+        self.show_step(3)
+        cluster_id = self.fuel_web.create_cluster(
+            name=self.__class__.__name__,
+            mode=DEPLOYMENT_MODE,
+            settings={
+                "net_provider": 'neutron',
+                "net_segment_type": NEUTRON_SEGMENT_TYPE
+            }
+        )
+        plugin.enable_plugin(cluster_id, self.fuel_web)
+
+        self.show_step(4)
+        self.fuel_web.update_nodes(cluster_id,
+                                   {'slave-01': ['controller'],
+                                    'slave-02': ['compute-vmware',
+                                                 'cinder-vmware']})
+
+        # Configure VMWare vCenter settings
+        target_node_2 = self.node_name('slave-02')
+        self.fuel_web.vcenter_configure(cluster_id,
+                                        target_node_2=target_node_2,
+                                        multiclusters=True)
+
+        self.show_step(5)
+        file_url = VCENTER_CERT_URL
+        r = requests.get(file_url)
+        cert_data = {'content': r.text, 'name': file_url.split('/')[-1]}
+        vmware_attr = self.fuel_web.client.get_cluster_vmware_attributes(
+            cluster_id)
+        vc_values = vmware_attr['editable']['value']['availability_zones'][0]
+        vc_values['vcenter_insecure'] = VCENTER_CERT_BYPASS
+        vc_values['vcenter_ca_file'] = cert_data
+        self.fuel_web.client.update_cluster_vmware_attributes(cluster_id,
+                                                              vmware_attr)
+
+        self.show_step(6)
+        self.fuel_web.deploy_cluster_wait(cluster_id)
+
+        self.show_step(7)
+        nodes = self.fuel_web.client.list_cluster_nodes(cluster_id)
+        vmware_attr = self.fuel_web.client.get_cluster_vmware_attributes(
+            cluster_id)
+        az = vmware_attr['editable']['value']['availability_zones'][0]
+        nova_computes = az['nova_computes']
+
+        data = []
+        ctrl_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            cluster_id, ["controller"])
+        for nova in nova_computes:
+            target_node = nova['target_node']['current']['id']
+            conf_path = '/etc/neutron/plugins/ml2/vmware_dvs-vcenter-{0}' \
+                        '.ini'.format(nova['service_name'])
+            ca_path = '/etc/neutron/vmware-vcenter-{0}-ca.pem'.format(
+                nova['service_name'])
+            conf_dict = {
+                'insecure': False,
+                'ca_file': ca_path
+            }
+            if target_node == 'controllers':
+                for node in ctrl_nodes:
+                    params = (node['hostname'], node['ip'], conf_path,
+                              conf_dict)
+                    data.append(params)
+            else:
+                for node in nodes:
+                    if node['hostname'] == target_node:
+                        params = (node['hostname'], node['ip'], conf_path,
+                                  conf_dict)
+                        data.append(params)
+
+        for hostname, ip, conf_path, conf_dict in data:
+            logger.info("Check dvs agent conf of {0}".format(hostname))
+            self.check_config(ip, conf_path, conf_dict)
+
+        self.show_step(8)
         self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
