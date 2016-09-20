@@ -13,9 +13,11 @@
     controllersp = args[4].any? {|role| role.include?("controller")}
     primaryp = args[4].any? {|role| role.include?("primary")}
     agents = []
+
     vcenter.each {|vc|
       if (vc["target_node"] == "controllers" and controllersp) or current_node == vc["target_node"]
         agent = {}
+        ns = netmaps.dup
         agent["host"] = vc["availability_zone_name"] + "-" + vc["service_name"]
         agent["vsphere_hostname"] = vc["vc_host"]
         agent["vsphere_login"] = vc["vc_user"]
@@ -23,18 +25,13 @@
         agent["vsphere_insecure"] = vc["vc_insecure"]
         agent["vsphere_ca_file"] = vc["vc_ca_file"]
         cluster = vc["vc_cluster"]
-        netmaps = netmaps.keep_if {|s| s =~ /^#{cluster}/}.first.split(":")
-        if netmaps.length == 4
-          vds = netmaps[1]
-          uplinks = netmaps[2] + ":" + netmaps[3]
-        elsif netmaps.length == 3
-          vds = netmaps[1]
-          uplinks = netmaps[2]
-        elsif netmaps.length == 2
-          vds = netmaps[1]
-          uplinks = false
-        else
-          raise 'Wrong vmware_dvs_net_maps'
+        ns = ns.keep_if {|s| s =~ /^#{cluster}/}.first.split(":")
+        vds = ns[1]
+        uplinks = false
+        if ns.length == 4
+          uplinks = ns[2] + ":" + ns[3]
+        elsif ns.length == 3
+          uplinks = ns[2]
         end
         agent["network_maps"] = physnet + ":" + vds
         agent["uplink_maps"] =  physnet + ":" + uplinks if uplinks
