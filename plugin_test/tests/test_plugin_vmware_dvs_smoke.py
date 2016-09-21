@@ -56,6 +56,7 @@ class TestDVSSmoke(TestBasic):
         self.show_step(2)
         plugin.install_dvs_plugin(self.ssh_manager.admin_ip)
 
+        self.show_step(3)
         cmd = 'fuel plugins list'
 
         output = self.ssh_manager.execute_on_remote(
