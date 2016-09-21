@@ -471,6 +471,7 @@ class TestDVSSystem(TestBasic):
         for key in ip_pair:
             ip_pair[key] = [value for value in fip if key != value]
         openstack.check_connection_vms(ip_pair)
+        self.show_step(10)
         openstack.check_connection_vms(ip_pair, command='ssh')
 
         self.show_step(11)
