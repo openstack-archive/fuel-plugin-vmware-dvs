@@ -1457,14 +1457,14 @@ class TestDVSSystem(TestBasic):
             for key in ip_pair:
                 ip_pair[key] = [value for value in ips[group] if key != value]
             openstack.check_connection_through_host(
-                access_point_ip, ip_pair, timeout=60 * 4)
+                access_point_ip, ip_pair, timeout=60 * 5)
 
         self.show_step(11)
         ip_pair = dict.fromkeys(ips['SG1'])
         for key in ip_pair:
             ip_pair[key] = ips['SG2']
         openstack.check_connection_through_host(
-            access_point_ip, ip_pair, result_of_command=1, timeout=60 * 4)
+            access_point_ip, ip_pair, result_of_command=1, timeout=60 * 5)
 
     @test(depends_on=[dvs_vcenter_systest_setup],
           groups=["dvs_remote_ip_prefix"])
