@@ -283,6 +283,7 @@ class TestDVSSystem(TestBasic):
             security_groups=[security_group.name])
         openstack.verify_instance_state(os_conn)
 
+        self.show_step(7)
         # Get floating ip of instances
         fip = openstack.create_and_assign_floating_ips(os_conn, instances)
         ip_pair = dict.fromkeys(fip)
@@ -471,6 +472,7 @@ class TestDVSSystem(TestBasic):
         for key in ip_pair:
             ip_pair[key] = [value for value in fip if key != value]
         openstack.check_connection_vms(ip_pair)
+        self.show_step(10)
         openstack.check_connection_vms(ip_pair, command='ssh')
 
         self.show_step(11)
@@ -515,6 +517,10 @@ class TestDVSSystem(TestBasic):
         self.show_step(17)
         openstack.check_connection_vms(
             ip_pair, timeout=wait_to_update_rules_on_dvs_ports)
+
+        self.show_step(18)
+        self.show_step(19)
+        self.show_step(20)
 
         self.show_step(21)
         srv_list = os_conn.get_servers()
@@ -780,15 +786,15 @@ class TestDVSSystem(TestBasic):
                     * Networking: Neutron with VLAN segmentation
                     * Storage: default
                     * Additional services: default
-            4. Add nodes with following roles:
+            4. Enable and configure DVS plugin.
+            5. Add nodes with following roles:
                     * Controller
                     * Compute
                     * Cinder
                     * CinderVMware
                     * Compute-VMware
-            5. Configure interfaces on nodes.
-            6. Configure network settings.
-            7. Enable and configure DVS plugin.
+            6. Configure interfaces on nodes.
+            7. Configure network settings.
             8. Configure VMware vCenter Settings. Add 2 vSphere clusters
                and configure Nova Compute instances on conroller
                and compute-vmware.
@@ -816,11 +822,12 @@ class TestDVSSystem(TestBasic):
                 "net_segment_type": NEUTRON_SEGMENT_TYPE
             }
         )
+        self.show_step(4)
         plugin.enable_plugin(cluster_id, self.fuel_web)
 
-        self.show_step(4)
         self.show_step(5)
         self.show_step(6)
+        self.show_step(7)
         self.fuel_web.update_nodes(cluster_id,
                                    {'slave-01': ['controller'],
                                     'slave-02': ['compute'],
@@ -829,6 +836,7 @@ class TestDVSSystem(TestBasic):
                                     'slave-05': ['compute-vmware']})
 
         self.show_step(8)
+        self.show_step(9)
         logger.info('Configure VMware vCenter Settings.')
         target_node_2 = self.node_name('slave-05')
         self.fuel_web.vcenter_configure(cluster_id,
@@ -1545,17 +1553,17 @@ class TestDVSSystem(TestBasic):
         os_conn.add_router_interface(router_id=router_1["id"],
                                      subnet_id=subnet["id"])
 
+        self.show_step(3)
+        self.show_step(4)
         self.show_step(5)
         sg1 = os_conn.nova.security_groups.create('SG1', "descr")
         sg2 = os_conn.nova.security_groups.create('SG2', "descr")
 
-        self.show_step(3)
         access_point_1, access_point_ip_1 = openstack.create_access_point(
             os_conn=os_conn,
             nics=[{'net-id': net_1['id']}],
             security_groups=[security_group.name, sg1.name])
 
-        self.show_step(4)
         access_point_2, access_point_ip_2 = openstack.create_access_point(
             os_conn=os_conn,
             nics=[{'net-id': net_1['id']}],

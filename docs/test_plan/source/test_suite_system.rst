@@ -715,14 +715,14 @@ Steps
         * Networking: Neutron with VLAN segmentation
         * Storage: default
         * Additional services: default
-    3. Add nodes with following roles:
+    3. Enable and configure DVS plugin.
+    4. Add nodes with following roles:
         * Controller
         * Compute
         * Cinder
         * CinderVMware
-    4. Configure interfaces on nodes.
-    5. Configure network settings.
-    6. Enable and configure DVS plugin.
+    5. Configure interfaces on nodes.
+    6. Configure network settings.
     7. Configure VMware vCenter Settings. Add 1 vSphere clusters and configure Nova Compute instances on controllers.
     8. Verify networks.
     9. Deploy cluster.
