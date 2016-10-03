@@ -1,5 +1,5 @@
 =============================================
-Test Plan for VMware DVS plugin version 3.0.0
+Test Plan for VMware DVS plugin version 3.1.0
 =============================================
 
 ************
@@ -69,7 +69,7 @@ Product compatibility matrix
      - Version
      - Comment
    * - MOS
-     - 9.0 with Mitaka
+     - 9.1 with Mitaka
      -
    * - Operating System
      - Ubuntu 14.04
@@ -94,7 +94,7 @@ Evaluation Mission and Test Motivation
 The main goal of the project is to build a MOS plugin that integrates
 the Neutron ML2 Driver For VMware vCenter DVS. This will allow to use Neutron
 for networking in VMware-related environments. The plugin must be compatible
-with the version 9.0 of Mirantis OpenStack and should be tested with the
+with the version 9.1 of Mirantis OpenStack and should be tested with the
 software/hardware described in `product compatibility matrix`_.
 
 See the VMware DVS Plugin specification for more details.

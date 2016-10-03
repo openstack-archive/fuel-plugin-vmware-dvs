@@ -1384,7 +1384,7 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin with multiple uplinks.
-       In format "luster:VDS:TU1;TU2;TU3".
+       In format "Cluster:VDS:TU1;TU2;TU3".
     7. Enable VMware vCenter/ESXi datastore for images (Glance).
     8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
        Nova Compute instances on controllers and compute-vmware.
