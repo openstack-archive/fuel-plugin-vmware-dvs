@@ -107,7 +107,7 @@ Steps
     3. Go to Network tab -> Other subtab and check DVS plugin section is displayed with all required GUI elements:
        'Neutron VMware DVS ML2 plugin' checkbox
        'Use the VMware DVS firewall driver' checkbox
-       'Enter the cluster to dvSwitch mapping.' text field with description 'List of strings with format ClusterName:dvSwitchName:TeamingUplink1;TeamingUplink2:FallbackUplink1;FallbackUplink2.'
+       'Enter the cluster to dvSwitch mapping.' text field with description 'List of strings with format ClusterName:dvSwitchName:ActiveUplink1;ActiveUplink2:StandbyUplink1;StandbyUplink2.'
        'Versions' radio button with <plugin version>
     4. Verify that checkbox 'Neutron VMware DVS ML2 plugin' is enabled by default.
     5. Verify that user can disable/enable the DVS plugin by clicking on the checkbox 'Neutron VMware DVS ML2 plugin'.

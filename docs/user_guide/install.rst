@@ -37,7 +37,7 @@ Before you proceed with the VMware DVS plugin installation, verify that:
      # fuel plugins
 
      +------+--------------------------+-----------+--------------------+
-     | id   | name                     | version   | package\_version   |
+     | id   | name                     | version   | package_version    |
      +------+--------------------------+-----------+--------------------+
      | 2    | fuel-plugin-vmware-dvs   | 3.1.0     | 4.0.0              |
      +------+--------------------------+-----------+--------------------+

@@ -1349,18 +1349,18 @@ Cluster is deployed successfully and all OSTF tests are passed.
 CA file was uploaded on all nodes with DVS agents and 'insecure' option for dvs agents is set to False.
 
 
-Launch cluster with multiple teaming uplinks.
----------------------------------------------
+Launch cluster with multiple active uplinks.
+--------------------------------------------
 
 ID
 ##
 
-dvs_multiple_uplinks_teaming
+dvs_multiple_uplinks_active
 
 Description
 ###########
 
-Launch cluster with multiple teaming uplinks.
+Launch cluster with multiple active uplinks.
 
 Complexity
 ##########
@@ -1384,7 +1384,7 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin with multiple uplinks.
-       In format "Cluster:VDS:TU1;TU2;TU3".
+       In format "Cluster:VDS:AU1;AU2;AU3".
     7. Enable VMware vCenter/ESXi datastore for images (Glance).
     8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
        Nova Compute instances on controllers and compute-vmware.
@@ -1398,18 +1398,18 @@ Expected result
 Cluster is deployed successfully and all OSTF tests are passed.
 
 
-Launch cluster with multiple teaming and fallback uplniks.
-----------------------------------------------------------
+Launch cluster with multiple active and standby uplniks.
+--------------------------------------------------------
 
 ID
 ##
 
-dvs_multiple_uplinks_teaming_fallback
+dvs_multiple_uplinks_active_standby
 
 Description
 ###########
 
-Launch cluster with multiple teaming and fallback uplinks.
+Launch cluster with multiple active and standby uplinks.
 
 Complexity
 ##########
@@ -1433,7 +1433,7 @@ Steps
     4. Configure interfaces on nodes.
     5. Configure network settings.
     6. Enable and configure DVS plugin with multiple uplinks.
-       In foramt "Cluster:VDS:TU1;TU2:FU3".
+       In foramt "Cluster:VDS:AU1;AU2:SU3".
     7. Enable VMware vCenter/ESXi datastore for images (Glance).
     8. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
        Nova Compute instances on controllers and compute-vmware.
@@ -1448,19 +1448,19 @@ Cluster is deployed successfully and all OSTF tests are passed.
 
 
 
-Disable teaming uplinks.
-------------------------
+Disable active uplinks.
+-----------------------
 
 
 ID
 ##
 
-dvs_multiple_uplinks_disable_teaming
+dvs_multiple_uplinks_disable_active
 
 Description
 ###########
 
-Disable teaming uplinks.
+Disable active uplinks.
 
 Complexity
 ##########
@@ -1470,36 +1470,36 @@ core
 Steps
 #####
 
-    1. Launch cluster with 2 teaming and 1 fallback uplinks.
+    1. Launch cluster with 2 active and 1 standby uplinks.
     2. Run OSTF.
     3. Up instance in default net in vCenter availability zone
     4. Up instance in default net in nova availability zone
-    5. Disable first teaming uplink in vCenter.
+    5. Disable first active uplink in vCenter.
     6. Check instances are alive and functioning.
-    7. Disable all teaming uplinks in vCenter.
+    7. Disable all active uplinks in vCenter.
     8. Check instances are alive and functioning.
     9. Run OSTF.
 
 Expected result
 ###############
 
-After disabling teaming uplinks instances are alive and functioning.
+After disabling active uplinks instances are alive and functioning.
 All OSTF tests passed.
 
 
-Disabele teaming uplinks on cluster without fallback uplinks.
--------------------------------------------------------------
+Disable active uplinks on cluster without standby uplinks.
+----------------------------------------------------------
 
 
 ID
 ##
 
-dvs_multiple_uplinks_disable_teaming_without_fu
+dvs_multiple_uplinks_disable_active_without_su
 
 Description
 ###########
 
-Disabele teaming uplinks on cluster without fallback uplinks.
+Disable active uplinks on cluster without standby uplinks.
 
 Complexity
 ##########
@@ -1509,16 +1509,16 @@ core
 Steps
 #####
 
-    1. Launch cluster with 3 teaming uplinks.
+    1. Launch cluster with 3 active uplinks.
     2. Run OSTF.
     3. Up instance in default net in vCenter availability zone
     4. Up instance in default net in nova availability zone
-    5. Disable two used teaming uplinks in vCenter.
+    5. Disable two used active uplinks in vCenter.
     6. Check instances are alive and functioning.
     7. Run OSTF.
 
 Expected result
 ###############
 
-After disabling two of three teaming uplinks instances are alive and functioning.
+After disabling two of three active uplinks instances are alive and functioning.
 All OSTF tests passed.
