@@ -54,24 +54,24 @@ creating an environment in Fuel and modifying the environment settings.
       in the 3.1 release it has new format:
 
       #. New string is used as a delimiter between clusters.
-      #. There are 2 new columns: list of teaming uplinks and list of fallback
+      #. There are 2 new columns: list of active uplinks and list of standby
          uplinks. Both are optional.
       #. The semicolon is used as a delimiter between uplinks.
       #. There is no limitation for amount of uplinks.
       #. Thereby there are next options for a mapping-string:
 
-         #. ClusterName:VDSName:TeamingUplink1;TeamingUplink2:FallBackUplink1;FallBackUplink2
-         #. ClusterName:VDSName:TeamingUplink1;TeamingUplink2;...;TeamingUplinkN
+         #. ClusterName:VDSName:ActiveUplink1;ActiveUplink2:StandbyUplink1;StandbyUplink2
+         #. ClusterName:VDSName:ActiveUplink1;ActiveUplink2;...;ActiveUplinkN
          #. ClusterName:VDSName
 
-      #. There is no option to set fallback uplinks without teaming uplinks.
+      #. There is no option to set standby uplinks without active uplinks.
       #. All uplinks should be presented on real VDS.
    #. If you want to use security groups on your ports, select
       :guilabel:`Use the VMware DVS firewall driver`.
 
    .. figure:: _static/settings.png
       :width: 90%
-   See the `Teaming and Failover Policy <https://pubs.vmware.com/vsphere-55/index.jsp#com.vmware.vsphere.networking.doc/GUID-4D97C749-1FFD-403D-B2AE-0CD0F1C70E2B.html>`__ for more detail about uplinks usage on VDS.
+   See the `Active and Standby Policy <https://pubs.vmware.com/vsphere-55/index.jsp#com.vmware.vsphere.networking.doc/GUID-4D97C749-1FFD-403D-B2AE-0CD0F1C70E2B.html>`__ for more detail about uplinks usage on VDS.
 
    .. caution::
       The VMware DVS ML2 plugin does not support the Distributed Virtual
