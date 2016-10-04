@@ -54,17 +54,17 @@ creating an environment in Fuel and modifying the environment settings.
       in the 3.1 release it has new format:
 
       #. New string is used as a delimiter between clusters.
-      #. There are 2 new columns: list of teaming uplinks and list of fallback
+      #. There are 2 new columns: list of active uplinks and list of standby
          uplinks. Both are optional.
       #. The semicolon is used as a delimiter between uplinks.
       #. There is no limitation for amount of uplinks.
       #. Thereby there are next options for a mapping-string:
 
-         #. ClusterName:VDSName:TeamingUplink1;TeamingUplink2:FallBackUplink1;FallBackUplink2
-         #. ClusterName:VDSName:TeamingUplink1;TeamingUplink2;...;TeamingUplinkN
+         #. ClusterName:VDSName:ActiveUplink1;ActiveUplink2:StandbyUplink1;StandbyUplink2
+         #. ClusterName:VDSName:ActiveUplink1;ActiveUplink2;...;ActiveUplinkN
          #. ClusterName:VDSName
 
-      #. There is no option to set fallback uplinks without teaming uplinks.
+      #. There is no option to set standby uplinks without active uplinks.
       #. All uplinks should be presented on real VDS.
    #. If you want to use security groups on your ports, select
       :guilabel:`Use the VMware DVS firewall driver`.

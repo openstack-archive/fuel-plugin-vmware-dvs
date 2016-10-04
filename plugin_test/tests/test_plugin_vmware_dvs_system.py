@@ -2243,10 +2243,10 @@ class TestDVSSystem(TestBasic):
         assert_true(os_conn.get_network('spring')['id'] == default_net.id)
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_multiple_uplinks_teaming_fallback"])
+          groups=["dvs_multiple_uplinks_active_standby"])
     @log_snapshot_after_test
-    def dvs_multiple_uplinks_teaming_fallback(self):
-        """Launch cluster with multiple teaming and fallback uplinks.
+    def dvs_multiple_uplinks_active_standby(self):
+        """Launch cluster with multiple active and standby uplinks.
 
         Scenario:
             1. Upload DVS plugin to the master node.
@@ -2268,13 +2268,13 @@ class TestDVSSystem(TestBasic):
             9. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
                Nova Compute instances on controllers and compute-vmware.
             10. Enable and configure DVS plugin with multiple uplinks.
-                In foramt "Cluster:VDS:TU1;TU2:FU3".
+                In foramt "Cluster:VDS:AU1;AU2:SU3".
             11. Verify networks.
             12. Deploy cluster.
             13. Run OSTF.
 
         Duration: 1.8 hours
-        Snapshot: dvs_multiple_uplinks_teaming_fallback
+        Snapshot: dvs_multiple_uplinks_active_standby
 
         """
         self.env.revert_snapshot("ready_with_5_slaves")
@@ -2310,7 +2310,7 @@ class TestDVSSystem(TestBasic):
             multiclusters=True)
 
         self.show_step(10)
-        plugin.enable_plugin(cluster_id, self.fuel_web, tu=2, fu=1)
+        plugin.enable_plugin(cluster_id, self.fuel_web, au=2, su=1)
 
         self.show_step(11)
         self.fuel_web.verify_network(cluster_id)
@@ -2322,10 +2322,10 @@ class TestDVSSystem(TestBasic):
         self.fuel_web.run_ostf(cluster_id=cluster_id, test_sets=['smoke'])
 
     @test(depends_on=[SetupEnvironment.prepare_slaves_5],
-          groups=["dvs_multiple_uplinks_teaming"])
+          groups=["dvs_multiple_uplinks_active"])
     @log_snapshot_after_test
-    def dvs_multiple_uplinks_teaming(self):
-        """Launch cluster with multiple teaming uplinks.
+    def dvs_multiple_uplinks_active(self):
+        """Launch cluster with multiple active uplinks.
 
         Scenario:
             1. Upload DVS plugin to the master node.
@@ -2347,13 +2347,13 @@ class TestDVSSystem(TestBasic):
             9. Configure VMware vCenter Settings. Add 2 vSphere clusters and configure
                Nova Compute instances on controllers and compute-vmware.
             10. Enable and configure DVS plugin with multiple uplinks.
-                In format "Cluster:VDS:TU1;TU2;TU3".
+                In format "Cluster:VDS:AU1;AU2;SU3".
             11. Verify networks.
             12. Deploy cluster.
             13. Run OSTF.
 
         Duration: 1.8 hours
-        Snapshot: dvs_multiple_uplinks_teaming
+        Snapshot: dvs_multiple_uplinks_active
 
         """
         self.env.revert_snapshot("ready_with_5_slaves")
@@ -2389,7 +2389,7 @@ class TestDVSSystem(TestBasic):
             multiclusters=True)
 
         self.show_step(10)
-        plugin.enable_plugin(cluster_id, self.fuel_web, tu=3, fu=0)
+        plugin.enable_plugin(cluster_id, self.fuel_web, au=3, su=0)
 
         self.show_step(11)
         self.fuel_web.verify_network(cluster_id)

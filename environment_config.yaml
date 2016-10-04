@@ -15,7 +15,7 @@ attributes:
   vmware_dvs_net_maps:
     value: ""
     label: "Enter the Cluster to dvSwitch mapping."
-    description: "List of strings with format Cluster:VDS:Teaming1;Teaming2:Fallback1;Fallback2 where Teaming and Fallback is teaming and fallback uplinks on a VDS."
+    description: "List of strings with format Cluster:VDS:Active1;Active2:Standby1;Standby2 where Active and Standby is active and standby uplinks on a VDS."
     weight: 25
     type: "textarea"
     regex:
