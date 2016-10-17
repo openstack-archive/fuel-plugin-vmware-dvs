@@ -7,9 +7,6 @@ VMware-related MOS environments.
 Installation
 ============
 
-There is only one difference from normal plugin installation way. Before
-building the plugin you have to patch plugin_rpm.spec.mako file which is a part
-of the fuel plugin builder.
+Copy an rpm file with that plugin to a Fuel master node and do:
 
-Just do
-$ cd /path/to/fuel-plugin-vmware-dvs; sudo patch /path/to/plugin_rpm.spec.mako hack.diff
+# fuel plugins --install ./path/to/fuel-plugin-vmware-dvs-N-N.rpm
