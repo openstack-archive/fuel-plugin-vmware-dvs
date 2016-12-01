@@ -9,4 +9,4 @@ Installation
 
 Copy an rpm file with that plugin to a Fuel master node and do:
 
-# fuel plugins --install ./path/to/fuel-plugin-vmware-dvs-N-N.rpm
+`fuel plugins --install ./path/to/fuel-plugin-vmware-dvs-N-N.rpm`
