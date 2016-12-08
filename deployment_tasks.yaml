@@ -24,7 +24,7 @@
   version: 2.1.0
   groups: ['primary-controller','controller','compute-vmware']
   required_for: [openstack-network-networks,vmware-vcenter]
-  requires: [vmware-dvs-network-common-config]
+  requires: [vmware-dvs-network-common-config, vmware-dvs-setup-neutron-plugin]
   type: puppet
   parameters:
     puppet_manifest: puppet/manifests/agents.pp

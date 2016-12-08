@@ -101,20 +101,6 @@ define vmware_dvs::agent(
     $fw_driver = 'networking_vsphere.agent.firewalls.noop_firewall.NoopvCenterFirewallDriver'
   }
 
-  if ! defined(File["${py_root}/nova.patch"]) {
-    file {"${py_root}/nova.patch":
-      source => 'puppet:///modules/vmware_dvs/nova.patch',
-      notify => Exec['apply-nova-patch'],
-    }
-  }
-  if ! defined(Exec['apply-nova-patch']) {
-    exec {'apply-nova-patch':
-      path        => '/usr/bin:/usr/sbin:/bin:/sbin',
-      command     => "patch -d ${py_root} -N -p1 < ${py_root}/nova.patch",
-      refreshonly => true,
-    }
-  }
-
   if ! empty($vcenter_ca_content) and ! $vsphere_insecure {
     $agent_vcenter_ca_filepath   = $vcenter_ca_filepath
     $agent_vcenter_insecure_real = false

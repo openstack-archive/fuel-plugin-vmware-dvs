@@ -3,25 +3,16 @@ class vmware_dvs::l2 {
   $use_neutron = hiera('use_neutron', false)
 
   if $use_neutron {
-    # override neutron options
-    $override_configuration = hiera_hash('configuration', {})
-    override_resources { 'neutron_agent_ovs':
-      data => $override_configuration['neutron_agent_ovs']
-    } ~> Service['neutron-ovs-agent-service']
-  }
-
-  if $use_neutron {
     include ::neutron::params
 
     $node_name = hiera('node_name')
-    $neutron_primary_controller_roles = hiera('neutron_primary_controller_roles', ['primary-controller'])
     $neutron_compute_roles            = hiera('neutron_compute_nodes', ['compute'])
-    $primary_controller               = roles_include($neutron_primary_controller_roles)
+    $primary_neutron                  = has_primary_role(intersection(hiera('neutron_roles'), hiera('roles')))
     $compute                          = roles_include($neutron_compute_roles)
 
-    $neutron_config        = hiera_hash('neutron_config')
+    $neutron_config = hiera_hash('neutron_config')
     $neutron_server_enable = pick($neutron_config['neutron_server_enable'], true)
-    $neutron_nodes         = hiera_hash('neutron_nodes')
+    $neutron_nodes = hiera_hash('neutron_nodes')
 
     $dpdk_config = hiera_hash('dpdk', {})
     $enable_dpdk = pick($dpdk_config['enabled'], false)
@@ -45,10 +36,10 @@ class vmware_dvs::l2 {
     prepare_network_config($network_scheme)
 
     $neutron_advanced_config = hiera_hash('neutron_advanced_configuration', { })
-    $l2_population           = try_get_value($neutron_advanced_config, 'neutron_l2_pop', false)
-    $dvr                     = try_get_value($neutron_advanced_config, 'neutron_dvr', false)
-    $enable_qos              = pick($neutron_advanced_config['neutron_qos'], false)
-    $segmentation_type       = try_get_value($neutron_config, 'L2/segmentation_type')
+    $l2_population     = try_get_value($neutron_advanced_config, 'neutron_l2_pop', false)
+    $dvr               = try_get_value($neutron_advanced_config, 'neutron_dvr', false)
+    $enable_qos        = pick($neutron_advanced_config['neutron_qos'], false)
+    $segmentation_type = try_get_value($neutron_config, 'L2/segmentation_type')
 
     if $compute and ! $dvr {
       $do_floating = false
@@ -69,11 +60,11 @@ class vmware_dvs::l2 {
     })
 
     if $segmentation_type == 'vlan' {
-      $net_role_property = 'neutron/private'
-      $iface             = get_network_role_property($net_role_property, 'phys_dev')
-      $enable_tunneling  = false
-      $network_type      = 'vlan'
-      $tunnel_types      = []
+      $net_role_property    = 'neutron/private'
+      $iface                = get_network_role_property($net_role_property, 'phys_dev')
+      $enable_tunneling = false
+      $network_type = 'vlan'
+      $tunnel_types = []
     } else {
       $net_role_property = 'neutron/mesh'
       $tunneling_ip      = get_network_role_property($net_role_property, 'ipaddr')
@@ -81,11 +72,11 @@ class vmware_dvs::l2 {
       $physical_net_mtu  = pick(get_transformation_property('mtu', $iface[0]), '1500')
 
       if $segmentation_type == 'gre' {
-        $mtu_offset   = '42'
+        $mtu_offset = '42'
         $network_type = 'gre'
       } else {
         # vxlan is the default segmentation type for non-vlan cases
-        $mtu_offset   = '50'
+        $mtu_offset = '50'
         $network_type = 'vxlan'
       }
       $tunnel_types = [$network_type]
@@ -93,21 +84,20 @@ class vmware_dvs::l2 {
       $enable_tunneling = true
     }
 
+    # DPDK settings on compute node
     if $enable_dpdk and $compute {
-      neutron_agent_ovs {
-        'securitygroup/enable_security_group': value => false;
-      }
-      $firewall_driver          = 'neutron.agent.firewall.NoopFirewallDriver'
+      $firewall_driver          = 'openvswitch'
       $ovs_datapath_type        = 'netdev'
       $ovs_vhostuser_socket_dir = '/var/run/openvswitch'
     } else {
-      neutron_agent_ovs {
-        'securitygroup/enable_security_group': value  => true;
-      }
-      $firewall_driver          = 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver'
+      $firewall_driver          = hiera('security_groups', 'iptables_hybrid')
       # Leave default values when passed to the class
       $ovs_datapath_type        = undef
       $ovs_vhostuser_socket_dir = undef
+    }
+
+    neutron_agent_ovs {
+      'securitygroup/enable_security_group': value => true;
     }
 
     Neutron_agent_ovs<||> ~> Service['neutron-ovs-agent-service']
@@ -129,7 +119,7 @@ class vmware_dvs::l2 {
       enabled                    => true,
     }
 
-    if str2bool(inline_template('<%= @neutron_nodes.values.keep_if {|h| h["name"] == @node_name}.length > 0%>')) {
+    if $node_name in keys($neutron_nodes) {
       if $neutron_server_enable {
         $service_ensure = 'running'
       } else {
@@ -137,9 +127,9 @@ class vmware_dvs::l2 {
       }
 
       service { 'neutron-server':
-        ensure     => $service_ensure,
         name       => $::neutron::params::server_service,
         enable     => $neutron_server_enable,
+        ensure     => $service_ensure,
         hasstatus  => true,
         hasrestart => true,
         tag        => 'neutron-service',
@@ -167,15 +157,15 @@ class vmware_dvs::l2 {
       if $ha_agent {
         #Exec<| title == 'waiting-for-neutron-api' |> ->
         class { '::cluster::neutron::ovs' :
-          primary => $primary_controller,
+          primary => $primary_neutron,
         }
       }
     }
 
     # Stub for upstream neutron manifests
     package { 'neutron':
-      ensure => 'installed',
       name   => 'binutils',
+      ensure => 'installed',
     }
 
   }
