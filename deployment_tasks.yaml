@@ -80,7 +80,7 @@
   version: 2.1.0
   groups: [primary-controller]
   required_for: [openstack-network-end]
-  requires: [openstack-network-start, openstack-network-common-config, openstack-network-server-config]
+  requires: [openstack-network-start, openstack-network-common-config, primary-openstack-network-server-config]
   condition:
     yaql_exp: &network_plugins_l2 >
       changedAny($.quantum, $.configuration, $.fqdn,
