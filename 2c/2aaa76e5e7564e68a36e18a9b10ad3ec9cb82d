@@ -1,0 +1,8 @@
+Code-Review+2: Igor Gajsin <igajsin@mirantis.com>
+Workflow+1: Igor Gajsin <igajsin@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 19 Dec 2016 13:48:25 +0000
+Reviewed-on: https://review.openstack.org/412392
+Project: openstack/fuel-plugin-vmware-dvs
+Branch: refs/heads/master
