@@ -119,7 +119,7 @@ class vmware_dvs::l2 {
       enabled                    => true,
     }
 
-    if $node_name in keys($neutron_nodes) {
+    if str2bool(inline_template('<%= @neutron_nodes.values.keep_if {|h| h["name"] == @node_name}.length > 0%>')) {
       if $neutron_server_enable {
         $service_ensure = 'running'
       } else {
