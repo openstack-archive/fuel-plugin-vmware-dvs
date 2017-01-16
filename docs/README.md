@@ -81,7 +81,7 @@ meets the acceptance criteria.
   * A link to official documentation and configuration guides of used HW/SH
     should be provided.
   * How to configure required external hardware/software (e.g. storage devices,
-    switches and so on) so that user could use them via the the
+    switches and so on) so that user could use them via the
     application/driver. A simple configuration would be enough.
   * If the solution can use specific HW/SW in several modes, then there should
     be instructions on how to properly configure the hw/software to use this
