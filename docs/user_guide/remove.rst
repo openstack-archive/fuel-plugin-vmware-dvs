@@ -15,7 +15,7 @@ To uninstall VMware DVS plugin, follow the steps below:
 
    .. code-block:: console
 
-     # fuel plugins --remove fuel-plugin-vmware-dvs==3.1.0
+     # fuel plugins --remove fuel-plugin-vmware-dvs==3.1.1
 
 #. Verify whether the VMware DVS plugin was uninstalled successfully:
 

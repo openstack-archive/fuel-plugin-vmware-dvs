@@ -7,7 +7,7 @@ Before you install and start using the VMware DVS plugin on Fuel, complete the
 following steps:
 
 #. Install and set up
-   `Fuel 9.1 <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-install-guide.html>`__.
+   `Fuel 9.2 <http://docs.openstack.org/developer/fuel-docs/userdocs/fuel-install-guide.html>`__.
 
 #. Plan the vSphere integration. For details, see
    `Mirantis OpenStack Planning Guide <https://docs.mirantis.com/openstack/fuel/fuel-9.0/mos-planning-guide.html#plan-the-vsphere-integration>`_.
