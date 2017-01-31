@@ -1,5 +1,5 @@
 =============================================
-Test Plan for VMware DVS plugin version 3.1.0
+Test Plan for VMware DVS plugin version 3.1.1
 =============================================
 
 ************
@@ -69,7 +69,7 @@ Product compatibility matrix
      - Version
      - Comment
    * - MOS
-     - 9.1 with Mitaka
+     - 9.2 with Mitaka
      -
    * - Operating System
      - Ubuntu 14.04
