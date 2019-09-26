@@ -1,12 +1,3 @@
-fuel-plugin-vmware-dvs
-============
+# This repo has moved to OpenDev
 
-There is the Fuel plugin which provides Neutron for networking on
-VMware-related MOS environments.
-
-Installation
-============
-
-Copy an rpm file with that plugin to a Fuel master node and do:
-
-# fuel plugins --install ./path/to/fuel-plugin-vmware-dvs-N-N.rpm
+It can now be found at [https://opendev.org/x/fuel-plugin-vmware-dvs](https://opendev.org/x/fuel-plugin-vmware-dvs)

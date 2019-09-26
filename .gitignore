@@ -1,9 +1,0 @@
-.tox
-.build
-*.pyc
-.#*
-\#*
-*~
-*.rpm
-vmware-dvs
-plugin_test/fuel-qa
